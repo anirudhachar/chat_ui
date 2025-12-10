@@ -152,6 +152,7 @@ export default function ChatInterface() {
 
     if (event.data?.type === "OPEN_CHAT") {
       const incomingUser = event.data.payload;
+      console.log(incomingUser,"incomingUser")
 
       const user: User = {
         id: incomingUser.user_id,
