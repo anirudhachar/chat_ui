@@ -86,6 +86,8 @@ const mockMessagesMap: { [key: string]: Message[] } = {
 };
 
 export default function ChatInterface() {
+
+  console.log("hello")
   const [users, setUsers] = useState<User[]>(mockUsers);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
