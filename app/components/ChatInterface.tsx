@@ -147,20 +147,24 @@ export default function ChatInterface() {
   );
 
 
-  useEffect(() => {
-  const handleMessage = (event: MessageEvent) => {
-    // Replace with your actual parent domain
-    // if (event.origin !== "https://dev.campusmesh.com") return;
-    console.log(event,"eevnttriggered")
+ useEffect(() => {
+  // Notify parent that child is ready to receive messages
+  window.parent.postMessage({ type: "CHAT_READY" }, "*");
 
-    if (event.data?.type === "OPEN_CHAT") {
+  const handleMessage = (event: MessageEvent) => {
+    // Replace * with your parent domain in production
+    if (!event.data?.type) return;
+
+    if (event.data.type === "OPEN_CHAT") {
       const incomingUser = event.data.payload;
-      console.log(incomingUser,"incomingUser")
+      console.log("Incoming user:", incomingUser);
 
       const user: User = {
-        id: incomingUser.user_id,
-        name: incomingUser.firstName + " " + (incomingUser.lastName ?? ""),
-        avatar: incomingUser.profilePhoto,
+        id: incomingUser.user?.user_id || incomingUser.user_id,
+        name: incomingUser.user
+          ? incomingUser.user.firstName + " " + (incomingUser.user.lastName ?? "")
+          : incomingUser.firstName + " " + (incomingUser.lastName ?? ""),
+        avatar: incomingUser.user?.profilePhoto || incomingUser.profilePhoto,
         lastMessage: "",
         lastMessageTime: "Now",
         online: true,
