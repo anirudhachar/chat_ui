@@ -1,0 +1,119 @@
+.messageInput {
+  position: relative;
+  background-color: var(--color-bg-white);
+  border-top: 1px solid var(--color-border);
+  padding: var(--spacing-md);
+}
+
+.emojiPickerBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 99;
+}
+
+.emojiPickerWrapper {
+  position: absolute;
+  bottom: 70px;
+  left: var(--spacing-md);
+  z-index: 100;
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  max-width: 350px;
+
+  @media (max-width: 767px) {
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - var(--spacing-xl));
+    max-width: none;
+  }
+}
+
+.inputContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background-color: var(--color-bg-white);
+}
+
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-light);
+  font-size: 22px;
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: var(--color-hover);
+    color: var(--color-text-dark);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.fileInput {
+  display: none;
+}
+
+.textInput {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  background-color: var(--color-bg);
+  border-radius: 24px;
+  font-size: 15px;
+  color: var(--color-text-dark);
+  outline: none;
+  transition: background-color 0.2s ease;
+
+  &:focus {
+    background-color: var(--color-hover);
+  }
+
+  &::placeholder {
+    color: var(--color-text-lighter);
+  }
+}
+
+.sendButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background-color: var(--color-primary);
+  color: var(--color-text-white);
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-primary-dark);
+    transform: scale(1.05);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
