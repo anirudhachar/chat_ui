@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import styles from './ChatInterface.module.scss';
 import UserSidebar from './UserSidebar';
@@ -143,6 +143,34 @@ export default function ChatInterface() {
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+
+  useEffect(() => {
+  const handleMessage = (event: MessageEvent) => {
+    // Replace with your actual parent domain
+    // if (event.origin !== "https://dev.campusmesh.com") return;
+
+    if (event.data?.type === "OPEN_CHAT") {
+      const incomingUser = event.data.payload;
+
+      const user: User = {
+        id: incomingUser.user_id,
+        name: incomingUser.firstName + " " + (incomingUser.lastName ?? ""),
+        avatar: incomingUser.profilePhoto,
+        lastMessage: "",
+        lastMessageTime: "Now",
+        online: true,
+      };
+
+      setSelectedUser(user);
+      setMessages(mockMessagesMap[user.id] || []);
+      setShowSidebar(false);
+    }
+  };
+
+  window.addEventListener("message", handleMessage);
+  return () => window.removeEventListener("message", handleMessage);
+}, []);
 
   return (
     <div className={styles.chatInterface}>
