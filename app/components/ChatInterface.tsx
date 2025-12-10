@@ -70,7 +70,7 @@ const mockUsers: User[] = [
 // Mock messages data
 const mockMessagesMap: { [key: string]: Message[] } = {
   '1': [
-    { id: '1', content: 'Hi there!', timestamp: '10:25 AM', sent: false, type: 'text' },
+    { id: '1', content: 'yi there!', timestamp: '10:25 AM', sent: false, type: 'text' },
     { id: '2', content: 'Hello! How can I help you?', timestamp: '10:26 AM', sent: true, type: 'text', status: 'read' },
     { id: '3', content: 'Hey! How are you doing?', timestamp: '10:30 AM', sent: false, type: 'text' },
   ],
