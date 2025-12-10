@@ -149,6 +149,7 @@ export default function ChatInterface() {
   const handleMessage = (event: MessageEvent) => {
     // Replace with your actual parent domain
     // if (event.origin !== "https://dev.campusmesh.com") return;
+    console.log(event,"eevnttriggered")
 
     if (event.data?.type === "OPEN_CHAT") {
       const incomingUser = event.data.payload;
