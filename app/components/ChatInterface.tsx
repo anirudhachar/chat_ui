@@ -189,12 +189,12 @@ const handleSendMessage = (
     newMessage.fileUrl = fileOrLink?.url;
   }
 
-  if (type === "link") {
-    newMessage.linkTitle = fileOrLink?.name;
-    newMessage.linkUrl = fileOrLink?.url;
-    newMessage.linkImage = fileOrLink?.image;
-    newMessage.linkDescription = fileOrLink?.description;
-  }
+ if (type === "link") {
+  newMessage.linkTitle = fileOrLink?.title;
+  newMessage.linkUrl = fileOrLink?.url;
+  newMessage.linkImage = fileOrLink?.image;
+  newMessage.linkDescription = fileOrLink?.description;
+}
 
   setMessages([...messages, newMessage]);
 
