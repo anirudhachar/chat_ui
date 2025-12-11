@@ -231,7 +231,12 @@ export default function ChatInterface() {
             lastMessage: "",
             lastMessageTime: "Now",
             online: true,
+            
           };
+
+          console.log(user,"usermania")
+
+       
 
           setSelectedUser(user);
           setMessages(mockMessagesMap[user.id] || []);
