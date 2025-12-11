@@ -225,7 +225,9 @@ export default function ChatInterface() {
           const user: User = {
             id: incomingUser.user_id,
             name: incomingUser.firstName + " " + (incomingUser.lastName ?? ""),
-            avatar: incomingUser.profilePhoto,
+          avatar: incomingUser.profilePhoto
+            ? `https://d34wmjl2ccaffd.cloudfront.net/${incomingUser.profilePhoto}`
+            : "/user.png",
             lastMessage: "",
             lastMessageTime: "Now",
             online: true,
