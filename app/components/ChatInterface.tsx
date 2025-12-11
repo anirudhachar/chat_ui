@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import styles from "./ChatInterface.module.scss";
 import UserSidebar from "./UserSidebar";
 import ChatPanel from "./ChatPanel";
-import fallbackPic from "/user.png";
+
 
 
 export interface User {
@@ -255,7 +255,7 @@ if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
   const chatUser: User = {
     id: user.user_id,
     name: user.firstName + " " + (user.lastName ?? ""),
-    avatar: user.profilePhoto || fallbackPic,
+    avatar: user.profilePhoto || "/user.png",
     lastMessage: "",
     lastMessageTime: "Now",
     online: true,
