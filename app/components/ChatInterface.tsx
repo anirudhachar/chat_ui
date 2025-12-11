@@ -26,7 +26,6 @@ export interface Message {
   fileName?: string;
   fileUrl?: string;
 
-  // link preview fields
   linkTitle?: string;
   linkUrl?: string;
   linkImage?: string;
@@ -42,19 +41,27 @@ export default function ChatInterface() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSidebar, setShowSidebar] = useState(true);
 
+  const [parentToken, setParentToken] = useState<string | null>(null);
+
   // ───────────────────────────────────────────────
   // 1️⃣ FETCH USERS FROM API
   // ───────────────────────────────────────────────
   useEffect(() => {
     const fetchUsers = async () => {
+      if (!parentToken) return; // wait until token received
+
       try {
         const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/conversations/list?limit=20${
           cursor ? `&cursor=${cursor}` : ""
         }`;
 
-        const res = await fetch(url);
-        const data = await res.json();
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${parentToken}`,
+          },
+        });
 
+        const data = await res.json();
         console.log("📥 Conversations API:", data);
 
         const mappedUsers: User[] =
@@ -81,16 +88,15 @@ export default function ChatInterface() {
     };
 
     fetchUsers();
-  }, []);
+  }, [parentToken]);
 
   // ───────────────────────────────────────────────
   // 2️⃣ SELECT USER
   // ───────────────────────────────────────────────
   const handleUserSelect = (user: User) => {
     setSelectedUser(user);
-    setMessages([]); // will fetch from API later
+    setMessages([]);
 
-    // Clear unread badge
     setUsers((prev) =>
       prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
     );
@@ -136,13 +142,12 @@ export default function ChatInterface() {
 
     setMessages((prev) => [...prev, newMessage]);
 
-    // update last message in sidebar
     setUsers((prev) =>
       prev.map((u) =>
         u.id === selectedUser.id
           ? {
               ...u,
-              lastMessage: content || fileOrLink?.name,
+              lastMessage: newMessage.content,
               lastMessageTime: "Just now",
             }
           : u
@@ -151,14 +156,14 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // 4️⃣ SEARCH FILTER
+  // 4️⃣ FILTER USERS
   // ───────────────────────────────────────────────
-  const filteredUsers = users.filter((user) =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredUsers = users.filter((u) =>
+    u.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // ───────────────────────────────────────────────
-  // 5️⃣ MESSAGE FROM PARENT (iframe)
+  // 5️⃣ RECEIVE TOKEN + OPEN_CHAT + MESSAGE from parent
   // ───────────────────────────────────────────────
   useEffect(() => {
     window.parent.postMessage({ type: "CHAT_READY" }, "*");
@@ -166,15 +171,14 @@ export default function ChatInterface() {
     const handleMessage = (event: MessageEvent) => {
       if (!event.data?.type) return;
 
-      console.log("📨 iframe message:", event.data);
+      console.log("📨 iframe received:", event.data);
 
-      // OPEN CHAT
+      // token comes inside OPEN_CHAT payload
       if (event.data.type === "OPEN_CHAT") {
-        const payload = event.data.payload;
+        setParentToken(event.data.payload?.token || null);
 
-        if (payload.user) {
-          const incomingUser = payload.user;
-
+        const incomingUser = event.data.payload?.user;
+        if (incomingUser) {
           const user: User = {
             id: incomingUser.user_id,
             name: `${incomingUser.firstName} ${incomingUser.lastName ?? ""}`.trim(),
@@ -189,14 +193,10 @@ export default function ChatInterface() {
           setSelectedUser(user);
           setMessages([]);
           setShowSidebar(false);
-        } else {
-          setSelectedUser(null);
-          setMessages([]);
-          setShowSidebar(true);
         }
       }
 
-      // SEND MESSAGE FROM PARENT
+      // MESSAGE SEND FROM PARENT
       if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
         const { user, message } = event.data.payload;
 
@@ -214,21 +214,17 @@ export default function ChatInterface() {
         setSelectedUser(chatUser);
         setShowSidebar(false);
 
-        const incomingMessage: Message = {
+        const incoming: Message = {
           id: Date.now().toString(),
           content: message,
-          timestamp: new Date().toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-          }),
+          timestamp: new Date().toLocaleTimeString(),
           sent: true,
           type: "text",
           status: "delivered",
         };
 
-        setMessages((prev) => [...prev, incomingMessage]);
+        setMessages((prev) => [...prev, incoming]);
 
-        // update sidebar
         setUsers((prev) =>
           prev.map((u) =>
             u.id === chatUser.id
@@ -237,10 +233,9 @@ export default function ChatInterface() {
           )
         );
 
-        // auto-send message
         setTimeout(() => {
           handleSendMessage(message, "text");
-        }, 200);
+        }, 150);
       }
     };
 
