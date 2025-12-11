@@ -14,8 +14,14 @@ interface ChatPanelProps {
   messages: Message[];
   onSendMessage: (
     content: string,
-    type?: "text" | "image" | "document",
-    file?: { name: string; url: string }
+  type?: "text" | "image" | "document" | "link",
+file?: { 
+  name: string; 
+  url: string; 
+  image?: string;
+  description?: string;
+}
+
   ) => void;
   onBack: () => void;
 }
@@ -107,7 +113,7 @@ export default function ChatPanel({
               <img
                 src={selectedUser.avatar}
                 alt={selectedUser.name}
-               style={{width:"30px",height:"30px",borderRadius:"50%"}}
+                style={{ width: "30px", height: "30px", borderRadius: "50%" }}
                 className={styles.avatarImage}
               />
             )}
@@ -122,7 +128,7 @@ export default function ChatPanel({
             {selectedUser.online ? "Online" : "Offline"}
           </p>
         </div>
-            
+
         <button className={styles.moreButton}>
           <FiMoreVertical />
         </button>
@@ -152,6 +158,34 @@ export default function ChatPanel({
                       <p className={styles.documentName}>{message.fileName}</p>
                     </div>
                   </div>
+                )}
+
+                {/* Link Preview Message */}
+                {message.type === "link" && message.linkUrl && (
+                  <a
+                    href={message.linkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.linkPreviewCard}
+                  >
+                    {message.linkImage && (
+                      <img
+                        src={message.linkImage}
+                        alt={message.linkTitle}
+                        className={styles.linkPreviewImage}
+                      />
+                    )}
+
+                    <div className={styles.linkPreviewContent}>
+                      <p className={styles.linkPreviewTitle}>
+                        {message.linkTitle}
+                      </p>
+                      <p className={styles.linkPreviewDescription}>
+                        {message.linkDescription}
+                      </p>
+                      <p className={styles.linkPreviewUrl}>{message.linkUrl}</p>
+                    </div>
+                  </a>
                 )}
 
                 {message.content && (

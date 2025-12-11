@@ -1,17 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useRef, ChangeEvent, useEffect } from 'react';
-import { FiSmile, FiPaperclip, FiSend } from 'react-icons/fi';
-import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
-import styles from './MessageInput.module.scss';
+import { useState, useRef, ChangeEvent, useEffect } from "react";
+import { FiSmile, FiPaperclip, FiSend } from "react-icons/fi";
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+import styles from "./MessageInput.module.scss";
 
 interface MessageInputProps {
   onSendMessage: (
     content: string,
-    type?: 'text' | 'image' | 'document',
-    file?: { name: string; url: string }
+    type?: "text" | "image" | "document" | "link",
+    file?: { name: string; url: string; image?: string; description?: string }
   ) => void;
 }
+
 
 const extractURL = (text: string) => {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -20,7 +21,7 @@ const extractURL = (text: string) => {
 };
 
 export default function MessageInput({ onSendMessage }: MessageInputProps) {
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [linkPreview, setLinkPreview] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -32,17 +33,29 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
     debounceRef.current = setTimeout(() => fetchPreview(url), 500);
   };
 
-  const handleSend = () => {
-    if (!message.trim()) return;
+const handleSend = () => {
+  if (!message.trim() && !linkPreview) return;
 
+  // If link preview exists, send it as a special message
+  if (linkPreview) {
+    onSendMessage(message.trim(), 'link', {
+      name: linkPreview.title,
+      url: linkPreview.url,
+      image: linkPreview.image,
+      description: linkPreview.description,
+    });
+  } else {
     onSendMessage(message.trim(), 'text');
-    setMessage('');
-    setLinkPreview(null);
-    setShowEmojiPicker(false);
-  };
+  }
+
+  setMessage('');
+  setLinkPreview(null);
+  setShowEmojiPicker(false);
+};
+
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -57,28 +70,27 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
     if (!file) return;
 
     const fileUrl = URL.createObjectURL(file);
-    const isImage = file.type.startsWith('image/');
+    const isImage = file.type.startsWith("image/");
 
-    onSendMessage(
-      isImage ? '' : file.name,
-      isImage ? 'image' : 'document',
-      { name: file.name, url: fileUrl }
-    );
+    onSendMessage(isImage ? "" : file.name, isImage ? "image" : "document", {
+      name: file.name,
+      url: fileUrl,
+    });
 
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const fetchPreview = async (url: string) => {
     try {
-      const res = await fetch('/api/preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       });
       const data = await res.json();
       if (!data.error) setLinkPreview(data);
     } catch (err) {
-      console.error('Preview failed', err);
+      console.error("Preview failed", err);
       setLinkPreview(null);
     }
   };
@@ -95,22 +107,24 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
   return (
     <div className={styles.messageInputWrapper}>
       {/* Link Preview Above Input */}
-   {linkPreview && (
-  <div className={styles.linkPreview}>
-    {linkPreview.image && (
-      <img
-        src={linkPreview.image}
-        alt={linkPreview.title}
-        className={styles.previewImage}
-      />
-    )}
-    <div className={styles.previewContent}>
-      <p className={styles.previewTitle}>{linkPreview.title}</p>
-      <p className={styles.previewDescription}>{linkPreview.description}</p>
-      <p className={styles.previewUrl}>{linkPreview.url}</p>
-    </div>
-  </div>
-)}
+      {linkPreview && (
+        <div className={styles.linkPreview}>
+          {linkPreview.image && (
+            <img
+              src={linkPreview.image}
+              alt={linkPreview.title}
+              className={styles.previewImage}
+            />
+          )}
+          <div className={styles.previewContent}>
+            <p className={styles.previewTitle}>{linkPreview.title}</p>
+            <p className={styles.previewDescription}>
+              {linkPreview.description}
+            </p>
+            <p className={styles.previewUrl}>{linkPreview.url}</p>
+          </div>
+        </div>
+      )}
 
       <div className={styles.messageInput}>
         {/* Emoji Picker */}

@@ -21,11 +21,17 @@ export interface Message {
   content: string;
   timestamp: string;
   sent: boolean;
-  type: "text" | "image" | "document";
+  type: "text" | "image" | "document" | "link"; // add link
   status?: "sent" | "delivered" | "read";
   fileName?: string;
   fileUrl?: string;
+  // new fields for link preview
+  linkTitle?: string;
+  linkUrl?: string;
+  linkImage?: string;
+  linkDescription?: string;
 }
+
 
 // Mock users data
 const mockUsers: User[] = [
@@ -153,44 +159,55 @@ export default function ChatInterface() {
       users.map((u) => (u.id === user.id ? { ...u, unread: undefined } : u))
     );
 
-    // On mobile, hide sidebar when user is selected
+  
     if (window.innerWidth < 768) {
       setShowSidebar(false);
     }
   };
 
-  const handleSendMessage = (
-    content: string,
-    type: "text" | "image" | "document" = "text",
-    file?: { name: string; url: string }
-  ) => {
-    if (!selectedUser) return;
+const handleSendMessage = (
+  content: string,
+  type: "text" | "image" | "document" | "link" = "text",
+  fileOrLink?: any
+) => {
+  if (!selectedUser) return;
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      content,
-      timestamp: new Date().toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-      sent: true,
-      type,
-      status: "sent",
-      fileName: file?.name,
-      fileUrl: file?.url,
-    };
-
-    setMessages([...messages, newMessage]);
-
-    // Update last message in user list
-    setUsers(
-      users.map((u) =>
-        u.id === selectedUser.id
-          ? { ...u, lastMessage: content, lastMessageTime: "Just now" }
-          : u
-      )
-    );
+  const newMessage: Message = {
+    id: Date.now().toString(),
+    content,
+    timestamp: new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+    sent: true,
+    type,
+    status: "sent",
   };
+
+  if (type === "image" || type === "document") {
+    newMessage.fileName = fileOrLink?.name;
+    newMessage.fileUrl = fileOrLink?.url;
+  }
+
+  if (type === "link") {
+    newMessage.linkTitle = fileOrLink?.name;
+    newMessage.linkUrl = fileOrLink?.url;
+    newMessage.linkImage = fileOrLink?.image;
+    newMessage.linkDescription = fileOrLink?.description;
+  }
+
+  setMessages([...messages, newMessage]);
+
+  // Update last message in user list
+  setUsers(
+    users.map((u) =>
+      u.id === selectedUser.id
+        ? { ...u, lastMessage: content || fileOrLink?.name, lastMessageTime: "Just now" }
+        : u
+    )
+  );
+};
+
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -225,18 +242,15 @@ export default function ChatInterface() {
           const user: User = {
             id: incomingUser.user_id,
             name: incomingUser.firstName + " " + (incomingUser.lastName ?? ""),
-          avatar: incomingUser.profilePhoto
-            ? `https://d34wmjl2ccaffd.cloudfront.net${incomingUser.profilePhoto}`
-            : "/user.png",
+            avatar: incomingUser.profilePhoto
+              ? `https://d34wmjl2ccaffd.cloudfront.net${incomingUser.profilePhoto}`
+              : "/user.png",
             lastMessage: "",
             lastMessageTime: "Now",
             online: true,
-            
           };
 
-          console.log(user,"usermania")
-
-       
+          console.log(user, "usermania");
 
           setSelectedUser(user);
           setMessages(mockMessagesMap[user.id] || []);
