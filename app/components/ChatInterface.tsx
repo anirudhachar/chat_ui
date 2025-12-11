@@ -210,7 +210,7 @@ export default function ChatInterface() {
     window.parent.postMessage({ type: "CHAT_READY" }, "*");
 
     const handleMessage = (event: MessageEvent) => {
-      console.log(event,"eventMessage")
+      console.log(event, "eventMessage");
       if (!event.data?.type) return;
 
       // -------------------------
@@ -244,50 +244,54 @@ export default function ChatInterface() {
       // -------------------------
       // 2️⃣ RECEIVE SHARE MESSAGE FROM PARENT
       // -------------------------
-      if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
-        const { user, message, shareLink } = event.data.payload;
-console.log(shareLink,"sharelink")
-        // Select the user in chat
-        const chatUser: User = {
-          id: user.user_id,
-          name: user.firstName + " " + (user.lastName ?? ""),
-          avatar: user.profilePhoto,
-          lastMessage: "",
-          lastMessageTime: "Now",
-          online: true,
-        };
+    // -------------------------
+// 2️⃣ RECEIVE SHARE MESSAGE FROM PARENT
+// -------------------------
+if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
+  const { user, message } = event.data.payload;
 
-        setSelectedUser(chatUser);
-        setShowSidebar(false);
+  const chatUser: User = {
+    id: user.user_id,
+    name: user.firstName + " " + (user.lastName ?? ""),
+    avatar: user.profilePhoto,
+    lastMessage: "",
+    lastMessageTime: "Now",
+    online: true,
+  };
 
-        // Append message + link to chat
-        const newMessage: Message = {
-          id: Date.now().toString(),
-          content: message, // includes message + shareLink
-          timestamp: new Date().toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-          }),
-          sent: false, // parent sent it
-          type: "text",
-          status: "delivered",
-        };
+  setSelectedUser(chatUser);
+  setShowSidebar(false);
 
-        setMessages((prev) => [...prev, newMessage]);
+  // Show message inside chat (incoming message)
+  const incomingMessage: Message = {
+    id: Date.now().toString(),
+    content: message,
+    timestamp: new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+    sent: true,
+    type: "text",
+    status: "delivered",
+  };
 
-        // Update sidebar last message
-        setUsers((prev) =>
-          prev.map((u) =>
-            u.id === chatUser.id
-              ? {
-                  ...u,
-                  lastMessage: message,
-                  lastMessageTime: "Now",
-                }
-              : u
-          )
-        );
-      }
+  setMessages((prev) => [...prev, incomingMessage]);
+
+  // Update sidebar last message
+  setUsers((prev) =>
+    prev.map((u) =>
+      u.id === chatUser.id
+        ? { ...u, lastMessage: message, lastMessageTime: "Now" }
+        : u
+    )
+  );
+
+  // 🚀 AUTO-SEND ONLY THE MESSAGE (no share link)
+  setTimeout(() => {
+    handleSendMessage(message, "text");
+  }, 200);
+}
+
     };
 
     window.addEventListener("message", handleMessage);
