@@ -122,7 +122,7 @@ export default function ChatPanel({
             {selectedUser.online ? "Online" : "Offline"}
           </p>
         </div>
-
+            
         <button className={styles.moreButton}>
           <FiMoreVertical />
         </button>
