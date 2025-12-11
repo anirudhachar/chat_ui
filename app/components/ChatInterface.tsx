@@ -205,95 +205,94 @@ export default function ChatInterface() {
     user.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-useEffect(() => {
-  // Inform parent that child is ready
-  window.parent.postMessage({ type: "CHAT_READY" }, "*");
+  useEffect(() => {
+    // Inform parent that child is ready
+    window.parent.postMessage({ type: "CHAT_READY" }, "*");
 
-  const handleMessage = (event: MessageEvent) => {
-  if (!event.data?.type) return;
+    const handleMessage = (event: MessageEvent) => {
+      console.log(event,"eventMessage")
+      if (!event.data?.type) return;
 
-  // -------------------------
-  // 1️⃣ OPEN CHAT
-  // -------------------------
-  if (event.data.type === "OPEN_CHAT") {
-    const payload = event.data.payload;
+      // -------------------------
+      // 1️⃣ OPEN CHAT
+      // -------------------------
+      if (event.data.type === "OPEN_CHAT") {
+        const payload = event.data.payload;
 
-    if (payload.user) {
-      const incomingUser = payload.user;
+        if (payload.user) {
+          const incomingUser = payload.user;
 
-      const user: User = {
-        id: incomingUser.user_id,
-        name: incomingUser.firstName + " " + (incomingUser.lastName ?? ""),
-        avatar: incomingUser.profilePhoto,
-        lastMessage: "",
-        lastMessageTime: "Now",
-        online: true,
-      };
+          const user: User = {
+            id: incomingUser.user_id,
+            name: incomingUser.firstName + " " + (incomingUser.lastName ?? ""),
+            avatar: incomingUser.profilePhoto,
+            lastMessage: "",
+            lastMessageTime: "Now",
+            online: true,
+          };
 
-      setSelectedUser(user);
-      setMessages(mockMessagesMap[user.id] || []);
-      setShowSidebar(false);
-    } else {
-      setSelectedUser(null);
-      setMessages([]);
-      setShowSidebar(true);
-    }
-  }
+          setSelectedUser(user);
+          setMessages(mockMessagesMap[user.id] || []);
+          setShowSidebar(false);
+        } else {
+          setSelectedUser(null);
+          setMessages([]);
+          setShowSidebar(true);
+        }
+      }
 
-  // -------------------------
-  // 2️⃣ RECEIVE SHARE MESSAGE FROM PARENT
-  // -------------------------
-  if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
-    const { user, message, shareLink } = event.data.payload;
+      // -------------------------
+      // 2️⃣ RECEIVE SHARE MESSAGE FROM PARENT
+      // -------------------------
+      if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
+        const { user, message, shareLink } = event.data.payload;
 
-    // Select the user in chat
-    const chatUser: User = {
-      id: user.user_id,
-      name: user.firstName + " " + (user.lastName ?? ""),
-      avatar: user.profilePhoto,
-      lastMessage: "",
-      lastMessageTime: "Now",
-      online: true,
+        // Select the user in chat
+        const chatUser: User = {
+          id: user.user_id,
+          name: user.firstName + " " + (user.lastName ?? ""),
+          avatar: user.profilePhoto,
+          lastMessage: "",
+          lastMessageTime: "Now",
+          online: true,
+        };
+
+        setSelectedUser(chatUser);
+        setShowSidebar(false);
+
+        // Append message + link to chat
+        const newMessage: Message = {
+          id: Date.now().toString(),
+          content: message, // includes message + shareLink
+          timestamp: new Date().toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          }),
+          sent: false, // parent sent it
+          type: "text",
+          status: "delivered",
+        };
+
+        setMessages((prev) => [...prev, newMessage]);
+
+        // Update sidebar last message
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === chatUser.id
+              ? {
+                  ...u,
+                  lastMessage: message,
+                  lastMessageTime: "Now",
+                }
+              : u
+          )
+        );
+      }
     };
 
-    setSelectedUser(chatUser);
-    setShowSidebar(false);
-
-    // Append message + link to chat
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      content: message,          // includes message + shareLink
-      timestamp: new Date().toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-      sent: false,               // parent sent it
-      type: "text",
-      status: "delivered",
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
-
-    // Update sidebar last message
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === chatUser.id
-          ? {
-              ...u,
-              lastMessage: message,
-              lastMessageTime: "Now",
-            }
-          : u
-      )
-    );
-  }
-};
-
-
-  window.addEventListener("message", handleMessage);
-  return () => window.removeEventListener("message", handleMessage);
-}, []);
-
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
 
   return (
     <div className={styles.chatInterface}>
