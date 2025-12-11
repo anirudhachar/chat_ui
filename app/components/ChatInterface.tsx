@@ -95,40 +95,53 @@ export default function ChatInterface() {
 
   // ───────────────────────────────────────────────
   // FETCH MESSAGES
-  // ───────────────────────────────────────────────
-  const fetchMessages = async (conversationId: string) => {
-    if (!parentToken) return;
+// ───────────────────────────────────────────────
+// FETCH MESSAGES
+// ───────────────────────────────────────────────
+const fetchMessages = async (conversationId: string) => {
+  if (!parentToken) return;
 
-    try {
-      const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/${conversationId}/list?limit=10`;
+  try {
+    const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/${conversationId}/list?limit=10`;
 
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${parentToken}`,
-        },
-      });
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${parentToken}`,
+      },
+    });
 
-      const data = await res.json();
-      console.log("📥 Messages API:", data);
+    const data = await res.json();
+    console.log("📥 Messages API:", data);
 
-      const mappedMessages: Message[] =
-        data?.data?.messages?.map((msg: any) => ({
-          id: msg.messageId,
-          content: msg.content,
-          timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-          }),
-          sent: msg.senderUserId === MY_USER_ID,
-          type: "text",
-          status: msg.senderUserId === MY_USER_ID ? "sent" : undefined,
-        })) || [];
+    const mappedMessages: Message[] =
+      data?.data?.messages?.map((msg: any) => ({
+        id: msg.messageId,
+        content: msg.content,
+        timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+        }),
+        sent: msg.senderUserId === MY_USER_ID,
+        type: "text",
+        status: msg.senderUserId === MY_USER_ID ? "sent" : undefined,
+      })) || [];
 
-      setMessages(mappedMessages);
-    } catch (error) {
-      console.error("❌ Failed to fetch messages:", error);
-    }
-  };
+    setMessages(mappedMessages);
+  } catch (error) {
+    console.error("❌ Failed to fetch messages:", error);
+  }
+};
+
+// ───────────────────────────────────────────────
+// FETCH MESSAGES WHEN SELECTED USER CHANGES
+// ───────────────────────────────────────────────
+useEffect(() => {
+  if (!selectedUser) return;
+
+  // Use fixed conversation ID for now
+  fetchMessages(FIXED_CONVERSATION_ID);
+}, [selectedUser]);
+
 
   // ───────────────────────────────────────────────
   // SELECT USER
