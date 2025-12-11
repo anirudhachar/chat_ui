@@ -295,8 +295,8 @@
 .linkPreviewCard {
   display: flex;
   flex-direction: column;
-  width: 260px;
-  max-width: 85%;
+ 
+  
   text-decoration: none;
   background: #ffffff;
   border-radius: 10px;
@@ -312,7 +312,7 @@
 
 .linkPreviewImage {
   width: 100%;
-  height: 140px;
+  height: auto;
   object-fit: cover;
   border-bottom: 1px solid #ddd;
 }
