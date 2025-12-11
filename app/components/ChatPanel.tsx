@@ -104,11 +104,10 @@ export default function ChatPanel({
             style={{ backgroundColor: getAvatarColor(selectedUser.id) }}
           >
             {selectedUser.avatar && (
-              <Image
+              <img
                 src={selectedUser.avatar}
                 alt={selectedUser.name}
-                width={40}
-                height={40}
+               
                 className={styles.avatarImage}
               />
             )}
