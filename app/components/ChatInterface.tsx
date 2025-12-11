@@ -246,7 +246,7 @@ export default function ChatInterface() {
       // -------------------------
       if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
         const { user, message, shareLink } = event.data.payload;
-
+console.log(shareLink,"sharelink")
         // Select the user in chat
         const chatUser: User = {
           id: user.user_id,
