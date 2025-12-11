@@ -95,24 +95,22 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
   return (
     <div className={styles.messageInputWrapper}>
       {/* Link Preview Above Input */}
-      {linkPreview && (
-        <div className="p-3 border rounded-lg mb-2 bg-gray-50 flex gap-3">
-          {linkPreview.image && (
-            <img
-              src={linkPreview.image}
-              alt={linkPreview.title}
-              className="w-20 h-20 object-cover rounded-md"
-            />
-          )}
-          <div className="flex-1 overflow-hidden">
-            <p className="font-semibold text-sm truncate">{linkPreview.title}</p>
-            <p className="text-xs text-gray-600 line-clamp-2">
-              {linkPreview.description}
-            </p>
-            <p className="text-xs text-blue-600 mt-1 truncate">{linkPreview.url}</p>
-          </div>
-        </div>
-      )}
+   {linkPreview && (
+  <div className={styles.linkPreview}>
+    {linkPreview.image && (
+      <img
+        src={linkPreview.image}
+        alt={linkPreview.title}
+        className={styles.previewImage}
+      />
+    )}
+    <div className={styles.previewContent}>
+      <p className={styles.previewTitle}>{linkPreview.title}</p>
+      <p className={styles.previewDescription}>{linkPreview.description}</p>
+      <p className={styles.previewUrl}>{linkPreview.url}</p>
+    </div>
+  </div>
+)}
 
       <div className={styles.messageInput}>
         {/* Emoji Picker */}
