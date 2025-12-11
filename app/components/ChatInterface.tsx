@@ -6,8 +6,6 @@ import styles from "./ChatInterface.module.scss";
 import UserSidebar from "./UserSidebar";
 import ChatPanel from "./ChatPanel";
 
-
-
 export interface User {
   id: string;
   name: string;
@@ -227,7 +225,7 @@ export default function ChatInterface() {
           const user: User = {
             id: incomingUser.user_id,
             name: incomingUser.firstName + " " + (incomingUser.lastName ?? ""),
-            avatar: incomingUser.profilePhoto ,
+            avatar: incomingUser.profilePhoto,
             lastMessage: "",
             lastMessageTime: "Now",
             online: true,
@@ -246,54 +244,56 @@ export default function ChatInterface() {
       // -------------------------
       // 2️⃣ RECEIVE SHARE MESSAGE FROM PARENT
       // -------------------------
-    // -------------------------
-// 2️⃣ RECEIVE SHARE MESSAGE FROM PARENT
-// -------------------------
-if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
-  const { user, message } = event.data.payload;
+      // -------------------------
+      // 2️⃣ RECEIVE SHARE MESSAGE FROM PARENT
+      // -------------------------
+      if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
+        const { user, message } = event.data.payload;
 
-  const chatUser: User = {
-    id: user.user_id,
-    name: user.firstName + " " + (user.lastName ?? ""),
-    avatar: user.profilePhoto || "/user.png",
-    lastMessage: "",
-    lastMessageTime: "Now",
-    online: true,
-  };
+        const chatUser: User = {
+          id: user.user_id,
+          name: user.firstName + " " + (user.lastName ?? ""),
+          avatar: user.profilePhoto
+            ? `https://d34wmjl2ccaffd.cloudfront.net/${user.profilePhoto}`
+            : "/user.png",
 
-  setSelectedUser(chatUser);
-  setShowSidebar(false);
+          lastMessage: "",
+          lastMessageTime: "Now",
+          online: true,
+        };
 
-  // Show message inside chat (incoming message)
-  const incomingMessage: Message = {
-    id: Date.now().toString(),
-    content: message,
-    timestamp: new Date().toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    }),
-    sent: true,
-    type: "text",
-    status: "delivered",
-  };
+        setSelectedUser(chatUser);
+        setShowSidebar(false);
 
-  setMessages((prev) => [...prev, incomingMessage]);
+        // Show message inside chat (incoming message)
+        const incomingMessage: Message = {
+          id: Date.now().toString(),
+          content: message,
+          timestamp: new Date().toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          }),
+          sent: true,
+          type: "text",
+          status: "delivered",
+        };
 
-  // Update sidebar last message
-  setUsers((prev) =>
-    prev.map((u) =>
-      u.id === chatUser.id
-        ? { ...u, lastMessage: message, lastMessageTime: "Now" }
-        : u
-    )
-  );
+        setMessages((prev) => [...prev, incomingMessage]);
 
-  // 🚀 AUTO-SEND ONLY THE MESSAGE (no share link)
-  setTimeout(() => {
-    handleSendMessage(message, "text");
-  }, 200);
-}
+        // Update sidebar last message
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === chatUser.id
+              ? { ...u, lastMessage: message, lastMessageTime: "Now" }
+              : u
+          )
+        );
 
+        // 🚀 AUTO-SEND ONLY THE MESSAGE (no share link)
+        setTimeout(() => {
+          handleSendMessage(message, "text");
+        }, 200);
+      }
     };
 
     window.addEventListener("message", handleMessage);
