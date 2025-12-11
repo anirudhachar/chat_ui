@@ -1,18 +1,22 @@
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
-import { FiArrowLeft, FiMoreVertical } from 'react-icons/fi';
-import { BsCheck, BsCheckAll } from 'react-icons/bs';
-import { User, Message } from './ChatInterface';
+import { useEffect, useRef } from "react";
+import { FiArrowLeft, FiMoreVertical } from "react-icons/fi";
+import { BsCheck, BsCheckAll } from "react-icons/bs";
+import { User, Message } from "./ChatInterface";
 
-import styles from './ChatPanel.module.scss';
-import MessageInput from './MessageInput';
-import Image from 'next/image';
+import styles from "./ChatPanel.module.scss";
+import MessageInput from "./MessageInput";
+import Image from "next/image";
 
 interface ChatPanelProps {
   selectedUser: User | null;
   messages: Message[];
-  onSendMessage: (content: string, type?: 'text' | 'image' | 'document', file?: { name: string; url: string }) => void;
+  onSendMessage: (
+    content: string,
+    type?: "text" | "image" | "document",
+    file?: { name: string; url: string }
+  ) => void;
   onBack: () => void;
 }
 
@@ -25,7 +29,7 @@ export default function ChatPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -34,29 +38,37 @@ export default function ChatPanel({
 
   const getInitials = (name: string) => {
     return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
+      .split(" ")
+      .map((word) => word[0])
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   };
 
   const getAvatarColor = (id: string) => {
     const colors = [
-      '#00a884', '#667781', '#0088cc', '#e9a944', '#9b72cb',
-      '#00897b', '#ff6b6b', '#4fb3d4', '#f06292', '#ba68c8'
+      "#00a884",
+      "#667781",
+      "#0088cc",
+      "#e9a944",
+      "#9b72cb",
+      "#00897b",
+      "#ff6b6b",
+      "#4fb3d4",
+      "#f06292",
+      "#ba68c8",
     ];
     const index = parseInt(id, 10) % colors.length;
     return colors[index];
   };
 
-  const getStatusIcon = (status?: 'sent' | 'delivered' | 'read') => {
+  const getStatusIcon = (status?: "sent" | "delivered" | "read") => {
     if (!status) return null;
-    
-    if (status === 'read') {
+
+    if (status === "read") {
       return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
     }
-    if (status === 'delivered') {
+    if (status === "delivered") {
       return <BsCheckAll className={styles.tickIcon} />;
     }
     return <BsCheck className={styles.tickIcon} />;
@@ -66,7 +78,9 @@ export default function ChatPanel({
     return (
       <div className={styles.emptyState}>
         <div className={styles.emptyContent}>
-          <div className={styles.emptyIcon}><Image src="Frame 238021 (1).svg" alt='' width={100} height={100}/></div>
+          <div className={styles.emptyIcon}>
+            <Image src="Frame 238021 (1).svg" alt="" width={100} height={100} />
+          </div>
           <h2 className={styles.emptyTitle}>Start a conversation</h2>
           <p className={styles.emptyText}>
             Select a chat from the sidebar to start messaging
@@ -83,12 +97,21 @@ export default function ChatPanel({
         <button className={styles.backButton} onClick={onBack}>
           <FiArrowLeft />
         </button>
-        
+
         <div className={styles.avatarWrapper}>
           <div
             className={styles.avatar}
             style={{ backgroundColor: getAvatarColor(selectedUser.id) }}
           >
+            {selectedUser.avatar && (
+              <Image
+                src={selectedUser.avatar}
+                alt={selectedUser.name}
+                width={40}
+                height={40}
+                className={styles.avatarImage}
+              />
+            )}
             {getInitials(selectedUser.name)}
           </div>
           {selectedUser.online && <div className={styles.onlineIndicator} />}
@@ -97,7 +120,7 @@ export default function ChatPanel({
         <div className={styles.userInfo}>
           <h2 className={styles.userName}>{selectedUser.name}</h2>
           <p className={styles.userStatus}>
-            {selectedUser.online ? 'Online' : 'Offline'}
+            {selectedUser.online ? "Online" : "Offline"}
           </p>
         </div>
 
@@ -117,13 +140,13 @@ export default function ChatPanel({
               }`}
             >
               <div className={styles.messageBubble}>
-                {message.type === 'image' && message.fileUrl && (
+                {message.type === "image" && message.fileUrl && (
                   <div className={styles.messageImage}>
                     <img src={message.fileUrl} alt={message.fileName} />
                   </div>
                 )}
-                
-                {message.type === 'document' && message.fileName && (
+
+                {message.type === "document" && message.fileName && (
                   <div className={styles.messageDocument}>
                     <div className={styles.documentIcon}>📄</div>
                     <div className={styles.documentInfo}>
@@ -131,13 +154,15 @@ export default function ChatPanel({
                     </div>
                   </div>
                 )}
-                
+
                 {message.content && (
                   <p className={styles.messageText}>{message.content}</p>
                 )}
-                
+
                 <div className={styles.messageMeta}>
-                  <span className={styles.messageTime}>{message.timestamp}</span>
+                  <span className={styles.messageTime}>
+                    {message.timestamp}
+                  </span>
                   {message.sent && getStatusIcon(message.status)}
                 </div>
               </div>
