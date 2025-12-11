@@ -21,218 +21,154 @@ export interface Message {
   content: string;
   timestamp: string;
   sent: boolean;
-  type: "text" | "image" | "document" | "link"; // add link
+  type: "text" | "image" | "document" | "link";
   status?: "sent" | "delivered" | "read";
   fileName?: string;
   fileUrl?: string;
-  // new fields for link preview
+
+  // link preview fields
   linkTitle?: string;
   linkUrl?: string;
   linkImage?: string;
   linkDescription?: string;
 }
 
-
-// Mock users data
-const mockUsers: User[] = [
-  {
-    id: "1",
-    name: "Alice Johnson",
-    lastMessage: "Hey! How are you doing?",
-    lastMessageTime: "10:30 AM",
-    online: true,
-    unread: 2,
-  },
-  {
-    id: "2",
-    name: "Bob Smith",
-    lastMessage: "Thanks for the help!",
-    lastMessageTime: "Yesterday",
-    online: false,
-  },
-  {
-    id: "3",
-    name: "Carol White",
-    lastMessage: "See you tomorrow 👋",
-    lastMessageTime: "2 days ago",
-    online: true,
-  },
-  {
-    id: "4",
-    name: "David Brown",
-    lastMessage: "Can you send me the files?",
-    lastMessageTime: "3 days ago",
-    online: false,
-  },
-  {
-    id: "5",
-    name: "Emma Davis",
-    lastMessage: "Great idea! Let's do it.",
-    lastMessageTime: "1 week ago",
-    online: true,
-  },
-];
-
-// Mock messages data
-const mockMessagesMap: { [key: string]: Message[] } = {
-  "1": [
-    {
-      id: "1",
-      content: "yi there!",
-      timestamp: "10:25 AM",
-      sent: false,
-      type: "text",
-    },
-    {
-      id: "2",
-      content: "Hello! How can I help you?",
-      timestamp: "10:26 AM",
-      sent: true,
-      type: "text",
-      status: "read",
-    },
-    {
-      id: "3",
-      content: "Hey! How are you doing?",
-      timestamp: "10:30 AM",
-      sent: false,
-      type: "text",
-    },
-  ],
-  "2": [
-    {
-      id: "1",
-      content: "I need some help with the project",
-      timestamp: "Yesterday",
-      sent: false,
-      type: "text",
-    },
-    {
-      id: "2",
-      content: "Sure! What do you need?",
-      timestamp: "Yesterday",
-      sent: true,
-      type: "text",
-      status: "read",
-    },
-    {
-      id: "3",
-      content: "Thanks for the help!",
-      timestamp: "Yesterday",
-      sent: false,
-      type: "text",
-    },
-  ],
-  "3": [
-    {
-      id: "1",
-      content: "Let's meet tomorrow!",
-      timestamp: "2 days ago",
-      sent: true,
-      type: "text",
-      status: "delivered",
-    },
-    {
-      id: "2",
-      content: "See you tomorrow 👋",
-      timestamp: "2 days ago",
-      sent: false,
-      type: "text",
-    },
-  ],
-};
-
 export default function ChatInterface() {
-  console.log("hellos");
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
+  const [cursor, setCursor] = useState<string | null>(null);
+
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSidebar, setShowSidebar] = useState(true);
 
+  // ───────────────────────────────────────────────
+  // 1️⃣ FETCH USERS FROM API
+  // ───────────────────────────────────────────────
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/conversations/list?limit=20${
+          cursor ? `&cursor=${cursor}` : ""
+        }`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        console.log("📥 Conversations API:", data);
+
+        const mappedUsers: User[] =
+          data?.data?.conversations?.map((c: any) => ({
+            id: c.user_id,
+            name: `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim(),
+            avatar: c.profilePhoto
+              ? `https://d34wmjl2ccaffd.cloudfront.net${c.profilePhoto}`
+              : "/user.png",
+            lastMessage: c.lastMessage ?? "",
+            lastMessageTime: c.lastMessageTime ?? "",
+            online: c.online ?? false,
+            unread: c.unreadCount ?? 0,
+          })) || [];
+
+        setUsers((prev) => [...prev, ...mappedUsers]);
+
+        if (data?.data?.nextCursor) {
+          setCursor(data.data.nextCursor);
+        }
+      } catch (error) {
+        console.error("❌ Failed to fetch users:", error);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  // ───────────────────────────────────────────────
+  // 2️⃣ SELECT USER
+  // ───────────────────────────────────────────────
   const handleUserSelect = (user: User) => {
     setSelectedUser(user);
-    setMessages(mockMessagesMap[user.id] || []);
+    setMessages([]); // will fetch from API later
 
-    // Clear unread count
-    setUsers(
-      users.map((u) => (u.id === user.id ? { ...u, unread: undefined } : u))
+    // Clear unread badge
+    setUsers((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
     );
 
-  
     if (window.innerWidth < 768) {
       setShowSidebar(false);
     }
   };
 
-const handleSendMessage = (
-  content: string,
-  type: "text" | "image" | "document" | "link" = "text",
-  fileOrLink?: any
-) => {
-  if (!selectedUser) return;
+  // ───────────────────────────────────────────────
+  // 3️⃣ SEND MESSAGE
+  // ───────────────────────────────────────────────
+  const handleSendMessage = (
+    content: string,
+    type: "text" | "image" | "document" | "link" = "text",
+    fileOrLink?: any
+  ) => {
+    if (!selectedUser) return;
 
-  const newMessage: Message = {
-    id: Date.now().toString(),
-    content,
-    timestamp: new Date().toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    }),
-    sent: true,
-    type,
-    status: "sent",
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      content,
+      timestamp: new Date().toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      }),
+      sent: true,
+      type,
+      status: "sent",
+    };
+
+    if (type === "image" || type === "document") {
+      newMessage.fileName = fileOrLink?.name;
+      newMessage.fileUrl = fileOrLink?.url;
+    }
+
+    if (type === "link") {
+      newMessage.linkTitle = fileOrLink?.title;
+      newMessage.linkUrl = fileOrLink?.url;
+      newMessage.linkImage = fileOrLink?.image;
+      newMessage.linkDescription = fileOrLink?.description;
+    }
+
+    setMessages((prev) => [...prev, newMessage]);
+
+    // update last message in sidebar
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === selectedUser.id
+          ? {
+              ...u,
+              lastMessage: content || fileOrLink?.name,
+              lastMessageTime: "Just now",
+            }
+          : u
+      )
+    );
   };
 
-  if (type === "image" || type === "document") {
-    newMessage.fileName = fileOrLink?.name;
-    newMessage.fileUrl = fileOrLink?.url;
-  }
-
- if (type === "link") {
-  newMessage.linkTitle = fileOrLink?.title;
-  newMessage.linkUrl = fileOrLink?.url;
-  newMessage.linkImage = fileOrLink?.image;
-  newMessage.linkDescription = fileOrLink?.description;
-}
-
-  setMessages([...messages, newMessage]);
-
-  // Update last message in user list
-  setUsers(
-    users.map((u) =>
-      u.id === selectedUser.id
-        ? { ...u, lastMessage: content || fileOrLink?.name, lastMessageTime: "Just now" }
-        : u
-    )
-  );
-};
-
-
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-  };
-
-  const handleBackToList = () => {
-    setShowSidebar(true);
-    setSelectedUser(null);
-  };
-
+  // ───────────────────────────────────────────────
+  // 4️⃣ SEARCH FILTER
+  // ───────────────────────────────────────────────
   const filteredUsers = users.filter((user) =>
     user.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // ───────────────────────────────────────────────
+  // 5️⃣ MESSAGE FROM PARENT (iframe)
+  // ───────────────────────────────────────────────
   useEffect(() => {
-    // Inform parent that child is ready
     window.parent.postMessage({ type: "CHAT_READY" }, "*");
 
     const handleMessage = (event: MessageEvent) => {
-      console.log(event, "eventMessage");
       if (!event.data?.type) return;
 
-      // -------------------------
-      // 1️⃣ OPEN CHAT
-      // -------------------------
+      console.log("📨 iframe message:", event.data);
+
+      // OPEN CHAT
       if (event.data.type === "OPEN_CHAT") {
         const payload = event.data.payload;
 
@@ -241,7 +177,7 @@ const handleSendMessage = (
 
           const user: User = {
             id: incomingUser.user_id,
-            name: incomingUser.firstName + " " + (incomingUser.lastName ?? ""),
+            name: `${incomingUser.firstName} ${incomingUser.lastName ?? ""}`.trim(),
             avatar: incomingUser.profilePhoto
               ? `https://d34wmjl2ccaffd.cloudfront.net${incomingUser.profilePhoto}`
               : "/user.png",
@@ -250,10 +186,8 @@ const handleSendMessage = (
             online: true,
           };
 
-          console.log(user, "usermania");
-
           setSelectedUser(user);
-          setMessages(mockMessagesMap[user.id] || []);
+          setMessages([]);
           setShowSidebar(false);
         } else {
           setSelectedUser(null);
@@ -262,22 +196,16 @@ const handleSendMessage = (
         }
       }
 
-      // -------------------------
-      // 2️⃣ RECEIVE SHARE MESSAGE FROM PARENT
-      // -------------------------
-      // -------------------------
-      // 2️⃣ RECEIVE SHARE MESSAGE FROM PARENT
-      // -------------------------
+      // SEND MESSAGE FROM PARENT
       if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
         const { user, message } = event.data.payload;
 
         const chatUser: User = {
           id: user.user_id,
-          name: user.firstName + " " + (user.lastName ?? ""),
+          name: `${user.firstName} ${user.lastName ?? ""}`.trim(),
           avatar: user.profilePhoto
             ? `https://d34wmjl2ccaffd.cloudfront.net${user.profilePhoto}`
             : "/user.png",
-
           lastMessage: "",
           lastMessageTime: "Now",
           online: true,
@@ -286,7 +214,6 @@ const handleSendMessage = (
         setSelectedUser(chatUser);
         setShowSidebar(false);
 
-        // Show message inside chat (incoming message)
         const incomingMessage: Message = {
           id: Date.now().toString(),
           content: message,
@@ -301,7 +228,7 @@ const handleSendMessage = (
 
         setMessages((prev) => [...prev, incomingMessage]);
 
-        // Update sidebar last message
+        // update sidebar
         setUsers((prev) =>
           prev.map((u) =>
             u.id === chatUser.id
@@ -310,7 +237,7 @@ const handleSendMessage = (
           )
         );
 
-        // 🚀 AUTO-SEND ONLY THE MESSAGE (no share link)
+        // auto-send message
         setTimeout(() => {
           handleSendMessage(message, "text");
         }, 200);
@@ -321,6 +248,9 @@ const handleSendMessage = (
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
+  // ───────────────────────────────────────────────
+  // 6️⃣ UI
+  // ───────────────────────────────────────────────
   return (
     <div className={styles.chatInterface}>
       <div
@@ -330,10 +260,11 @@ const handleSendMessage = (
           users={filteredUsers}
           selectedUser={selectedUser}
           onUserSelect={handleUserSelect}
-          onSearch={handleSearch}
+          onSearch={setSearchQuery}
           searchQuery={searchQuery}
         />
       </div>
+
       <div
         className={`${styles.chatWrapper} ${!showSidebar ? styles.show : ""}`}
       >
@@ -341,7 +272,10 @@ const handleSendMessage = (
           selectedUser={selectedUser}
           messages={messages}
           onSendMessage={handleSendMessage}
-          onBack={handleBackToList}
+          onBack={() => {
+            setSelectedUser(null);
+            setShowSidebar(true);
+          }}
         />
       </div>
     </div>
