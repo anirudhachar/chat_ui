@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import styles from "./ChatInterface.module.scss";
 import UserSidebar from "./UserSidebar";
 import ChatPanel from "./ChatPanel";
+import fallbackPic from "/user.png";
+
 
 export interface User {
   id: string;
@@ -225,7 +227,7 @@ export default function ChatInterface() {
           const user: User = {
             id: incomingUser.user_id,
             name: incomingUser.firstName + " " + (incomingUser.lastName ?? ""),
-            avatar: incomingUser.profilePhoto,
+            avatar: incomingUser.profilePhoto ,
             lastMessage: "",
             lastMessageTime: "Now",
             online: true,
@@ -253,7 +255,7 @@ if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
   const chatUser: User = {
     id: user.user_id,
     name: user.firstName + " " + (user.lastName ?? ""),
-    avatar: user.profilePhoto,
+    avatar: user.profilePhoto || fallbackPic,
     lastMessage: "",
     lastMessageTime: "Now",
     online: true,
