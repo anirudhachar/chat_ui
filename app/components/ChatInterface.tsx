@@ -226,7 +226,7 @@ export default function ChatInterface() {
             id: incomingUser.user_id,
             name: incomingUser.firstName + " " + (incomingUser.lastName ?? ""),
           avatar: incomingUser.profilePhoto
-            ? `https://d34wmjl2ccaffd.cloudfront.net/${incomingUser.profilePhoto}`
+            ? `https://d34wmjl2ccaffd.cloudfront.net${incomingUser.profilePhoto}`
             : "/user.png",
             lastMessage: "",
             lastMessageTime: "Now",
@@ -256,7 +256,7 @@ export default function ChatInterface() {
           id: user.user_id,
           name: user.firstName + " " + (user.lastName ?? ""),
           avatar: user.profilePhoto
-            ? `https://d34wmjl2ccaffd.cloudfront.net/${user.profilePhoto}`
+            ? `https://d34wmjl2ccaffd.cloudfront.net${user.profilePhoto}`
             : "/user.png",
 
           lastMessage: "",
