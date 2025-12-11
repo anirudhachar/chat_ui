@@ -107,7 +107,7 @@ export default function ChatPanel({
               <img
                 src={selectedUser.avatar}
                 alt={selectedUser.name}
-               style={{width:"30px",height:"30px"}}
+               style={{width:"30px",height:"30px",borderRadius:"50%"}}
                 className={styles.avatarImage}
               />
             )}
