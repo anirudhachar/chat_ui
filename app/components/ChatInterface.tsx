@@ -141,6 +141,7 @@ export default function ChatInterface() {
   // FETCH MESSAGES USING conversationId
   // ───────────────────────────────────────────────
   const fetchMessages = async (cid: string) => {
+    console.log(cid,parentToken,"cid")
     if (!parentToken) return;
 
     try {
