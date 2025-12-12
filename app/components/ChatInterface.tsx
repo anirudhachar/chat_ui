@@ -35,7 +35,7 @@ export interface Message {
 }
 
 // ───────────────────────────────────────────────
-// GET USER ID FROM TOKEN
+// DECODE TOKEN
 // ───────────────────────────────────────────────
 const decodeToken = (token: string) => {
   try {
@@ -61,7 +61,7 @@ export default function ChatInterface() {
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
 
   // ───────────────────────────────────────────────
-  // FETCH USERS (CHAT LIST)
+  // FETCH USERS LIST (fixed mapping)
   // ───────────────────────────────────────────────
   useEffect(() => {
     if (!parentToken) return;
@@ -86,20 +86,27 @@ export default function ChatInterface() {
 
         const mappedUsers: User[] =
           data?.data?.conversations?.map((c: any) => ({
-            id: c.user_id,
-            name: `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim(),
-            avatar: c.profilePhoto
-              ? `https://d34wmjl2ccaffd.cloudfront.net${c.profilePhoto}`
+            id: c.user?.userId,
+            name: `${c.user?.firstName ?? ""} ${c.user?.lastName ?? ""}`.trim(),
+            avatar: c.user?.avatarUrl
+              ? `https://d34wmjl2ccaffd.cloudfront.net${c.user.avatarUrl}`
               : "/user.png",
-            lastMessage: c.lastMessage ?? "",
-            lastMessageTime: c.lastMessageTime ?? "",
-            online: c.online ?? false,
+
+            lastMessage: c.lastMessagePreview ?? "",
+            lastMessageTime: c.lastMessageAt
+              ? new Date(c.lastMessageAt).toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })
+              : "",
+
+            online: false,
             unread: c.unreadCount ?? 0,
           })) || [];
 
         setUsers((prev) => [...prev, ...mappedUsers]);
 
-        if (data?.data?.nextCursor) setCursor(data.data.nextCursor);
+        if (data?.data?.cursor) setCursor(data.data.cursor);
       } catch (error) {
         console.error("❌ Failed to fetch users:", error);
       }
@@ -128,9 +135,9 @@ export default function ChatInterface() {
       const data = await res.json();
       console.log("📥 Conversation Create:", data);
 
-      const conversationId = data?.data?.conversationId;
-      setConversationId(conversationId);
-      return conversationId;
+      const cid = data?.data?.conversationId;
+      setConversationId(cid);
+      return cid;
     } catch (err) {
       console.error("❌ Failed to create conversation:", err);
       return null;
@@ -138,15 +145,10 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // FIXED: FETCH MESSAGES NOW ACCEPTS token DIRECTLY
+  // FETCH MESSAGES
   // ───────────────────────────────────────────────
   const fetchMessages = async (cid: string, token: string) => {
     console.log("Fetching messages with:", cid, token);
-
-    if (!token) {
-      console.error("❌ TOKEN IS NULL inside fetchMessages!");
-      return;
-    }
 
     try {
       const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/${cid}/list?limit=10`;
@@ -234,7 +236,7 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // HANDLE SEND MESSAGE
+  // SEND MESSAGE HANDLER
   // ───────────────────────────────────────────────
   const handleSendMessage = async (content: string) => {
     if (!selectedUser || !parentToken) return;
@@ -297,15 +299,13 @@ export default function ChatInterface() {
       );
     } catch (err) {
       setMessages((prev) =>
-        prev.map((m) =>
-          m.id === tempId ? { ...m, status: "failed" } : m
-        )
+        prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
       );
     }
   };
 
   // ───────────────────────────────────────────────
-  // RECEIVE TOKEN + OPEN CHAT FROM PARENT
+  // RECEIVE TOKEN + OPEN CHAT FROM IFRAME PARENT
   // ───────────────────────────────────────────────
   useEffect(() => {
     window.parent.postMessage({ type: "CHAT_READY" }, "*");
@@ -324,7 +324,9 @@ export default function ChatInterface() {
         if (incomingUser) {
           const user: User = {
             id: incomingUser.user_id,
-            name: `${incomingUser.firstName} ${incomingUser.lastName ?? ""}`.trim(),
+            name: `${incomingUser.firstName} ${
+              incomingUser.lastName ?? ""
+            }`.trim(),
             avatar: incomingUser.profilePhoto
               ? `https://d34wmjl2ccaffd.cloudfront.net${incomingUser.profilePhoto}`
               : "/user.png",
