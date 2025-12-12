@@ -116,7 +116,7 @@ export default function ChatInterface() {
   }, [parentToken]);
 
   // ───────────────────────────────────────────────
-  // CREATE OR GET CONVERSATION ID
+  // GET OR CREATE CONVERSATION ID
   // ───────────────────────────────────────────────
   const getConversationId = async (targetUserId: string, token: string) => {
     try {
@@ -182,7 +182,7 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // SEND MESSAGE
+  // SEND MESSAGE TO API
   // ───────────────────────────────────────────────
   const sendMessageToApi = async (
     cid: string,
@@ -215,7 +215,9 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // HANDLE USER CLICK
+  // SEND MESSAGE HANDLER
+  // ───────────────────────────────────────────────
+
   // ───────────────────────────────────────────────
   const handleUserSelect = async (user: User) => {
     if (!parentToken) return;
@@ -234,10 +236,6 @@ export default function ChatInterface() {
       setShowSidebar(false);
     }
   };
-
-  // ───────────────────────────────────────────────
-  // SEND MESSAGE HANDLER
-  // ───────────────────────────────────────────────
   const handleSendMessage = async (content: string) => {
     if (!selectedUser || !parentToken) return;
 
@@ -305,7 +303,7 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // RECEIVE TOKEN + OPEN CHAT FROM IFRAME PARENT
+  // HANDLE EVENTS FROM PARENT (OPEN_CHAT + SEND_MESSAGE)
   // ───────────────────────────────────────────────
   useEffect(() => {
     window.parent.postMessage({ type: "CHAT_READY" }, "*");
@@ -313,6 +311,7 @@ export default function ChatInterface() {
     const handleMessage = async (event: MessageEvent) => {
       if (!event.data?.type) return;
 
+      // ───── RECEIVE OPEN_CHAT ─────
       if (event.data.type === "OPEN_CHAT") {
         const token = event.data.payload?.token;
         const incomingUser = event.data.payload?.user;
@@ -344,15 +343,28 @@ export default function ChatInterface() {
           setShowSidebar(false);
         }
       }
+
+      // ───── RECEIVE SHARE MESSAGE (SEND_MESSAGE_TO_CHAT) ─────
+      if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
+        const payload = event.data.payload;
+
+        console.log("📥 RECEIVED SHARE MESSAGE FROM PARENT:", payload);
+
+        if (!payload?.message) return;
+
+        // MUST HAVE SELECTED USER + TOKEN READY
+        if (selectedUser && parentToken) {
+          handleSendMessage(payload.message);
+        } else {
+          console.warn("⚠️ Chat not ready to send share message yet.");
+        }
+      }
     };
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, []);
+  }, [selectedUser, parentToken, conversationId]);
 
-  // ───────────────────────────────────────────────
-  // UI
-  // ───────────────────────────────────────────────
   return (
     <div className={styles.chatInterface}>
       <div
