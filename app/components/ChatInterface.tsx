@@ -55,19 +55,72 @@ export default function ChatInterface() {
   const [conversationId, setConversationId] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<User[]>([]); // NEW
   const [showSidebar, setShowSidebar] = useState(true);
 
   const [parentToken, setParentToken] = useState<string | null>(null);
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
 
   // ───────────────────────────────────────────────
-  // FETCH USERS LIST (fixed mapping)
+  // SEARCH API — CALL WHEN TYPING
+  // ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!parentToken) return;
+
+    const query = searchQuery.trim();
+
+    // If query too short → show normal user list
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const fetchSearchResults = async () => {
+      try {
+        const url =
+          `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/search/people?query=${encodeURIComponent(
+            query
+          )}`;
+
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${parentToken}`,
+          },
+        });
+
+        const data = await res.json();
+        console.log("🔍 SEARCH API RESULT:", data);
+
+        const mapped: User[] =
+          data?.data?.users?.map((u: any) => ({
+            id: u.userId,
+            name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim(),
+            avatar: u.profilePhoto
+              ? `https://d34wmjl2ccaffd.cloudfront.net${u.profilePhoto}`
+              : "/user.png",
+            lastMessage: "",
+            lastMessageTime: "",
+            online: u.online ?? false,
+            unread: 0,
+          })) || [];
+
+        setSearchResults(mapped);
+      } catch (err) {
+        console.error("❌ Search API failed:", err);
+      }
+    };
+
+    fetchSearchResults();
+  }, [searchQuery, parentToken]);
+
+  // ───────────────────────────────────────────────
+  // FETCH USERS LIST
   // ───────────────────────────────────────────────
   useEffect(() => {
     if (!parentToken) return;
 
     const uid = decodeToken(parentToken);
-    setLoggedInUserId(uid); // Set the state here
+    setLoggedInUserId(uid);
 
     const fetchUsers = async () => {
       try {
@@ -87,7 +140,9 @@ export default function ChatInterface() {
         const mappedUsers: User[] =
           data?.data?.conversations?.map((c: any) => ({
             id: c.user?.userId,
-            name: `${c.user?.firstName ?? ""} ${c.user?.lastName ?? ""}`.trim(),
+            name: `${c.user?.firstName ?? ""} ${
+              c.user?.lastName ?? ""
+            }`.trim(),
             avatar: c.user?.avatarUrl
               ? `https://d34wmjl2ccaffd.cloudfront.net${c.user.avatarUrl}`
               : "/user.png",
@@ -100,7 +155,7 @@ export default function ChatInterface() {
                 })
               : "",
 
-            online: false,
+            online: c.user?.online ?? false,
             unread: c.unreadCount ?? 0,
           })) || [];
 
@@ -116,7 +171,7 @@ export default function ChatInterface() {
   }, [parentToken]);
 
   // ───────────────────────────────────────────────
-  // GET OR CREATE CONVERSATION ID
+  // GET OR CREATE CONVERSATION
   // ───────────────────────────────────────────────
   const getConversationId = async (targetUserId: string, token: string) => {
     try {
@@ -145,21 +200,14 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // FETCH MESSAGES (FIXED SIGNATURE)
+  // FETCH MESSAGES
   // ───────────────────────────────────────────────
   const fetchMessages = async (
-    cid: string, 
-    token: string, 
-    myUserId: string | null // NEW: Accept the logged in user ID
+    cid: string,
+    token: string,
+    myUserId: string | null
   ) => {
-    console.log("Fetching messages with:", cid, token);
-    console.log("DEBUG: myUserId used for comparison:", myUserId); // Log the new ID
-
-    // Ensure we have an ID for comparison
-    if (!myUserId) {
-        console.warn("⚠️ Cannot fetch messages: Logged-in user ID is missing.");
-        return;
-    }
+    if (!myUserId) return;
 
     try {
       const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/${cid}/list?limit=10`;
@@ -181,8 +229,7 @@ export default function ChatInterface() {
             hour: "numeric",
             minute: "2-digit",
           }),
-          // FIX: Use the passed-in myUserId for comparison
-          sent: msg.senderUserId === myUserId, 
+          sent: msg.senderUserId === myUserId,
           type: "text",
           status: msg.senderUserId === myUserId ? "sent" : undefined,
         })) || [];
@@ -194,13 +241,9 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // SEND MESSAGE TO API
+  // SEND MESSAGE
   // ───────────────────────────────────────────────
-  const sendMessageToApi = async (
-    cid: string,
-    content: string,
-    token: string
-  ) => {
+  const sendMessageToApi = async (cid: string, content: string, token: string) => {
     try {
       const res = await fetch(
         "https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/send",
@@ -217,40 +260,33 @@ export default function ChatInterface() {
         }
       );
 
-      const data = await res.json();
-      console.log("📤 Send message response:", data);
-      return data;
+      return await res.json();
     } catch (err) {
       console.error("❌ Failed to send message:", err);
       throw err;
     }
   };
 
-  // ───────────────────────────────────────────────
-  // SEND MESSAGE HANDLER
-  // ───────────────────────────────────────────────
-
-  // ───────────────────────────────────────────────
   const handleUserSelect = async (user: User) => {
-    // FIX: Check for loggedInUserId before proceeding
-    if (!parentToken || !loggedInUserId) return; 
+    if (!parentToken || !loggedInUserId) return;
 
     setSelectedUser(user);
     setMessages([]);
 
+    // reset unread count
     setUsers((prev) =>
       prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
     );
 
     const cid = await getConversationId(user.id, parentToken);
-    // FIX: Pass loggedInUserId to fetchMessages
-    if (cid) fetchMessages(cid, parentToken, loggedInUserId); 
+    if (cid) fetchMessages(cid, parentToken, loggedInUserId);
 
-    if (window.innerWidth < 768) {
-      setShowSidebar(false);
-    }
+    if (window.innerWidth < 768) setShowSidebar(false);
   };
-  
+
+  // ───────────────────────────────────────────────
+  // SEND MESSAGE HANDLER
+  // ───────────────────────────────────────────────
   const handleSendMessage = async (content: string) => {
     if (!selectedUser || !parentToken) return;
 
@@ -266,7 +302,7 @@ export default function ChatInterface() {
       minute: "2-digit",
     });
 
-    const optimisticMessage: Message = {
+    const optimistic: Message = {
       id: tempId,
       content,
       timestamp: timeString,
@@ -275,22 +311,13 @@ export default function ChatInterface() {
       status: "sending",
     };
 
-    setMessages((prev) => [...prev, optimisticMessage]);
-
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === selectedUser.id
-          ? { ...u, lastMessage: content, lastMessageTime: timeString }
-          : u
-      )
-    );
+    setMessages((p) => [...p, optimistic]);
 
     try {
       const data = await sendMessageToApi(cid, content, parentToken);
-
-      const returnedMessageId =
+      const realId =
         data?.data?.messageId ?? data?.data?.message?.messageId;
-      const returnedCreatedAt =
+      const realTime =
         data?.data?.createdAt ?? data?.data?.message?.createdAt;
 
       setMessages((prev) =>
@@ -298,10 +325,10 @@ export default function ChatInterface() {
           m.id === tempId
             ? {
                 ...m,
-                id: returnedMessageId ?? m.id,
+                id: realId ?? m.id,
                 status: "sent",
-                timestamp: returnedCreatedAt
-                  ? new Date(returnedCreatedAt).toLocaleTimeString("en-US", {
+                timestamp: realTime
+                  ? new Date(realTime).toLocaleTimeString("en-US", {
                       hour: "numeric",
                       minute: "2-digit",
                     })
@@ -310,15 +337,17 @@ export default function ChatInterface() {
             : m
         )
       );
-    } catch (err) {
+    } catch {
       setMessages((prev) =>
-        prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
+        prev.map((m) =>
+          m.id === tempId ? { ...m, status: "failed" } : m
+        )
       );
     }
   };
 
   // ───────────────────────────────────────────────
-  // HANDLE EVENTS FROM PARENT (OPEN_CHAT + SEND_MESSAGE)
+  // PARENT WINDOW EVENTS
   // ───────────────────────────────────────────────
   useEffect(() => {
     window.parent.postMessage({ type: "CHAT_READY" }, "*");
@@ -326,18 +355,13 @@ export default function ChatInterface() {
     const handleMessage = async (event: MessageEvent) => {
       if (!event.data?.type) return;
 
-      // ───── RECEIVE OPEN_CHAT ─────
       if (event.data.type === "OPEN_CHAT") {
         const token = event.data.payload?.token;
         const incomingUser = event.data.payload?.user;
 
-        console.log("📥 OPEN_CHAT RECEIVED → TOKEN:", token);
-        
-        // FIX: Decode the token immediately to get the current user ID
-        const currentUserId = token ? decodeToken(token) : null;
-        setLoggedInUserId(currentUserId); // Update state for other uses (like handleUserSelect)
-
         setParentToken(token);
+        const uid = decodeToken(token);
+        setLoggedInUserId(uid);
 
         if (incomingUser) {
           const user: User = {
@@ -357,27 +381,15 @@ export default function ChatInterface() {
           setMessages([]);
 
           const cid = await getConversationId(user.id, token);
-          
-          // FIX: Use the locally decoded currentUserId which is guaranteed to be set.
-          if (cid && currentUserId) fetchMessages(cid, token, currentUserId); 
+          if (cid && uid) fetchMessages(cid, token, uid);
 
           setShowSidebar(false);
         }
       }
 
-      // ───── RECEIVE SHARE MESSAGE (SEND_MESSAGE_TO_CHAT) ─────
       if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
-        const payload = event.data.payload;
-
-        console.log("📥 RECEIVED SHARE MESSAGE FROM PARENT:", payload);
-
-        if (!payload?.message) return;
-
-        // MUST HAVE SELECTED USER + TOKEN READY
         if (selectedUser && parentToken) {
-          handleSendMessage(payload.message);
-        } else {
-          console.warn("⚠️ Chat not ready to send share message yet.");
+          handleSendMessage(event.data.payload.message);
         }
       }
     };
@@ -386,15 +398,18 @@ export default function ChatInterface() {
     return () => window.removeEventListener("message", handleMessage);
   }, [selectedUser, parentToken, conversationId]);
 
+  // ───────────────────────────────────────────────
+  // RENDER
+  // ───────────────────────────────────────────────
+  const listToShow = searchQuery.length >= 2 ? searchResults : users;
+
   return (
     <div className={styles.chatInterface}>
       <div
         className={`${styles.sidebarWrapper} ${showSidebar ? styles.show : ""}`}
       >
         <UserSidebar
-          users={users.filter((u) =>
-            u.name.toLowerCase().includes(searchQuery.toLowerCase())
-          )}
+          users={listToShow}
           selectedUser={selectedUser}
           onUserSelect={handleUserSelect}
           onSearch={setSearchQuery}
