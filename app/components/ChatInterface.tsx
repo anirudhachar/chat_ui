@@ -109,7 +109,7 @@ export default function ChatInterface() {
   }, [parentToken]);
 
   // ───────────────────────────────────────────────
-  // CREATE OR GET CONVERSATION ID  (TOKEN PASSED DIRECTLY)
+  // CREATE OR GET CONVERSATION ID
   // ───────────────────────────────────────────────
   const getConversationId = async (targetUserId: string, token: string) => {
     try {
@@ -138,18 +138,22 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // FETCH MESSAGES USING conversationId
+  // FIXED: FETCH MESSAGES NOW ACCEPTS token DIRECTLY
   // ───────────────────────────────────────────────
-  const fetchMessages = async (cid: string) => {
-    console.log(cid,parentToken,"cid")
-    if (!parentToken) return;
+  const fetchMessages = async (cid: string, token: string) => {
+    console.log("Fetching messages with:", cid, token);
+
+    if (!token) {
+      console.error("❌ TOKEN IS NULL inside fetchMessages!");
+      return;
+    }
 
     try {
       const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/${cid}/list?limit=10`;
 
       const res = await fetch(url, {
         headers: {
-          Authorization: `Bearer ${parentToken}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -176,9 +180,7 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // SEND MESSAGE API integration
-  // POST /dev/chat/message/send
-  // body: { conversationId, content }
+  // SEND MESSAGE
   // ───────────────────────────────────────────────
   const sendMessageToApi = async (
     cid: string,
@@ -186,20 +188,20 @@ export default function ChatInterface() {
     token: string
   ) => {
     try {
-      const url =
-        "https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/send";
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          conversationId: cid,
-          content,
-        }),
-      });
+      const res = await fetch(
+        "https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/send",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            conversationId: cid,
+            content,
+          }),
+        }
+      );
 
       const data = await res.json();
       console.log("📤 Send message response:", data);
@@ -212,7 +214,6 @@ export default function ChatInterface() {
 
   // ───────────────────────────────────────────────
   // HANDLE USER CLICK
-  // Now passes parentToken directly
   // ───────────────────────────────────────────────
   const handleUserSelect = async (user: User) => {
     if (!parentToken) return;
@@ -220,13 +221,12 @@ export default function ChatInterface() {
     setSelectedUser(user);
     setMessages([]);
 
-    // mark unread as read
     setUsers((prev) =>
       prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
     );
 
     const cid = await getConversationId(user.id, parentToken);
-    if (cid) fetchMessages(cid);
+    if (cid) fetchMessages(cid, parentToken);
 
     if (window.innerWidth < 768) {
       setShowSidebar(false);
@@ -234,28 +234,17 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // HANDLE SEND MESSAGE (optimistic + API)
-  // This ensures conversation exists, does optimistic update,
-  // posts to API, then updates message status.
+  // HANDLE SEND MESSAGE
   // ───────────────────────────────────────────────
   const handleSendMessage = async (content: string) => {
-    if (!selectedUser) return;
-    if (!parentToken) {
-      console.error("No token available. Cannot send message.");
-      return;
-    }
+    if (!selectedUser || !parentToken) return;
 
-    // Ensure we have a conversationId (create if needed)
     let cid = conversationId;
     if (!cid) {
       cid = await getConversationId(selectedUser.id, parentToken);
-      if (!cid) {
-        console.error("Could not create conversation, aborting send.");
-        return;
-      }
+      if (!cid) return;
     }
 
-    // Create optimistic message
     const tempId = `temp-${Date.now()}`;
     const timeString = new Date().toLocaleTimeString("en-US", {
       hour: "numeric",
@@ -273,7 +262,6 @@ export default function ChatInterface() {
 
     setMessages((prev) => [...prev, optimisticMessage]);
 
-    // Update user preview in users list
     setUsers((prev) =>
       prev.map((u) =>
         u.id === selectedUser.id
@@ -285,9 +273,10 @@ export default function ChatInterface() {
     try {
       const data = await sendMessageToApi(cid, content, parentToken);
 
-      // If API returns a real message ID or createdAt, update the optimistic message
-      const returnedMessageId = data?.data?.messageId ?? data?.data?.message?.messageId;
-      const returnedCreatedAt = data?.data?.createdAt ?? data?.data?.message?.createdAt;
+      const returnedMessageId =
+        data?.data?.messageId ?? data?.data?.message?.messageId;
+      const returnedCreatedAt =
+        data?.data?.createdAt ?? data?.data?.message?.createdAt;
 
       setMessages((prev) =>
         prev.map((m) =>
@@ -307,16 +296,16 @@ export default function ChatInterface() {
         )
       );
     } catch (err) {
-      // mark as failed
       setMessages((prev) =>
-        prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
+        prev.map((m) =>
+          m.id === tempId ? { ...m, status: "failed" } : m
+        )
       );
     }
   };
 
   // ───────────────────────────────────────────────
-  // RECEIVE TOKEN + OPEN CHAT FROM PARENT (FIXED)
-  // Token passed directly to getConversationId()
+  // RECEIVE TOKEN + OPEN CHAT FROM PARENT
   // ───────────────────────────────────────────────
   useEffect(() => {
     window.parent.postMessage({ type: "CHAT_READY" }, "*");
@@ -327,6 +316,8 @@ export default function ChatInterface() {
       if (event.data.type === "OPEN_CHAT") {
         const token = event.data.payload?.token;
         const incomingUser = event.data.payload?.user;
+
+        console.log("📥 OPEN_CHAT RECEIVED → TOKEN:", token);
 
         setParentToken(token);
 
@@ -345,9 +336,8 @@ export default function ChatInterface() {
           setSelectedUser(user);
           setMessages([]);
 
-          // Create/fetch conversation using the token directly
           const cid = await getConversationId(user.id, token);
-          if (cid) fetchMessages(cid);
+          if (cid) fetchMessages(cid, token);
 
           setShowSidebar(false);
         }
