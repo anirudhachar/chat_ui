@@ -149,7 +149,11 @@ export default function ChatInterface() {
   // ───────────────────────────────────────────────
   const fetchMessages = async (cid: string, token: string) => {
     console.log("Fetching messages with:", cid, token);
+console.log("Fetching messages with:", cid, token);
 
+ 
+    console.log("DEBUG: loggedInUserId (from token):", loggedInUserId);
+    
     try {
       const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/${cid}/list?limit=10`;
 
@@ -174,6 +178,8 @@ export default function ChatInterface() {
           type: "text",
           status: msg.senderUserId === loggedInUserId ? "sent" : undefined,
         })) || [];
+
+        
 
       setMessages(mappedMessages);
     } catch (error) {
