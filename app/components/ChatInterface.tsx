@@ -24,7 +24,7 @@ export interface Message {
   timestamp: string;
   sent: boolean;
   type: "text" | "image" | "document" | "link";
-  status?: "sent" | "delivered" | "read";
+  status?: "sending" | "sent" | "delivered" | "read" | "failed";
   fileName?: string;
   fileUrl?: string;
 
@@ -109,8 +109,7 @@ export default function ChatInterface() {
   }, [parentToken]);
 
   // ───────────────────────────────────────────────
-  // CREATE OR GET CONVERSATION ID  (FIXED)
-//  → Token is now passed explicitly
+  // CREATE OR GET CONVERSATION ID  (TOKEN PASSED DIRECTLY)
   // ───────────────────────────────────────────────
   const getConversationId = async (targetUserId: string, token: string) => {
     try {
@@ -176,7 +175,42 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // HANDLE USER CLICK (FIXED)
+  // SEND MESSAGE API integration
+  // POST /dev/chat/message/send
+  // body: { conversationId, content }
+  // ───────────────────────────────────────────────
+  const sendMessageToApi = async (
+    cid: string,
+    content: string,
+    token: string
+  ) => {
+    try {
+      const url =
+        "https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/send";
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          conversationId: cid,
+          content,
+        }),
+      });
+
+      const data = await res.json();
+      console.log("📤 Send message response:", data);
+      return data;
+    } catch (err) {
+      console.error("❌ Failed to send message:", err);
+      throw err;
+    }
+  };
+
+  // ───────────────────────────────────────────────
+  // HANDLE USER CLICK
   // Now passes parentToken directly
   // ───────────────────────────────────────────────
   const handleUserSelect = async (user: User) => {
@@ -199,24 +233,84 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // SEND MESSAGE (LOCAL ONLY)
+  // HANDLE SEND MESSAGE (optimistic + API)
+  // This ensures conversation exists, does optimistic update,
+  // posts to API, then updates message status.
   // ───────────────────────────────────────────────
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = async (content: string) => {
     if (!selectedUser) return;
+    if (!parentToken) {
+      console.error("No token available. Cannot send message.");
+      return;
+    }
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
+    // Ensure we have a conversationId (create if needed)
+    let cid = conversationId;
+    if (!cid) {
+      cid = await getConversationId(selectedUser.id, parentToken);
+      if (!cid) {
+        console.error("Could not create conversation, aborting send.");
+        return;
+      }
+    }
+
+    // Create optimistic message
+    const tempId = `temp-${Date.now()}`;
+    const timeString = new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+    const optimisticMessage: Message = {
+      id: tempId,
       content,
-      timestamp: new Date().toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      }),
+      timestamp: timeString,
       sent: true,
       type: "text",
-      status: "sent",
+      status: "sending",
     };
 
-    setMessages((prev) => [...prev, newMessage]);
+    setMessages((prev) => [...prev, optimisticMessage]);
+
+    // Update user preview in users list
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === selectedUser.id
+          ? { ...u, lastMessage: content, lastMessageTime: timeString }
+          : u
+      )
+    );
+
+    try {
+      const data = await sendMessageToApi(cid, content, parentToken);
+
+      // If API returns a real message ID or createdAt, update the optimistic message
+      const returnedMessageId = data?.data?.messageId ?? data?.data?.message?.messageId;
+      const returnedCreatedAt = data?.data?.createdAt ?? data?.data?.message?.createdAt;
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId
+            ? {
+                ...m,
+                id: returnedMessageId ?? m.id,
+                status: "sent",
+                timestamp: returnedCreatedAt
+                  ? new Date(returnedCreatedAt).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })
+                  : m.timestamp,
+              }
+            : m
+        )
+      );
+    } catch (err) {
+      // mark as failed
+      setMessages((prev) =>
+        prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
+      );
+    }
   };
 
   // ───────────────────────────────────────────────
@@ -250,7 +344,7 @@ export default function ChatInterface() {
           setSelectedUser(user);
           setMessages([]);
 
-          // FIX: USE TOKEN HERE DIRECTLY
+          // Create/fetch conversation using the token directly
           const cid = await getConversationId(user.id, token);
           if (cid) fetchMessages(cid);
 
