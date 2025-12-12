@@ -67,7 +67,7 @@ export default function ChatInterface() {
     if (!parentToken) return;
 
     const uid = decodeToken(parentToken);
-    setLoggedInUserId(uid);
+    setLoggedInUserId(uid); // Set the state here
 
     const fetchUsers = async () => {
       try {
@@ -145,15 +145,22 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // FETCH MESSAGES
+  // FETCH MESSAGES (FIXED SIGNATURE)
   // ───────────────────────────────────────────────
-  const fetchMessages = async (cid: string, token: string) => {
+  const fetchMessages = async (
+    cid: string, 
+    token: string, 
+    myUserId: string | null // NEW: Accept the logged in user ID
+  ) => {
     console.log("Fetching messages with:", cid, token);
-console.log("Fetching messages with:", cid, token);
+    console.log("DEBUG: myUserId used for comparison:", myUserId); // Log the new ID
 
- 
-    console.log("DEBUG: loggedInUserId (from token):", loggedInUserId);
-    
+    // Ensure we have an ID for comparison
+    if (!myUserId) {
+        console.warn("⚠️ Cannot fetch messages: Logged-in user ID is missing.");
+        return;
+    }
+
     try {
       const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/${cid}/list?limit=10`;
 
@@ -174,12 +181,11 @@ console.log("Fetching messages with:", cid, token);
             hour: "numeric",
             minute: "2-digit",
           }),
-          sent: msg.senderUserId === loggedInUserId,
+          // FIX: Use the passed-in myUserId for comparison
+          sent: msg.senderUserId === myUserId, 
           type: "text",
-          status: msg.senderUserId === loggedInUserId ? "sent" : undefined,
+          status: msg.senderUserId === myUserId ? "sent" : undefined,
         })) || [];
-
-        
 
       setMessages(mappedMessages);
     } catch (error) {
@@ -226,7 +232,8 @@ console.log("Fetching messages with:", cid, token);
 
   // ───────────────────────────────────────────────
   const handleUserSelect = async (user: User) => {
-    if (!parentToken) return;
+    // FIX: Check for loggedInUserId before proceeding
+    if (!parentToken || !loggedInUserId) return; 
 
     setSelectedUser(user);
     setMessages([]);
@@ -236,12 +243,14 @@ console.log("Fetching messages with:", cid, token);
     );
 
     const cid = await getConversationId(user.id, parentToken);
-    if (cid) fetchMessages(cid, parentToken);
+    // FIX: Pass loggedInUserId to fetchMessages
+    if (cid) fetchMessages(cid, parentToken, loggedInUserId); 
 
     if (window.innerWidth < 768) {
       setShowSidebar(false);
     }
   };
+  
   const handleSendMessage = async (content: string) => {
     if (!selectedUser || !parentToken) return;
 
@@ -323,6 +332,10 @@ console.log("Fetching messages with:", cid, token);
         const incomingUser = event.data.payload?.user;
 
         console.log("📥 OPEN_CHAT RECEIVED → TOKEN:", token);
+        
+        // FIX: Decode the token immediately to get the current user ID
+        const currentUserId = token ? decodeToken(token) : null;
+        setLoggedInUserId(currentUserId); // Update state for other uses (like handleUserSelect)
 
         setParentToken(token);
 
@@ -344,7 +357,9 @@ console.log("Fetching messages with:", cid, token);
           setMessages([]);
 
           const cid = await getConversationId(user.id, token);
-          if (cid) fetchMessages(cid, token);
+          
+          // FIX: Use the locally decoded currentUserId which is guaranteed to be set.
+          if (cid && currentUserId) fetchMessages(cid, token, currentUserId); 
 
           setShowSidebar(false);
         }
