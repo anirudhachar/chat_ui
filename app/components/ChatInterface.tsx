@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import styles from "./ChatInterface.module.scss";
 import UserSidebar from "./UserSidebar";
 import ChatPanel from "./ChatPanel";
 
+// ───────────────────────────────────────────────
+// TYPES
+// ───────────────────────────────────────────────
 export interface User {
   id: string;
   name: string;
@@ -24,13 +27,16 @@ export interface Message {
   status?: "sending" | "sent" | "delivered" | "read" | "failed";
   fileName?: string;
   fileUrl?: string;
-  createdAtNum?: number;
+
   linkTitle?: string;
   linkUrl?: string;
   linkImage?: string;
   linkDescription?: string;
 }
 
+// ───────────────────────────────────────────────
+// DECODE TOKEN
+// ───────────────────────────────────────────────
 const decodeToken = (token: string) => {
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
@@ -40,188 +46,133 @@ const decodeToken = (token: string) => {
   }
 };
 
-const fmtTime = (ms: number | string | undefined) => {
-  if (!ms) return "";
-  const d = typeof ms === "number" ? new Date(ms) : new Date(Number(ms) || ms);
-  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-};
-
 export default function ChatInterface() {
   const [users, setUsers] = useState<User[]>([]);
-  const [convCursor, setConvCursor] = useState<string | null>(null);
-  const [convHasMore, setConvHasMore] = useState(true);
-  const [loadingConversations, setLoadingConversations] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(null);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
 
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [msgCursor, setMsgCursor] = useState<string | null>(null);
-  const [msgHasMore, setMsgHasMore] = useState(true);
-  const [loadingMessages, setLoadingMessages] = useState(false);
-
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<User[]>([]);
-
+  const [searchResults, setSearchResults] = useState<User[]>([]); // NEW
   const [showSidebar, setShowSidebar] = useState(true);
+
   const [parentToken, setParentToken] = useState<string | null>(null);
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
 
-  const sidebarRef = useRef<HTMLDivElement | null>(null);
-  const chatWrapperRef = useRef<HTMLDivElement | null>(null);
-  const loadingMoreRef = useRef(false);
-
-  // ------------------- SEARCH -------------------
+  // ───────────────────────────────────────────────
+  // SEARCH API — CALL WHEN TYPING
+  // ───────────────────────────────────────────────
   useEffect(() => {
     if (!parentToken) return;
-    const q = searchQuery.trim();
-    if (q.length < 2) {
+
+    const query = searchQuery.trim();
+
+    // If query too short → show normal user list
+    if (query.length < 2) {
       setSearchResults([]);
       return;
     }
-    let abort = false;
-    const fetchSearch = async () => {
+
+    const fetchSearchResults = async () => {
       try {
-        const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/search/people?query=${encodeURIComponent(q)}`;
+        const url =
+          `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/search/people?query=${encodeURIComponent(
+            query
+          )}`;
+
         const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${parentToken}` },
+          headers: {
+            Authorization: `Bearer ${parentToken}`,
+          },
         });
+
         const data = await res.json();
-        if (abort) return;
+        console.log("🔍 SEARCH API RESULT:", data);
 
         const mapped: User[] =
           data?.data?.users?.map((u: any) => ({
-            id: u.user_id,
-            name: `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim(),
-            avatar: u.profile_photo_url
-              ? `https://d34wmjl2ccaffd.cloudfront.net${u.profile_photo_url}`
+            id: u.userId,
+            name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim(),
+            avatar: u.profilePhoto
+              ? `https://d34wmjl2ccaffd.cloudfront.net${u.profilePhoto}`
               : "/user.png",
             lastMessage: "",
             lastMessageTime: "",
-            online: false,
+            online: u.online ?? false,
             unread: 0,
           })) || [];
+
         setSearchResults(mapped);
       } catch (err) {
-        console.error("❌ Search failed:", err);
+        console.error("❌ Search API failed:", err);
       }
     };
-    fetchSearch();
-    return () => {
-      abort = true;
-    };
+
+    fetchSearchResults();
   }, [searchQuery, parentToken]);
 
-  // ------------------- FETCH CONVERSATIONS -------------------
-  const fetchConversations = async (cursor?: string | null) => {
-    if (!parentToken || loadingConversations) return;
-    try {
-      setLoadingConversations(true);
-      const base = "https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/conversations/list?limit=20";
-      const url = cursor ? `${base}&cursor=${encodeURIComponent(cursor)}` : base;
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${parentToken}` },
-      });
-      const json = await res.json();
-      const convs = json?.data?.conversations || [];
-      const next = json?.data?.cursor ?? null;
-
-      const mapped: User[] = convs.map((c: any) => ({
-        id: c.user?.userId,
-        name: `${c.user?.firstName ?? ""} ${c.user?.lastName ?? ""}`.trim(),
-        avatar: c.user?.avatarUrl
-          ? `https://d34wmjl2ccaffd.cloudfront.net${c.user.avatarUrl}`
-          : "/user.png",
-        lastMessage: c.lastMessagePreview ?? "",
-        lastMessageTime: c.lastMessageAt ? fmtTime(c.lastMessageAt) : "",
-        online: false,
-        unread: c.unreadCount ?? 0,
-      }));
-
-      setUsers((prev) => (cursor ? [...prev, ...mapped] : mapped));
-      setConvCursor(next);
-      setConvHasMore(Boolean(next));
-    } catch (err) {
-      console.error("❌ Fetch conversations failed:", err);
-    } finally {
-      setLoadingConversations(false);
-    }
-  };
-
+  // ───────────────────────────────────────────────
+  // FETCH USERS LIST
+  // ───────────────────────────────────────────────
   useEffect(() => {
     if (!parentToken) return;
-    setUsers([]);
-    setConvCursor(null);
-    setConvHasMore(true);
-    fetchConversations(null);
+
+    const uid = decodeToken(parentToken);
+    setLoggedInUserId(uid);
+
+    const fetchUsers = async () => {
+      try {
+        const url =
+          `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/conversations/list?limit=20` +
+          (cursor ? `&cursor=${cursor}` : "");
+
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${parentToken}`,
+          },
+        });
+
+        const data = await res.json();
+        console.log("📥 Conversations List:", data);
+
+        const mappedUsers: User[] =
+          data?.data?.conversations?.map((c: any) => ({
+            id: c.user?.userId,
+            name: `${c.user?.firstName ?? ""} ${
+              c.user?.lastName ?? ""
+            }`.trim(),
+            avatar: c.user?.avatarUrl
+              ? `https://d34wmjl2ccaffd.cloudfront.net${c.user.avatarUrl}`
+              : "/user.png",
+
+            lastMessage: c.lastMessagePreview ?? "",
+            lastMessageTime: c.lastMessageAt
+              ? new Date(c.lastMessageAt).toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })
+              : "",
+
+            online: c.user?.online ?? false,
+            unread: c.unreadCount ?? 0,
+          })) || [];
+
+        setUsers((prev) => [...prev, ...mappedUsers]);
+
+        if (data?.data?.cursor) setCursor(data.data.cursor);
+      } catch (error) {
+        console.error("❌ Failed to fetch users:", error);
+      }
+    };
+
+    fetchUsers();
   }, [parentToken]);
 
-  // ------------------- FETCH MESSAGES -------------------
-  const fetchMessages = async (cid: string, cursor?: string | null) => {
-    if (!parentToken || loadingMessages) return;
-    try {
-      setLoadingMessages(true);
-      loadingMoreRef.current = true;
-
-      const base = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/${cid}/list?limit=20`;
-      const url = cursor ? `${base}&cursor=${encodeURIComponent(cursor)}` : base;
-
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${parentToken}` },
-      });
-      const json = await res.json();
-      const msgs = json?.data?.messages || [];
-      const next = json?.data?.cursor ?? null;
-
-      const mapped: Message[] = msgs.map((m: any) => ({
-        id: m.messageId,
-        content: m.content,
-        timestamp: fmtTime(m.createdAt),
-        sent: m.senderUserId === loggedInUserId,
-        type: "text",
-        status: m.senderUserId === loggedInUserId ? "sent" : undefined,
-        createdAtNum: m.createdAt,
-      }));
-
-      if (!cursor) {
-        const oldestFirst = mapped.slice().sort((a, b) => (a.createdAtNum ?? 0) - (b.createdAtNum ?? 0));
-        setMessages(oldestFirst);
-        requestAnimationFrame(() => {
-          const el = chatWrapperRef.current;
-          if (el) el.scrollTop = el.scrollHeight;
-        });
-      } else {
-        const oldestFirstPage = mapped.slice().sort((a, b) => (a.createdAtNum ?? 0) - (b.createdAtNum ?? 0));
-        const el = chatWrapperRef.current;
-        let prevScrollHeight = el?.scrollHeight ?? 0;
-        let prevScrollTop = el?.scrollTop ?? 0;
-
-        setMessages((prev) => {
-          const existingIds = new Set(prev.map((p) => p.id));
-          const filtered = oldestFirstPage.filter((m) => !existingIds.has(m.id));
-          return [...filtered, ...prev];
-        });
-
-        requestAnimationFrame(() => {
-          const el2 = chatWrapperRef.current;
-          if (el2) {
-            const delta = el2.scrollHeight - prevScrollHeight;
-            el2.scrollTop = prevScrollTop + delta;
-          }
-        });
-      }
-
-      setMsgCursor(next);
-      setMsgHasMore(Boolean(next));
-    } catch (err) {
-      console.error("❌ Fetch messages failed:", err);
-    } finally {
-      setLoadingMessages(false);
-      loadingMoreRef.current = false;
-    }
-  };
-
-  // ------------------- GET OR CREATE CONVERSATION -------------------
+  // ───────────────────────────────────────────────
+  // GET OR CREATE CONVERSATION
+  // ───────────────────────────────────────────────
   const getConversationId = async (targetUserId: string, token: string) => {
     try {
       const res = await fetch(
@@ -235,8 +186,11 @@ export default function ChatInterface() {
           body: JSON.stringify({ targetUserId }),
         }
       );
+
       const data = await res.json();
-      const cid = data?.data?.conversationId ?? null;
+      console.log("📥 Conversation Create:", data);
+
+      const cid = data?.data?.conversationId;
       setConversationId(cid);
       return cid;
     } catch (err) {
@@ -245,7 +199,50 @@ export default function ChatInterface() {
     }
   };
 
-  // ------------------- SEND MESSAGE -------------------
+  // ───────────────────────────────────────────────
+  // FETCH MESSAGES
+  // ───────────────────────────────────────────────
+  const fetchMessages = async (
+    cid: string,
+    token: string,
+    myUserId: string | null
+  ) => {
+    if (!myUserId) return;
+
+    try {
+      const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/${cid}/list?limit=10`;
+
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      console.log("📥 Messages:", data);
+
+      const mappedMessages: Message[] =
+        data?.data?.messages?.map((msg: any) => ({
+          id: msg.messageId,
+          content: msg.content,
+          timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          }),
+          sent: msg.senderUserId === myUserId,
+          type: "text",
+          status: msg.senderUserId === myUserId ? "sent" : undefined,
+        })) || [];
+
+      setMessages(mappedMessages);
+    } catch (error) {
+      console.error("❌ Failed to fetch messages:", error);
+    }
+  };
+
+  // ───────────────────────────────────────────────
+  // SEND MESSAGE
+  // ───────────────────────────────────────────────
   const sendMessageToApi = async (cid: string, content: string, token: string) => {
     try {
       const res = await fetch(
@@ -256,9 +253,13 @@ export default function ChatInterface() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ conversationId: cid, content }),
+          body: JSON.stringify({
+            conversationId: cid,
+            content,
+          }),
         }
       );
+
       return await res.json();
     } catch (err) {
       console.error("❌ Failed to send message:", err);
@@ -266,6 +267,26 @@ export default function ChatInterface() {
     }
   };
 
+  const handleUserSelect = async (user: User) => {
+    if (!parentToken || !loggedInUserId) return;
+
+    setSelectedUser(user);
+    setMessages([]);
+
+    // reset unread count
+    setUsers((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
+    );
+
+    const cid = await getConversationId(user.id, parentToken);
+    if (cid) fetchMessages(cid, parentToken, loggedInUserId);
+
+    if (window.innerWidth < 768) setShowSidebar(false);
+  };
+
+  // ───────────────────────────────────────────────
+  // SEND MESSAGE HANDLER
+  // ───────────────────────────────────────────────
   const handleSendMessage = async (content: string) => {
     if (!selectedUser || !parentToken) return;
 
@@ -276,75 +297,58 @@ export default function ChatInterface() {
     }
 
     const tempId = `temp-${Date.now()}`;
-    const timeString = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    const timeString = new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
 
-    const optimisticMessage: Message = {
+    const optimistic: Message = {
       id: tempId,
       content,
       timestamp: timeString,
       sent: true,
       type: "text",
       status: "sending",
-      createdAtNum: Date.now(),
     };
 
-    setMessages((prev) => [...prev, optimisticMessage]);
-    setUsers((prev) =>
-      prev.map((u) => (u.id === selectedUser.id ? { ...u, lastMessage: content, lastMessageTime: timeString } : u))
-    );
-
-    requestAnimationFrame(() => {
-      const el = chatWrapperRef.current;
-      if (el) el.scrollTop = el.scrollHeight;
-    });
+    setMessages((p) => [...p, optimistic]);
 
     try {
       const data = await sendMessageToApi(cid, content, parentToken);
-      const returnedMessageId = data?.data?.messageId ?? data?.data?.message?.messageId;
-      const returnedCreatedAt = data?.data?.createdAt ?? data?.data?.message?.createdAt;
+      const realId =
+        data?.data?.messageId ?? data?.data?.message?.messageId;
+      const realTime =
+        data?.data?.createdAt ?? data?.data?.message?.createdAt;
 
       setMessages((prev) =>
         prev.map((m) =>
           m.id === tempId
             ? {
                 ...m,
-                id: returnedMessageId ?? m.id,
+                id: realId ?? m.id,
                 status: "sent",
-                timestamp: returnedCreatedAt
-                  ? new Date(returnedCreatedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+                timestamp: realTime
+                  ? new Date(realTime).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })
                   : m.timestamp,
-                createdAtNum: returnedCreatedAt ?? m.createdAtNum,
               }
             : m
         )
       );
-
-      requestAnimationFrame(() => {
-        const el = chatWrapperRef.current;
-        if (el) el.scrollTop = el.scrollHeight;
-      });
-    } catch (err) {
+    } catch {
       setMessages((prev) =>
-        prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
+        prev.map((m) =>
+          m.id === tempId ? { ...m, status: "failed" } : m
+        )
       );
     }
   };
 
-  const handleUserSelect = async (user: User) => {
-    if (!parentToken || !loggedInUserId) return;
-
-    setSelectedUser(user);
-    setMessages([]);
-    setMsgCursor(null);
-    setMsgHasMore(true);
-
-    const cid = await getConversationId(user.id, parentToken);
-    if (cid) fetchMessages(cid, null);
-
-    if (window.innerWidth < 768) setShowSidebar(false);
-  };
-
-  // ------------------- PARENT MESSAGES -------------------
+  // ───────────────────────────────────────────────
+  // PARENT WINDOW EVENTS
+  // ───────────────────────────────────────────────
   useEffect(() => {
     window.parent.postMessage({ type: "CHAT_READY" }, "*");
 
@@ -356,13 +360,15 @@ export default function ChatInterface() {
         const incomingUser = event.data.payload?.user;
 
         setParentToken(token);
-        const uid = token ? decodeToken(token) : null;
+        const uid = decodeToken(token);
         setLoggedInUserId(uid);
 
         if (incomingUser) {
           const user: User = {
             id: incomingUser.user_id,
-            name: `${incomingUser.firstName} ${incomingUser.lastName ?? ""}`.trim(),
+            name: `${incomingUser.firstName} ${
+              incomingUser.lastName ?? ""
+            }`.trim(),
             avatar: incomingUser.profilePhoto
               ? `https://d34wmjl2ccaffd.cloudfront.net${incomingUser.profilePhoto}`
               : "/user.png",
@@ -373,48 +379,33 @@ export default function ChatInterface() {
 
           setSelectedUser(user);
           setMessages([]);
-          setMsgCursor(null);
-          setMsgHasMore(true);
 
           const cid = await getConversationId(user.id, token);
-          if (cid && uid) fetchMessages(cid, null);
+          if (cid && uid) fetchMessages(cid, token, uid);
 
           setShowSidebar(false);
         }
       }
 
       if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
-        const payload = event.data.payload;
-        if (!payload?.message) return;
-        if (selectedUser && parentToken) handleSendMessage(payload.message);
+        if (selectedUser && parentToken) {
+          handleSendMessage(event.data.payload.message);
+        }
       }
     };
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [selectedUser, parentToken]);
+  }, [selectedUser, parentToken, conversationId]);
 
-  // ------------------- SCROLL -------------------
-  const handleConversationScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    const bottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
-    if (bottom && convHasMore && !loadingConversations) fetchConversations(convCursor);
-  };
-
-  const handleMessageScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    if (el.scrollTop <= 50 && msgHasMore && !loadingMessages && conversationId && !loadingMoreRef.current) {
-      fetchMessages(conversationId, msgCursor);
-    }
-  };
-
+  // ───────────────────────────────────────────────
+  // RENDER
+  // ───────────────────────────────────────────────
   const listToShow = searchQuery.length >= 2 ? searchResults : users;
 
   return (
     <div className={styles.chatInterface}>
       <div
-        ref={sidebarRef}
-        onScroll={handleConversationScroll}
         className={`${styles.sidebarWrapper} ${showSidebar ? styles.show : ""}`}
       >
         <UserSidebar
@@ -424,13 +415,9 @@ export default function ChatInterface() {
           onSearch={setSearchQuery}
           searchQuery={searchQuery}
         />
-        {loadingConversations && <div style={{ textAlign: "center", padding: 8 }}>Loading...</div>}
-        {!convHasMore && users.length > 0 && <div style={{ textAlign: "center", padding: 8, color: "#888" }}>No more conversations</div>}
       </div>
 
       <div
-        ref={chatWrapperRef}
-        onScroll={handleMessageScroll}
         className={`${styles.chatWrapper} ${!showSidebar ? styles.show : ""}`}
       >
         <ChatPanel
@@ -442,8 +429,6 @@ export default function ChatInterface() {
             setShowSidebar(true);
           }}
         />
-        {loadingMessages && <div style={{ textAlign: "center", padding: 8 }}>Loading messages...</div>}
-        {!msgHasMore && messages.length > 0 && <div style={{ textAlign: "center", padding: 8, color: "#888" }}>No older messages</div>}
       </div>
     </div>
   );
