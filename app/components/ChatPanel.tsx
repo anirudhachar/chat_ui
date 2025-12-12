@@ -68,17 +68,30 @@ export default function ChatPanel({
     return colors[index];
   };
 
-  const getStatusIcon = (status?: "sent" | "delivered" | "read") => {
-    if (!status) return null;
+ const getStatusIcon = (
+  status?: "sending" | "sent" | "delivered" | "read" | "failed"
+) => {
+  if (!status) return null;
 
-    if (status === "read") {
-      return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
-    }
-    if (status === "delivered") {
-      return <BsCheckAll className={styles.tickIcon} />;
-    }
-    return <BsCheck className={styles.tickIcon} />;
-  };
+  if (status === "sending") {
+    return <span className={styles.sendingDot}>●</span>;
+  }
+
+  if (status === "failed") {
+    return <span className={styles.failedIcon}>❌</span>;
+  }
+
+  if (status === "read") {
+    return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
+  }
+
+  if (status === "delivered") {
+    return <BsCheckAll className={styles.tickIcon} />;
+  }
+
+  return <BsCheck className={styles.tickIcon} />;
+};
+
 
   if (!selectedUser) {
     return (
