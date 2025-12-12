@@ -70,7 +70,7 @@ export default function ChatInterface() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
 
-  // Messages (pagination) — NEW: messages are sorted latest-first (newest at index 0)
+  // Messages (pagination) — UI will store oldest-first (index 0 = oldest)
   const [messages, setMessages] = useState<Message[]>([]);
   const [msgCursor, setMsgCursor] = useState<string | null>(null);
   const [msgHasMore, setMsgHasMore] = useState(true);
@@ -90,6 +90,9 @@ export default function ChatInterface() {
   // refs for scroll handlers (attached to wrapper divs)
   const sidebarRef = useRef<HTMLDivElement | null>(null);
   const chatWrapperRef = useRef<HTMLDivElement | null>(null);
+
+  // Prevent double fetch on very fast scrolls
+  const loadingMoreRef = useRef(false);
 
   // ───────────────────────────────────────────────
   // SEARCH API (unchanged)
@@ -169,9 +172,7 @@ export default function ChatInterface() {
           ? `https://d34wmjl2ccaffd.cloudfront.net${c.user.avatarUrl}`
           : "/user.png",
         lastMessage: c.lastMessagePreview ?? "",
-        lastMessageTime: c.lastMessageAt
-          ? fmtTime(c.lastMessageAt)
-          : "",
+        lastMessageTime: c.lastMessageAt ? fmtTime(c.lastMessageAt) : "",
         online: false,
         unread: c.unreadCount ?? 0,
       }));
@@ -200,11 +201,11 @@ export default function ChatInterface() {
   // ───────────────────────────────────────────────
   // FETCH MESSAGES (cursor pagination)
   //
-  // NOTE: This integration ensures messages are stored with newest first (index 0).
-  // When fetching initial page: set messages to that page sorted by createdAt descending.
-  // When fetching more pages (cursor provided), we assume API returns older messages
-  // -> append older messages to the END of the array (since newest is at start).
-  // backend returns: data.messages[] and data.cursor
+  // Backend returns newest-first (latest at index 0).
+  // We convert to oldest-first for the UI (index 0 = oldest).
+  // - Initial load (no cursor): reverse and set, then scroll to bottom.
+  // - Pagination (cursor provided): API returns older messages; these should be
+  //   prepended at the top (older), preserving scroll position.
   // ───────────────────────────────────────────────
   const fetchMessages = async (cid: string, cursor?: string | null) => {
     if (!parentToken) return;
@@ -212,6 +213,8 @@ export default function ChatInterface() {
 
     try {
       setLoadingMessages(true);
+      loadingMoreRef.current = true;
+
       const base = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/${cid}/list?limit=20`;
       const url = cursor ? `${base}&cursor=${encodeURIComponent(cursor)}` : base;
 
@@ -222,7 +225,7 @@ export default function ChatInterface() {
       const msgs = json?.data?.messages || [];
       const next = json?.data?.cursor ?? null;
 
-      // Map messages to our Message type, preserving createdAt number for sorting.
+      // Map messages to our Message type, track createdAtNum
       const mapped: Message[] = msgs.map((m: any) => {
         const created = m.createdAt;
         return {
@@ -237,18 +240,51 @@ export default function ChatInterface() {
       });
 
       if (!cursor) {
-        // initial page: sort newest-first and set
-        const sorted = mapped.sort((a, b) => (b.createdAtNum ?? 0) - (a.createdAtNum ?? 0));
-        setMessages(sorted);
+        // INITIAL LOAD: API gives newest-first; we want oldest-first
+        const oldestFirst = mapped
+          .slice()
+          .sort((a, b) => (a.createdAtNum ?? 0) - (b.createdAtNum ?? 0));
+        setMessages(oldestFirst);
+
+        // small delay to let DOM render then scroll to bottom
+        requestAnimationFrame(() => {
+          const el = chatWrapperRef.current;
+          if (el) {
+            el.scrollTop = el.scrollHeight;
+          }
+        });
       } else {
-        // pagination page (older messages): append to end because newest is at start
-        // BUT make sure we don't accidentally duplicate messages:
+        // PAGINATION LOAD (older messages). API returns older messages (still newest-first
+        // relative to that page), so convert that page to oldest-first, then PREPEND.
+        const oldestFirstPage = mapped
+          .slice()
+          .sort((a, b) => (a.createdAtNum ?? 0) - (b.createdAtNum ?? 0));
+
+        // preserve scroll position:
+        const el = chatWrapperRef.current;
+        let prevScrollHeight = 0;
+        let prevScrollTop = 0;
+        if (el) {
+          prevScrollHeight = el.scrollHeight;
+          prevScrollTop = el.scrollTop;
+        }
+
         setMessages((prev) => {
-          // avoid duplicates by id
+          // avoid duplicates
           const existingIds = new Set(prev.map((p) => p.id));
-          const filtered = mapped.filter((m) => !existingIds.has(m.id));
-          // Keep overall newest-first order: prev (newest..older) + filtered (older)
-          return [...prev, ...filtered];
+          const filtered = oldestFirstPage.filter((m) => !existingIds.has(m.id));
+          return [...filtered, ...prev];
+        });
+
+        // After DOM update, restore scroll position so the view stays stable
+        requestAnimationFrame(() => {
+          const el2 = chatWrapperRef.current;
+          if (el2) {
+            const newScrollHeight = el2.scrollHeight;
+            const delta = newScrollHeight - prevScrollHeight;
+            // maintain same visible messages (push down by the delta)
+            el2.scrollTop = prevScrollTop + delta;
+          }
         });
       }
 
@@ -258,6 +294,7 @@ export default function ChatInterface() {
       console.error("❌ Fetch messages failed:", err);
     } finally {
       setLoadingMessages(false);
+      loadingMoreRef.current = false;
     }
   };
 
@@ -289,7 +326,9 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // SEND MESSAGE (unchanged except we update messages keeping newest-first)
+  // SEND MESSAGE
+  // - optimistic append at BOTTOM
+  // - after send success replace temp item and scroll to bottom
   // ───────────────────────────────────────────────
   const sendMessageToApi = async (cid: string, content: string, token: string) => {
     try {
@@ -312,6 +351,13 @@ export default function ChatInterface() {
     } catch (err) {
       console.error("❌ Failed to send message:", err);
       throw err;
+    }
+  };
+
+  const scrollToBottom = () => {
+    const el = chatWrapperRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
     }
   };
 
@@ -340,9 +386,10 @@ export default function ChatInterface() {
       createdAtNum: Date.now(),
     };
 
-    // newest-first: add to start
-    setMessages((prev) => [optimisticMessage, ...prev]);
+    // append to bottom (oldest-first array)
+    setMessages((prev) => [...prev, optimisticMessage]);
 
+    // update conversation preview
     setUsers((prev) =>
       prev.map((u) =>
         u.id === selectedUser.id
@@ -350,6 +397,9 @@ export default function ChatInterface() {
           : u
       )
     );
+
+    // scroll to bottom so user sees their message
+    requestAnimationFrame(scrollToBottom);
 
     try {
       const data = await sendMessageToApi(cid, content, parentToken);
@@ -377,6 +427,9 @@ export default function ChatInterface() {
             : m
         )
       );
+
+      // ensure final message visible
+      requestAnimationFrame(scrollToBottom);
     } catch (err) {
       setMessages((prev) =>
         prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
@@ -386,21 +439,19 @@ export default function ChatInterface() {
 
   // ───────────────────────────────────────────────
   // HANDLE USER SELECT (open conversation)
-  // Reset message pagination and fetch initial page (newest-first)
+  // Reset message pagination and fetch initial page (convert to oldest-first)
   // ───────────────────────────────────────────────
   const handleUserSelect = async (user: User) => {
     if (!parentToken || !loggedInUserId) return;
 
     setSelectedUser(user);
     setMessages([]);
-
-    // clear message pagination state for the newly opened conversation
     setMsgCursor(null);
     setMsgHasMore(true);
 
     const cid = await getConversationId(user.id, parentToken);
     if (cid) {
-      // initial fetch (no cursor) -> will set messages newest-first
+      // set conversationId already done in getConversationId
       fetchMessages(cid, null);
     }
 
@@ -472,7 +523,7 @@ export default function ChatInterface() {
   // ───────────────────────────────────────────────
   // SCROLL HANDLERS (attached to wrapper divs)
   // Conversations: load more when user scrolled to bottom
-  // Messages: since we store newest-first (index 0), load older when user scrolls to bottom
+  // Messages: load older messages when user scrolls to TOP
   // ───────────────────────────────────────────────
   const handleConversationScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
@@ -484,18 +535,13 @@ export default function ChatInterface() {
 
   const handleMessageScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
-    const bottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
-    // bottom means user scrolled to bottom to view older messages (because newest are at top)
-    if (bottom && msgHasMore && !loadingMessages && conversationId) {
+    // if user is near top, load older messages
+    if (el.scrollTop <= 50 && msgHasMore && !loadingMessages && conversationId && !loadingMoreRef.current) {
+      // fetch older messages using current cursor
+      // Note: msgCursor is the cursor returned by last API call (points to older page)
       fetchMessages(conversationId, msgCursor);
     }
   };
-
-  // Attach refs for wrapper elements so user can still scroll normally.
-  // We render the same wrappers you had earlier and place onScroll handlers there.
-  // If your ChatPanel or UserSidebar have their own scroll containers, you can
-  // forward their scroll events to these handlers (or I can patch those components).
-  // ───────────────────────────────────────────────
 
   // Final list to show in sidebar (search takes precedence)
   const listToShow = searchQuery.length >= 2 ? searchResults : users;
