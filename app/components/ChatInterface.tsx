@@ -86,7 +86,7 @@ export default function ChatInterface() {
 
         const mappedUsers: User[] =
           data?.data?.conversations?.map((c: any) => ({
-            id: c.user_id, // this is the target user id
+            id: c.user_id,
             name: `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim(),
             avatar: c.profilePhoto
               ? `https://d34wmjl2ccaffd.cloudfront.net${c.profilePhoto}`
@@ -109,9 +109,10 @@ export default function ChatInterface() {
   }, [parentToken]);
 
   // ───────────────────────────────────────────────
-  // CREATE OR GET CONVERSATION ID
+  // CREATE OR GET CONVERSATION ID  (FIXED)
+//  → Token is now passed explicitly
   // ───────────────────────────────────────────────
-  const getConversationId = async (targetUserId: string) => {
+  const getConversationId = async (targetUserId: string, token: string) => {
     try {
       const res = await fetch(
         `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/conversations/create`,
@@ -119,7 +120,7 @@ export default function ChatInterface() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${parentToken}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ targetUserId }),
         }
@@ -175,9 +176,12 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // HANDLE USER CLICK → GET CONVERSATION → LOAD MESSAGES
+  // HANDLE USER CLICK (FIXED)
+  // Now passes parentToken directly
   // ───────────────────────────────────────────────
   const handleUserSelect = async (user: User) => {
+    if (!parentToken) return;
+
     setSelectedUser(user);
     setMessages([]);
 
@@ -186,7 +190,7 @@ export default function ChatInterface() {
       prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
     );
 
-    const cid = await getConversationId(user.id);
+    const cid = await getConversationId(user.id, parentToken);
     if (cid) fetchMessages(cid);
 
     if (window.innerWidth < 768) {
@@ -195,7 +199,7 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // SEND MESSAGE (LOCAL ONLY, API NOT GIVEN)
+  // SEND MESSAGE (LOCAL ONLY)
   // ───────────────────────────────────────────────
   const handleSendMessage = (content: string) => {
     if (!selectedUser) return;
@@ -216,7 +220,8 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // RECEIVE TOKEN + OPEN CHAT FROM PARENT
+  // RECEIVE TOKEN + OPEN CHAT FROM PARENT (FIXED)
+  // Token passed directly to getConversationId()
   // ───────────────────────────────────────────────
   useEffect(() => {
     window.parent.postMessage({ type: "CHAT_READY" }, "*");
@@ -245,8 +250,8 @@ export default function ChatInterface() {
           setSelectedUser(user);
           setMessages([]);
 
-          // create/fetch conversation with this user
-          const cid = await getConversationId(user.id);
+          // FIX: USE TOKEN HERE DIRECTLY
+          const cid = await getConversationId(user.id, token);
           if (cid) fetchMessages(cid);
 
           setShowSidebar(false);
