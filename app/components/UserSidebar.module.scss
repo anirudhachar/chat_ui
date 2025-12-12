@@ -177,3 +177,11 @@
   border-radius: 10px;
   flex-shrink: 0;
 }
+
+
+.avatarImage {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+}
