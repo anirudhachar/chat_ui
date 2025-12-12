@@ -55,62 +55,57 @@ export default function ChatInterface() {
   const [conversationId, setConversationId] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<User[]>([]); // NEW
+  const [searchResults, setSearchResults] = useState<User[]>([]); // FIXED SEARCH RESULT STRUCTURE
   const [showSidebar, setShowSidebar] = useState(true);
 
   const [parentToken, setParentToken] = useState<string | null>(null);
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
 
   // ───────────────────────────────────────────────
-  // SEARCH API — CALL WHEN TYPING
+  // SEARCH API
   // ───────────────────────────────────────────────
   useEffect(() => {
     if (!parentToken) return;
 
     const query = searchQuery.trim();
-
-    // If query too short → show normal user list
     if (query.length < 2) {
       setSearchResults([]);
       return;
     }
 
-    const fetchSearchResults = async () => {
+    const fetchSearch = async () => {
       try {
-        const url =
-          `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/search/people?query=${encodeURIComponent(
-            query
-          )}`;
+        const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/search/people?query=${encodeURIComponent(
+          query
+        )}`;
 
         const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${parentToken}`,
-          },
+          headers: { Authorization: `Bearer ${parentToken}` },
         });
 
         const data = await res.json();
-        console.log("🔍 SEARCH API RESULT:", data);
+        console.log("🔍 SEARCH RESULT:", data);
 
         const mapped: User[] =
           data?.data?.users?.map((u: any) => ({
-            id: u.userId,
-            name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim(),
-            avatar: u.profilePhoto
-              ? `https://d34wmjl2ccaffd.cloudfront.net${u.profilePhoto}`
+            id: u.user_id, // FIXED
+            name: `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim(), // FIXED
+            avatar: u.profile_photo_url
+              ? `https://d34wmjl2ccaffd.cloudfront.net${u.profile_photo_url}` // FIXED
               : "/user.png",
             lastMessage: "",
             lastMessageTime: "",
-            online: u.online ?? false,
+            online: false,
             unread: 0,
           })) || [];
 
         setSearchResults(mapped);
       } catch (err) {
-        console.error("❌ Search API failed:", err);
+        console.error("❌ Search failed:", err);
       }
     };
 
-    fetchSearchResults();
+    fetchSearch();
   }, [searchQuery, parentToken]);
 
   // ───────────────────────────────────────────────
@@ -129,20 +124,16 @@ export default function ChatInterface() {
           (cursor ? `&cursor=${cursor}` : "");
 
         const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${parentToken}`,
-          },
+          headers: { Authorization: `Bearer ${parentToken}` },
         });
 
         const data = await res.json();
-        console.log("📥 Conversations List:", data);
+        console.log("📥 Conversations:", data);
 
         const mappedUsers: User[] =
           data?.data?.conversations?.map((c: any) => ({
             id: c.user?.userId,
-            name: `${c.user?.firstName ?? ""} ${
-              c.user?.lastName ?? ""
-            }`.trim(),
+            name: `${c.user?.firstName ?? ""} ${c.user?.lastName ?? ""}`.trim(),
             avatar: c.user?.avatarUrl
               ? `https://d34wmjl2ccaffd.cloudfront.net${c.user.avatarUrl}`
               : "/user.png",
@@ -155,15 +146,15 @@ export default function ChatInterface() {
                 })
               : "",
 
-            online: c.user?.online ?? false,
+            online: false,
             unread: c.unreadCount ?? 0,
           })) || [];
 
         setUsers((prev) => [...prev, ...mappedUsers]);
 
         if (data?.data?.cursor) setCursor(data.data.cursor);
-      } catch (error) {
-        console.error("❌ Failed to fetch users:", error);
+      } catch (err) {
+        console.error("❌ Fetch users failed:", err);
       }
     };
 
@@ -176,7 +167,7 @@ export default function ChatInterface() {
   const getConversationId = async (targetUserId: string, token: string) => {
     try {
       const res = await fetch(
-        `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/conversations/create`,
+        "https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/conversations/create",
         {
           method: "POST",
           headers: {
@@ -188,13 +179,8 @@ export default function ChatInterface() {
       );
 
       const data = await res.json();
-      console.log("📥 Conversation Create:", data);
-
-      const cid = data?.data?.conversationId;
-      setConversationId(cid);
-      return cid;
-    } catch (err) {
-      console.error("❌ Failed to create conversation:", err);
+      return data?.data?.conversationId || null;
+    } catch {
       return null;
     }
   };
@@ -211,17 +197,14 @@ export default function ChatInterface() {
 
     try {
       const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/${cid}/list?limit=10`;
-
       const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = await res.json();
       console.log("📥 Messages:", data);
 
-      const mappedMessages: Message[] =
+      const mapped: Message[] =
         data?.data?.messages?.map((msg: any) => ({
           id: msg.messageId,
           content: msg.content,
@@ -234,9 +217,9 @@ export default function ChatInterface() {
           status: msg.senderUserId === myUserId ? "sent" : undefined,
         })) || [];
 
-      setMessages(mappedMessages);
-    } catch (error) {
-      console.error("❌ Failed to fetch messages:", error);
+      setMessages(mapped);
+    } catch (err) {
+      console.error("❌ Fetch messages failed:", err);
     }
   };
 
@@ -253,17 +236,13 @@ export default function ChatInterface() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            conversationId: cid,
-            content,
-          }),
+          body: JSON.stringify({ conversationId: cid, content }),
         }
       );
 
       return await res.json();
-    } catch (err) {
-      console.error("❌ Failed to send message:", err);
-      throw err;
+    } catch {
+      throw new Error("Failed to send");
     }
   };
 
@@ -273,28 +252,18 @@ export default function ChatInterface() {
     setSelectedUser(user);
     setMessages([]);
 
-    // reset unread count
-    setUsers((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
-    );
-
     const cid = await getConversationId(user.id, parentToken);
     if (cid) fetchMessages(cid, parentToken, loggedInUserId);
 
     if (window.innerWidth < 768) setShowSidebar(false);
   };
 
-  // ───────────────────────────────────────────────
-  // SEND MESSAGE HANDLER
-  // ───────────────────────────────────────────────
   const handleSendMessage = async (content: string) => {
     if (!selectedUser || !parentToken) return;
 
     let cid = conversationId;
-    if (!cid) {
-      cid = await getConversationId(selectedUser.id, parentToken);
-      if (!cid) return;
-    }
+    if (!cid) cid = await getConversationId(selectedUser.id, parentToken);
+    if (!cid) return;
 
     const tempId = `temp-${Date.now()}`;
     const timeString = new Date().toLocaleTimeString("en-US", {
@@ -311,10 +280,11 @@ export default function ChatInterface() {
       status: "sending",
     };
 
-    setMessages((p) => [...p, optimistic]);
+    setMessages((prev) => [...prev, optimistic]);
 
     try {
       const data = await sendMessageToApi(cid, content, parentToken);
+
       const realId =
         data?.data?.messageId ?? data?.data?.message?.messageId;
       const realTime =
@@ -325,7 +295,7 @@ export default function ChatInterface() {
           m.id === tempId
             ? {
                 ...m,
-                id: realId ?? m.id,
+                id: realId,
                 status: "sent",
                 timestamp: realTime
                   ? new Date(realTime).toLocaleTimeString("en-US", {
@@ -373,7 +343,7 @@ export default function ChatInterface() {
               ? `https://d34wmjl2ccaffd.cloudfront.net${incomingUser.profilePhoto}`
               : "/user.png",
             lastMessage: "",
-            lastMessageTime: "Now",
+            lastMessageTime: "",
             online: true,
           };
 
@@ -396,12 +366,13 @@ export default function ChatInterface() {
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [selectedUser, parentToken, conversationId]);
+  }, [selectedUser, parentToken]);
 
   // ───────────────────────────────────────────────
-  // RENDER
+  // FINAL LIST TO DISPLAY
   // ───────────────────────────────────────────────
-  const listToShow = searchQuery.length >= 2 ? searchResults : users;
+  const listToShow =
+    searchQuery.length >= 2 ? searchResults : users;
 
   return (
     <div className={styles.chatInterface}>
