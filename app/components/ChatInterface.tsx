@@ -5,6 +5,9 @@ import styles from "./ChatInterface.module.scss";
 import UserSidebar from "./UserSidebar";
 import ChatPanel from "./ChatPanel";
 
+// ───────────────────────────────────────────────
+// TYPES
+// ───────────────────────────────────────────────
 export interface User {
   id: string;
   name: string;
@@ -31,11 +34,17 @@ export interface Message {
   linkDescription?: string;
 }
 
-// dummy logged-in user ID
-const MY_USER_ID = "dummy-user-123";
-
-// fixed conversation ID for now
-const FIXED_CONVERSATION_ID = "0c634a5d-216c-43e4-bb87-fa8a34cb22b2";
+// ───────────────────────────────────────────────
+// GET USER ID FROM TOKEN
+// ───────────────────────────────────────────────
+const decodeToken = (token: string) => {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.user_id;
+  } catch (e) {
+    return null;
+  }
+};
 
 export default function ChatInterface() {
   const [users, setUsers] = useState<User[]>([]);
@@ -43,16 +52,22 @@ export default function ChatInterface() {
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [showSidebar, setShowSidebar] = useState(true);
 
   const [parentToken, setParentToken] = useState<string | null>(null);
+  const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
 
   // ───────────────────────────────────────────────
-  // FETCH USERS
+  // FETCH USERS (CHAT LIST)
   // ───────────────────────────────────────────────
   useEffect(() => {
     if (!parentToken) return;
+
+    const uid = decodeToken(parentToken);
+    setLoggedInUserId(uid);
 
     const fetchUsers = async () => {
       try {
@@ -67,11 +82,11 @@ export default function ChatInterface() {
         });
 
         const data = await res.json();
-        console.log("📥 Conversations API:", data);
+        console.log("📥 Conversations List:", data);
 
         const mappedUsers: User[] =
           data?.data?.conversations?.map((c: any) => ({
-            id: c.user_id,
+            id: c.user_id, // this is the target user id
             name: `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim(),
             avatar: c.profilePhoto
               ? `https://d34wmjl2ccaffd.cloudfront.net${c.profilePhoto}`
@@ -94,69 +109,85 @@ export default function ChatInterface() {
   }, [parentToken]);
 
   // ───────────────────────────────────────────────
-  // FETCH MESSAGES
-// ───────────────────────────────────────────────
-// FETCH MESSAGES
-// ───────────────────────────────────────────────
-const fetchMessages = async (conversationId: string) => {
-  if (!parentToken) return;
+  // CREATE OR GET CONVERSATION ID
+  // ───────────────────────────────────────────────
+  const getConversationId = async (targetUserId: string) => {
+    try {
+      const res = await fetch(
+        `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/conversations/create`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${parentToken}`,
+          },
+          body: JSON.stringify({ targetUserId }),
+        }
+      );
 
-  try {
-    const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/${conversationId}/list?limit=10`;
+      const data = await res.json();
+      console.log("📥 Conversation Create:", data);
 
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${parentToken}`,
-      },
-    });
-
-    const data = await res.json();
-    console.log("📥 Messages API:", data);
-
-    const mappedMessages: Message[] =
-      data?.data?.messages?.map((msg: any) => ({
-        id: msg.messageId,
-        content: msg.content,
-        timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-        }),
-        sent: msg.senderUserId === MY_USER_ID,
-        type: "text",
-        status: msg.senderUserId === MY_USER_ID ? "sent" : undefined,
-      })) || [];
-
-    setMessages(mappedMessages);
-  } catch (error) {
-    console.error("❌ Failed to fetch messages:", error);
-  }
-};
-
-// ───────────────────────────────────────────────
-// FETCH MESSAGES WHEN SELECTED USER CHANGES
-// ───────────────────────────────────────────────
-useEffect(() => {
-  if (!selectedUser) return;
-
-  // Use fixed conversation ID for now
-  fetchMessages(FIXED_CONVERSATION_ID);
-}, [selectedUser]);
-
+      const conversationId = data?.data?.conversationId;
+      setConversationId(conversationId);
+      return conversationId;
+    } catch (err) {
+      console.error("❌ Failed to create conversation:", err);
+      return null;
+    }
+  };
 
   // ───────────────────────────────────────────────
-  // SELECT USER
+  // FETCH MESSAGES USING conversationId
   // ───────────────────────────────────────────────
-  const handleUserSelect = (user: User) => {
+  const fetchMessages = async (cid: string) => {
+    if (!parentToken) return;
+
+    try {
+      const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/${cid}/list?limit=10`;
+
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${parentToken}`,
+        },
+      });
+
+      const data = await res.json();
+      console.log("📥 Messages:", data);
+
+      const mappedMessages: Message[] =
+        data?.data?.messages?.map((msg: any) => ({
+          id: msg.messageId,
+          content: msg.content,
+          timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          }),
+          sent: msg.senderUserId === loggedInUserId,
+          type: "text",
+          status: msg.senderUserId === loggedInUserId ? "sent" : undefined,
+        })) || [];
+
+      setMessages(mappedMessages);
+    } catch (error) {
+      console.error("❌ Failed to fetch messages:", error);
+    }
+  };
+
+  // ───────────────────────────────────────────────
+  // HANDLE USER CLICK → GET CONVERSATION → LOAD MESSAGES
+  // ───────────────────────────────────────────────
+  const handleUserSelect = async (user: User) => {
     setSelectedUser(user);
     setMessages([]);
 
-    // mark user as read
+    // mark unread as read
     setUsers((prev) =>
       prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
     );
 
-    // use your fixed conversation ID for now
-    fetchMessages(FIXED_CONVERSATION_ID);
+    const cid = await getConversationId(user.id);
+    if (cid) fetchMessages(cid);
 
     if (window.innerWidth < 768) {
       setShowSidebar(false);
@@ -164,13 +195,9 @@ useEffect(() => {
   };
 
   // ───────────────────────────────────────────────
-  // SEND MESSAGE
+  // SEND MESSAGE (LOCAL ONLY, API NOT GIVEN)
   // ───────────────────────────────────────────────
-  const handleSendMessage = (
-    content: string,
-    type: "text" | "image" | "document" | "link" = "text",
-    fileOrLink?: any
-  ) => {
+  const handleSendMessage = (content: string) => {
     if (!selectedUser) return;
 
     const newMessage: Message = {
@@ -181,44 +208,28 @@ useEffect(() => {
         minute: "2-digit",
       }),
       sent: true,
-      type,
+      type: "text",
       status: "sent",
     };
 
     setMessages((prev) => [...prev, newMessage]);
-
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === selectedUser.id
-          ? {
-              ...u,
-              lastMessage: newMessage.content,
-              lastMessageTime: "Just now",
-            }
-          : u
-      )
-    );
   };
 
-  const filteredUsers = users.filter((u) =>
-    u.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   // ───────────────────────────────────────────────
-  // RECEIVE TOKEN + OPEN_CHAT
+  // RECEIVE TOKEN + OPEN CHAT FROM PARENT
   // ───────────────────────────────────────────────
   useEffect(() => {
     window.parent.postMessage({ type: "CHAT_READY" }, "*");
 
-    const handleMessage = (event: MessageEvent) => {
+    const handleMessage = async (event: MessageEvent) => {
       if (!event.data?.type) return;
 
-      console.log("📨 iframe received:", event.data);
-
       if (event.data.type === "OPEN_CHAT") {
-        setParentToken(event.data.payload?.token || null);
-
+        const token = event.data.payload?.token;
         const incomingUser = event.data.payload?.user;
+
+        setParentToken(token);
+
         if (incomingUser) {
           const user: User = {
             id: incomingUser.user_id,
@@ -233,9 +244,12 @@ useEffect(() => {
 
           setSelectedUser(user);
           setMessages([]);
-          setShowSidebar(false);
 
-          fetchMessages(FIXED_CONVERSATION_ID);
+          // create/fetch conversation with this user
+          const cid = await getConversationId(user.id);
+          if (cid) fetchMessages(cid);
+
+          setShowSidebar(false);
         }
       }
     };
@@ -253,7 +267,9 @@ useEffect(() => {
         className={`${styles.sidebarWrapper} ${showSidebar ? styles.show : ""}`}
       >
         <UserSidebar
-          users={filteredUsers}
+          users={users.filter((u) =>
+            u.name.toLowerCase().includes(searchQuery.toLowerCase())
+          )}
           selectedUser={selectedUser}
           onUserSelect={handleUserSelect}
           onSearch={setSearchQuery}
