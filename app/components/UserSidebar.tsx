@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { FiSearch } from "react-icons/fi";
 import { User } from "./ChatInterface";
 import styles from "./UserSidebar.module.scss";
+import UserSidebarSkeleton from "./UserSidebarSkeleton/UserSidebarSkeleton";
 
 interface UserSidebarProps {
   users: User[];
@@ -21,10 +22,10 @@ export default function UserSidebar({
   onUserSelect,
   onSearch,
   searchQuery,
-  onLoadMore, 
-  hasMore, 
+  onLoadMore,
+  hasMore,
 }: UserSidebarProps) {
-  const loadingIndicatorRef = useRef<HTMLDivElement>(null); 
+  const loadingIndicatorRef = useRef<HTMLDivElement>(null);
   const userListRef = useRef<HTMLDivElement>(null); // Ref for the scrollable container
 
   // IntersectionObserver for infinite scrolling
@@ -80,7 +81,8 @@ export default function UserSidebar({
       "#ba68c8",
     ];
     // Simple hash-like index based on ID to ensure color stability
-    const index = parseInt(id.replace(/\D/g, '').slice(-3) || '0', 10) % colors.length;
+    const index =
+      parseInt(id.replace(/\D/g, "").slice(-3) || "0", 10) % colors.length;
     return colors[index];
   };
 
@@ -108,13 +110,11 @@ export default function UserSidebar({
       {/* User List */}
       <div className={styles.userList} ref={userListRef}>
         {users.length === 0 && searchQuery.length < 2 ? (
-          <div className={styles.noResults}>
-            <p>Loading chats...</p>
-          </div>
+          <UserSidebarSkeleton count={6} />
         ) : users.length === 0 && searchQuery.length >= 2 ? (
-            <div className={styles.noResults}>
-                <p>No search results found.</p>
-            </div>
+          <div className={styles.noResults}>
+            <p>No search results found.</p>
+          </div>
         ) : (
           users.map((user) => (
             <div
@@ -160,20 +160,20 @@ export default function UserSidebar({
             </div>
           ))
         )}
-        
+
         {/* Loading/Sentinel Indicator for Infinite Scroll */}
-        {hasMore && (
-          <div ref={loadingIndicatorRef} className={styles.loadingMore}>
-            <p>Loading more chats...</p>
-          </div>
-        )}
+      {hasMore && (
+  <div ref={loadingIndicatorRef}>
+    <UserSidebarSkeleton count={2} />
+  </div>
+)}
+
 
         {!hasMore && users.length > 0 && searchQuery.length < 2 && (
-            <div className={styles.endOfList}>
-                <p>You've reached the end of the chat list.</p>
-            </div>
+          <div className={styles.endOfList}>
+            <p>You've reached the end of the chat list.</p>
+          </div>
         )}
-
       </div>
     </div>
   );
