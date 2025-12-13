@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, memo } from "react";
+import { useEffect, useRef } from "react";
 import { FiArrowLeft, FiMoreVertical } from "react-icons/fi";
 import { BsCheck, BsCheckAll } from "react-icons/bs";
 import { User, Message } from "./ChatInterface";
@@ -23,98 +23,46 @@ interface ChatPanelProps {
     }
   ) => void;
   onBack: () => void;
-  // PROPS for message pagination and scroll anchoring
-  onLoadMoreMessages: (currentScrollHeight: number) => void;
+  // NEW PROPS for message pagination
+  onLoadMoreMessages: () => void;
   hasMoreMessages: boolean;
-  prevScrollHeight: number | null; 
-  setPrevScrollHeight: React.Dispatch<React.SetStateAction<number | null>>; 
-  isLoadingMessages: boolean; // NEW: Loading state
 }
 
-export default memo(function ChatPanel({
+export default function ChatPanel({
   selectedUser,
   messages,
   onSendMessage,
   onBack,
-  onLoadMoreMessages,
-  hasMoreMessages,
-  prevScrollHeight,
-  setPrevScrollHeight,
-  isLoadingMessages, // Use new prop
+  onLoadMoreMessages, // NEW
+  hasMoreMessages,    // NEW
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesAreaRef = useRef<HTMLDivElement>(null); 
-  const topMessageSentinelRef = useRef<HTMLDivElement>(null); 
-  
-  // Flag to manage initial scroll-to-bottom behavior
-  const isInitialLoadRef = useRef(true); 
+  const messagesAreaRef = useRef<HTMLDivElement>(null); // Ref for the scrollable area
+  const topMessageSentinelRef = useRef<HTMLDivElement>(null); // NEW Ref for IntersectionObserver
 
-  // Helper to scroll to the bottom
-  const scrollToBottom = (behavior: "auto" | "smooth" = "smooth") => {
-    messagesEndRef.current?.scrollIntoView({ behavior });
+  // Helper to scroll to the bottom (used when sending a new message or first load)
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // ───────────────────────────────────────────────
-  // SCROLL ANCHORING LOGIC (The Fix for the "Jump")
-  // ───────────────────────────────────────────────
+  // Scroll to bottom on initial load or new message
   useEffect(() => {
-    const messagesArea = messagesAreaRef.current;
-    
-    // 1. Initial Load: Always scroll to bottom (using 'auto' for fast initial display)
-    if (isInitialLoadRef.current) {
-        scrollToBottom("auto"); 
-        isInitialLoadRef.current = false;
-        return;
-    }
+    scrollToBottom();
+  }, [messages.length]); // Scroll only when the total count changes
 
-    // 2. Pagination Load (Scroll Up): Adjust position
-    if (messagesArea && prevScrollHeight !== null) {
-      const currentScrollHeight = messagesArea.scrollHeight;
-      
-      // Check if the scroll height increased (meaning content was prepended)
-      if (currentScrollHeight > prevScrollHeight) {
-        const scrollOffset = currentScrollHeight - prevScrollHeight;
-        
-        // Adjust the scroll position instantly
-        messagesArea.scrollTo({
-          top: scrollOffset,
-          behavior: 'auto'
-        });
-      }
-      
-      // Reset the saved height after adjustment
-      setPrevScrollHeight(null);
-    }
-    
-    // 3. New Message: Scroll to bottom if new messages were added (not pagination)
-    if (prevScrollHeight === null && messages.length > 0 && messagesArea) {
-      const lastMessage = messages[messages.length - 1];
-      // Heuristic: If it's a message sent by the user, ensure smooth scroll to bottom.
-      if (lastMessage.sent) {
-        scrollToBottom("smooth");
-      }
-    }
-
-  }, [messages.length, prevScrollHeight, setPrevScrollHeight, messages]); // Added messages as dep to detect new messages
-
-  // ───────────────────────────────────────────────
-  // INTERSECTION OBSERVER (Fixed to prevent infinite loop)
-  // ───────────────────────────────────────────────
+  // NEW: IntersectionObserver for message infinite scrolling
   useEffect(() => {
-    // If no more messages, or messages array is empty, or WE ARE LOADING, stop observation.
-    if (!hasMoreMessages || messages.length === 0 || isLoadingMessages) return;
+    if (!hasMoreMessages || messages.length === 0) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        // Double-check the loading status and visibility
-        if (entries[0].isIntersecting && !isLoadingMessages) {
-            const currentScrollHeight = messagesAreaRef.current?.scrollHeight || 0;
-            // Pass the current scroll height to the parent component before fetching
-            onLoadMoreMessages(currentScrollHeight);
+        // If the sentinel (top of messages) is visible
+        if (entries[0].isIntersecting) {
+          onLoadMoreMessages();
         }
       },
       {
-        root: messagesAreaRef.current,
+        root: messagesAreaRef.current, // Observe within the scrollable messages area
         rootMargin: "0px", 
         threshold: 0.1,
       }
@@ -130,13 +78,9 @@ export default memo(function ChatPanel({
         observer.unobserve(currentRef);
       }
     };
-  // Dependency array now includes isLoadingMessages to re-trigger observer when loading finishes.
-  }, [hasMoreMessages, onLoadMoreMessages, messages.length, isLoadingMessages]);
+  }, [hasMoreMessages, onLoadMoreMessages, messages.length]);
 
 
-  // ───────────────────────────────────────────────
-  // UTILITY FUNCTIONS (Unchanged)
-  // ───────────────────────────────────────────────
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -159,33 +103,34 @@ export default memo(function ChatPanel({
       "#f06292",
       "#ba68c8",
     ];
+    // Simple hash-like index based on ID
     const index = parseInt(id.replace(/\D/g, '').slice(-3) || '0', 10) % colors.length;
     return colors[index];
   };
 
-  const getStatusIcon = (
-    status?: "sending" | "sent" | "delivered" | "read" | "failed"
-  ) => {
-    if (!status) return null;
+ const getStatusIcon = (
+  status?: "sending" | "sent" | "delivered" | "read" | "failed"
+) => {
+  if (!status) return null;
 
-    if (status === "sending") {
-      return <span className={styles.sendingDot}>●</span>;
-    }
+  if (status === "sending") {
+    return <span className={styles.sendingDot}>●</span>;
+  }
 
-    if (status === "failed") {
-      return <span className={styles.failedIcon}>❌</span>;
-    }
+  if (status === "failed") {
+    return <span className={styles.failedIcon}>❌</span>;
+  }
 
-    if (status === "read") {
-      return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
-    }
+  if (status === "read") {
+    return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
+  }
 
-    if (status === "delivered") {
-      return <BsCheckAll className={styles.tickIcon} />;
-    }
+  if (status === "delivered") {
+    return <BsCheckAll className={styles.tickIcon} />;
+  }
 
-    return <BsCheck className={styles.tickIcon} />;
-  };
+  return <BsCheck className={styles.tickIcon} />;
+};
 
 
   if (!selectedUser) {
@@ -206,7 +151,7 @@ export default memo(function ChatPanel({
 
   return (
     <div className={styles.chatPanel}>
-      {/* Chat Header (Unchanged) */}
+      {/* Chat Header */}
       <div className={styles.chatHeader}>
         <button className={styles.backButton} onClick={onBack}>
           <FiArrowLeft />
@@ -245,10 +190,10 @@ export default memo(function ChatPanel({
       {/* Messages Area */}
       <div className={styles.messagesArea} ref={messagesAreaRef}>
         <div className={styles.messagesContainer}>
-          {/* Loading/Sentinel Indicator */}
+          {/* NEW: Loading/Sentinel Indicator for Infinite Scroll */}
           {hasMoreMessages && messages.length > 0 && (
              <div ref={topMessageSentinelRef} className={styles.loadingOlderMessages}>
-                <p>{isLoadingMessages ? 'Loading messages...' : 'Scroll up to load older messages'}</p>
+                <p>Loading older messages...</p>
              </div>
           )}
           {!hasMoreMessages && messages.length > 0 && (
@@ -264,7 +209,6 @@ export default memo(function ChatPanel({
               }`}
             >
               <div className={styles.messageBubble}>
-                {/* ... Message content rendering ... */}
                 {message.type === "image" && message.fileUrl && (
                   <div className={styles.messageImage}>
                     <img src={message.fileUrl} alt={message.fileName} />
@@ -280,6 +224,7 @@ export default memo(function ChatPanel({
                   </div>
                 )}
 
+                {/* Link Preview Message */}
                 {message.type === "link" && message.linkUrl && (
                   <a
                     href={message.linkUrl}
@@ -324,8 +269,8 @@ export default memo(function ChatPanel({
         </div>
       </div>
 
-      {/* Message Input (Unchanged) */}
+      {/* Message Input */}
       <MessageInput onSendMessage={onSendMessage} />
     </div>
   );
-});
+}
