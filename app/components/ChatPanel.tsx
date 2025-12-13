@@ -65,8 +65,7 @@ export default function ChatPanel({
     // 2️⃣ Loading older messages → preserve scroll
     if (isLoadingOlderRef.current) {
       const newScrollHeight = container.scrollHeight;
-      container.scrollTop =
-        newScrollHeight - prevScrollHeightRef.current;
+      container.scrollTop = newScrollHeight - prevScrollHeightRef.current;
       isLoadingOlderRef.current = false;
       return;
     }
@@ -173,14 +172,13 @@ export default function ChatPanel({
                 src={selectedUser.avatar}
                 alt={selectedUser.name}
                 className={styles.avatarImage}
+                style={{ width: "30px", height: "30px", borderRadius: "50%" }}
               />
             ) : (
               getInitials(selectedUser.name)
             )}
           </div>
-          {selectedUser.online && (
-            <div className={styles.onlineIndicator} />
-          )}
+          {selectedUser.online && <div className={styles.onlineIndicator} />}
         </div>
 
         <div className={styles.userInfo}>
