@@ -150,9 +150,9 @@ export default function UserSidebar({
                 </div>
                 <div className={styles.lastMessageWrapper}>
                   <p className={styles.lastMessage}>{user.lastMessage}</p>
-                  {user.unread && user.unread > 0 && (
-                    <span className={styles.unreadBadge}>{user.unread}</span>
-                  )}
+                  {Number(user.unread) > 0 && (
+    <span className={styles.unreadBadge}>{user.unread}</span>
+  )}
                 </div>
               </div>
             </div>
