@@ -1,3 +1,6 @@
+// ───────────────────────────────────────────────
+// ChatPanel.tsx (Updated)
+// ───────────────────────────────────────────────
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -28,41 +31,85 @@ interface ChatPanelProps {
   hasMoreMessages: boolean;
 }
 
+// Global variable to track the height of the message container before a load
+let prevScrollHeight = 0;
+
 export default function ChatPanel({
   selectedUser,
   messages,
   onSendMessage,
   onBack,
-  onLoadMoreMessages, // NEW
-  hasMoreMessages,    // NEW
+  onLoadMoreMessages,
+  hasMoreMessages,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesAreaRef = useRef<HTMLDivElement>(null); // Ref for the scrollable area
-  const topMessageSentinelRef = useRef<HTMLDivElement>(null); // NEW Ref for IntersectionObserver
+  const messagesAreaRef = useRef<HTMLDivElement>(null); 
+  const topMessageSentinelRef = useRef<HTMLDivElement>(null); 
 
   // Helper to scroll to the bottom (used when sending a new message or first load)
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Scroll to bottom on initial load or new message
+  // --- 1. Initial Load & New Message Scroll ---
+  // On initial load (when messages array is replaced) or when a new message is sent.
   useEffect(() => {
-    scrollToBottom();
-  }, [messages.length]); // Scroll only when the total count changes
+    // Check if we are loading for the first time or if the last message ID is a temporary/new ID.
+    // We only want to auto-scroll to bottom if this is NOT a pagination load.
+    const isNewMessage = messages.length > 0 && messages[messages.length - 1].sent && messages[messages.length - 1].id.startsWith('temp-');
+    
+    // Only scroll to bottom if:
+    // 1. It's the very first message set (prevScrollHeight is 0).
+    // 2. A user just sent a message (optimistically or confirmed).
+    if (messagesAreaRef.current && (prevScrollHeight === 0 || isNewMessage)) {
+        scrollToBottom();
+    }
+    
+    // Reset or set prevScrollHeight for the next time the dependency array triggers.
+    if (messagesAreaRef.current) {
+        prevScrollHeight = messagesAreaRef.current.scrollHeight;
+    }
+  }, [messages.length]); 
 
-  // NEW: IntersectionObserver for message infinite scrolling
+  // --- 2. Pagination Scroll Adjustment (The Fix) ---
+  useEffect(() => {
+    const currentScrollHeight = messagesAreaRef.current?.scrollHeight || 0;
+    
+    // This hook runs *after* the DOM updates with the new messages.
+    // If the scroll height has increased AND we were loading previous messages, adjust the scroll.
+    if (prevScrollHeight > 0 && currentScrollHeight > prevScrollHeight) {
+      const scrollOffset = currentScrollHeight - prevScrollHeight;
+      messagesAreaRef.current?.scrollTo({
+        top: scrollOffset,
+        behavior: 'instant' // Must be instant to prevent jarring animation
+      });
+
+      // Update the previous height for the next pagination load.
+      prevScrollHeight = currentScrollHeight;
+    }
+  }, [messages]); // Trigger when messages array changes
+
+  // --- 3. IntersectionObserver for Pagination ---
   useEffect(() => {
     if (!hasMoreMessages || messages.length === 0) return;
 
+    // We store the current scroll height BEFORE we call the API
+    const saveScrollHeight = () => {
+        if (messagesAreaRef.current) {
+            prevScrollHeight = messagesAreaRef.current.scrollHeight;
+            onLoadMoreMessages();
+        }
+    };
+
     const observer = new IntersectionObserver(
       (entries) => {
-        // If the sentinel (top of messages) is visible
         if (entries[0].isIntersecting) {
-          onLoadMoreMessages();
+            // Use the wrapper function to save height before fetching
+            saveScrollHeight(); 
         }
       },
       {
-        root: messagesAreaRef.current, // Observe within the scrollable messages area
+        root: messagesAreaRef.current,
         rootMargin: "0px", 
         threshold: 0.1,
       }
@@ -82,6 +129,7 @@ export default function ChatPanel({
 
 
   const getInitials = (name: string) => {
+    // ... (utility function remains the same)
     return name
       .split(" ")
       .map((word) => word[0])
@@ -91,6 +139,7 @@ export default function ChatPanel({
   };
 
   const getAvatarColor = (id: string) => {
+    // ... (utility function remains the same)
     const colors = [
       "#00a884",
       "#667781",
@@ -103,7 +152,6 @@ export default function ChatPanel({
       "#f06292",
       "#ba68c8",
     ];
-    // Simple hash-like index based on ID
     const index = parseInt(id.replace(/\D/g, '').slice(-3) || '0', 10) % colors.length;
     return colors[index];
   };
@@ -111,6 +159,7 @@ export default function ChatPanel({
  const getStatusIcon = (
   status?: "sending" | "sent" | "delivered" | "read" | "failed"
 ) => {
+    // ... (utility function remains the same)
   if (!status) return null;
 
   if (status === "sending") {
@@ -134,6 +183,7 @@ export default function ChatPanel({
 
 
   if (!selectedUser) {
+    // ... (empty state remains the same)
     return (
       <div className={styles.emptyState}>
         <div className={styles.emptyContent}>
@@ -151,7 +201,7 @@ export default function ChatPanel({
 
   return (
     <div className={styles.chatPanel}>
-      {/* Chat Header */}
+      {/* Chat Header (remains the same) */}
       <div className={styles.chatHeader}>
         <button className={styles.backButton} onClick={onBack}>
           <FiArrowLeft />
@@ -190,7 +240,7 @@ export default function ChatPanel({
       {/* Messages Area */}
       <div className={styles.messagesArea} ref={messagesAreaRef}>
         <div className={styles.messagesContainer}>
-          {/* NEW: Loading/Sentinel Indicator for Infinite Scroll */}
+          {/* Loading/Sentinel Indicator for Infinite Scroll */}
           {hasMoreMessages && messages.length > 0 && (
              <div ref={topMessageSentinelRef} className={styles.loadingOlderMessages}>
                 <p>Loading older messages...</p>
