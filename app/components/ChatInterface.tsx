@@ -140,13 +140,14 @@ useEffect(() => {
   const ws = new WebSocket(wsUrl);
 
   ws.onopen = () => {
-    console.log("✅ WebSocket connected");
+    console.log("WebSocket connected");
   };
 
   ws.onmessage = (event) => {
+    console.log(event,"event triggerer")
     try {
       const data = JSON.parse(event.data);
-      console.log("📩 WS message:", data);
+      console.log("WS message:", data);
 
       // Example: incoming chat message
       if (data.type === "NEW_MESSAGE") {
