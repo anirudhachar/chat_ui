@@ -104,7 +104,7 @@ export default function ChatInterface() {
               : "",
 
             online: c.user?.online ?? false,
-            unread: c.unreadCount ?? 0,
+            unread: c.unreadCount ?? "",
           })) || [];
 
         // If it's the initial fetch (cursor is null), replace the list. Otherwise, append.
