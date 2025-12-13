@@ -1,5 +1,5 @@
 // MessageSkeleton.tsx
-import styles from "./MessageSkeleton.module.scss";
+import styles from "./MessageSkelton.module.scss";
 
 export default function MessageSkeleton() {
   return (
