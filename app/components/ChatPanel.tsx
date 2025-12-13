@@ -8,6 +8,7 @@ import Image from "next/image";
 import { User, Message } from "./ChatInterface";
 import MessageInput from "./MessageInput";
 import styles from "./ChatPanel.module.scss";
+import MessageSkeleton from "./MessageSkelton/MessageSkelton";
 
 interface ChatPanelProps {
   selectedUser: User | null;
@@ -197,11 +198,8 @@ export default function ChatPanel({
       <div className={styles.messagesArea} ref={messagesAreaRef}>
         <div className={styles.messagesContainer}>
           {hasMoreMessages && (
-            <div
-              ref={topMessageSentinelRef}
-              className={styles.loadingOlderMessages}
-            >
-              Loading older messages…
+            <div ref={topMessageSentinelRef}>
+              {isLoadingOlderRef.current && <MessageSkeleton />}
             </div>
           )}
 
