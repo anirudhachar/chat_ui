@@ -175,18 +175,19 @@ export default function ChatInterface() {
         const data = await res.json();
         console.log("🔍 SEARCH API RESULT:", data);
 
-        const mapped: User[] =
-          data?.data?.users?.map((u: any) => ({
-            id: u.userId,
-            name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim(),
-            avatar: u.profilePhoto
-              ? `https://d34wmjl2ccaffd.cloudfront.net${u.profilePhoto}`
-              : "/user.png",
-            lastMessage: "",
-            lastMessageTime: "",
-            online: u.online ?? false,
-            unread: 0,
-          })) || [];
+     const mapped: User[] =
+  data?.data?.users?.map((u: any) => ({
+    id: u.user_id,
+    name: `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim(),
+    avatar: u.profile_photo_url
+      ? `https://d34wmjl2ccaffd.cloudfront.net${u.profile_photo_url}`
+      : "/user.png",
+    lastMessage: "",
+    lastMessageTime: "",
+    online: false, // search API does not return online
+    unread: 0,
+  })) || [];
+
 
         setSearchResults(mapped);
       } catch (err) {
