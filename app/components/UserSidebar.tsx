@@ -115,6 +115,7 @@ export default function UserSidebar({
           <UserSidebarSkeleton count={6} />
         ) : (
           users.map((user) => (
+            console.log(user,"usermania"),
             <div
               key={user.id}
               className={`${styles.userCard} ${
