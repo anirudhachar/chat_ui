@@ -70,7 +70,7 @@ export default function ChatInterface() {
 
     try {
       const url =
-        `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/conversations/list?limit=20` +
+        `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/conversations/list?limit=5` +
         (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
 
       const res = await fetch(url, {
