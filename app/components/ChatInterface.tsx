@@ -448,11 +448,6 @@ export default function ChatInterface() {
 const handleUserSelect = async (user: User) => {
   if (!parentToken || !loggedInUserId) return;
 
-  // 🔥 EXIT SEARCH MODE (CRITICAL)
-  setSearchQuery("");
-  setSearchResults([]);
-  setIsSearching(false);
-
   setSelectedUser(user);
   setMessages([]);
 
@@ -484,7 +479,7 @@ const handleUserSelect = async (user: User) => {
   // ───────────────────────────────────────────────
   // SEND MESSAGE HANDLER
   // ───────────────────────────────────────────────
- const handleSendMessage = useCallback(
+const handleSendMessage = useCallback(
   async (content: string) => {
     if (!selectedUser || !parentToken) return;
 
@@ -510,7 +505,12 @@ const handleUserSelect = async (user: User) => {
     };
 
     // 📥 Add optimistic message
-    setMessages((p) => [...p, optimistic]);
+    setMessages((prev) => [...prev, optimistic]);
+
+    // 🔥 EXIT SEARCH MODE (ONLY ON SEND)
+    setSearchQuery("");
+    setSearchResults([]);
+    setIsSearching(false);
 
     // 🔥 MOVE CONVERSATION TO TOP (SIDEBAR)
     setUsers((prev) => {
@@ -530,13 +530,14 @@ const handleUserSelect = async (user: User) => {
         ];
       }
 
-      // New conversation (came from search)
+      // 🆕 New conversation (from search)
       return [updatedUser, ...prev];
     });
 
     try {
       const data = await sendMessageToApi(cid, content, parentToken);
-      const realId = data?.data?.messageId ?? data?.data?.message?.messageId;
+      const realId =
+        data?.data?.messageId ?? data?.data?.message?.messageId;
       const realTime =
         data?.data?.createdAt ?? data?.data?.message?.createdAt;
 
@@ -565,8 +566,16 @@ const handleUserSelect = async (user: User) => {
       );
     }
   },
-  [selectedUser, parentToken, conversationId]
+  [
+    selectedUser,
+    parentToken,
+    conversationId,
+    setSearchQuery,
+    setSearchResults,
+    setIsSearching,
+  ]
 );
+
 
 
   // ───────────────────────────────────────────────
