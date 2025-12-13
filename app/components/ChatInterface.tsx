@@ -149,51 +149,47 @@ export default function ChatInterface() {
   // ───────────────────────────────────────────────
 
 
+  useEffect(() => {
 
+    console.log(parentToken,"parentToken")
+    if (!parentToken) return;
 
+    const wsUrl = `wss://k4g7m4879h.execute-api.us-east-1.amazonaws.com/dev?token=${encodeURIComponent(
+      parentToken
+    )}`;
 
+    const ws = new WebSocket(wsUrl);
 
-useEffect(() => {
-  if (!parentToken) return;
+    ws.onopen = () => {
+      console.log("✅ WebSocket connected");
+    };
 
-  const wsUrl = `wss://k4g7m4879h.execute-api.us-east-1.amazonaws.com/dev?token=${encodeURIComponent(
-    parentToken
-  )}`;
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("📩 WS message:", data);
 
-  const ws = new WebSocket(wsUrl);
-
-  ws.onopen = () => {
-    console.log("✅ WebSocket connected");
-  };
-
-  ws.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      console.log("📩 WS message:", data);
-
-      // Example: incoming chat message
-      if (data.type === "NEW_MESSAGE") {
-        // update messages / users here
+        // Example: incoming chat message
+        if (data.type === "NEW_MESSAGE") {
+          // update messages / users here
+        }
+      } catch (err) {
+        console.error("WS parse error", err);
       }
-    } catch (err) {
-      console.error("WS parse error", err);
-    }
-  };
+    };
 
-  ws.onerror = (err) => {
-    console.error("❌ WebSocket error", err);
-  };
+    ws.onerror = (err) => {
+      console.error("❌ WebSocket error", err);
+    };
 
-  ws.onclose = () => {
-    console.log("🔌 WebSocket disconnected");
-  };
+    ws.onclose = () => {
+      console.log("🔌 WebSocket disconnected");
+    };
 
-  return () => {
-    ws.close();
-  };
-}, [parentToken]);
-
-
+    return () => {
+      ws.close();
+    };
+  }, [parentToken]);
 
   useEffect(() => {
     if (!parentToken) return;
@@ -223,19 +219,18 @@ useEffect(() => {
         const data = await res.json();
         console.log("🔍 SEARCH API RESULT:", data);
 
-     const mapped: User[] =
-  data?.data?.users?.map((u: any) => ({
-    id: u.user_id,
-    name: `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim(),
-    avatar: u.profile_photo_url
-      ? `https://d34wmjl2ccaffd.cloudfront.net${u.profile_photo_url}`
-      : "/user.png",
-    lastMessage: "",
-    lastMessageTime: "",
-    online: false, // search API does not return online
-    unread: 0,
-  })) || [];
-
+        const mapped: User[] =
+          data?.data?.users?.map((u: any) => ({
+            id: u.user_id,
+            name: `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim(),
+            avatar: u.profile_photo_url
+              ? `https://d34wmjl2ccaffd.cloudfront.net${u.profile_photo_url}`
+              : "/user.png",
+            lastMessage: "",
+            lastMessageTime: "",
+            online: false, // search API does not return online
+            unread: 0,
+          })) || [];
 
         setSearchResults(mapped);
       } catch (err) {
@@ -547,19 +542,18 @@ useEffect(() => {
       <div
         className={`${styles.chatWrapper} ${!showSidebar ? styles.show : ""}`}
       >
-     <ChatPanel
-  selectedUser={selectedUser}
-  messages={messages}
-  onSendMessage={handleSendMessage}
-  onBack={() => {
-    setSelectedUser(null);
-    setShowSidebar(true);
-  }}
-  onLoadMoreMessages={loadMoreMessages}
-  hasMoreMessages={hasMoreMessages}
-  resetKey={selectedUser?.id}
-/>
-
+        <ChatPanel
+          selectedUser={selectedUser}
+          messages={messages}
+          onSendMessage={handleSendMessage}
+          onBack={() => {
+            setSelectedUser(null);
+            setShowSidebar(true);
+          }}
+          onLoadMoreMessages={loadMoreMessages}
+          hasMoreMessages={hasMoreMessages}
+          resetKey={selectedUser?.id}
+        />
       </div>
     </div>
   );
