@@ -147,6 +147,54 @@ export default function ChatInterface() {
   // ───────────────────────────────────────────────
   // SEARCH API — CALL WHEN TYPING
   // ───────────────────────────────────────────────
+
+
+
+
+
+
+useEffect(() => {
+  if (!parentToken) return;
+
+  const wsUrl = `wss://k4g7m4879h.execute-api.us-east-1.amazonaws.com/dev?token=${encodeURIComponent(
+    parentToken
+  )}`;
+
+  const ws = new WebSocket(wsUrl);
+
+  ws.onopen = () => {
+    console.log("✅ WebSocket connected");
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      console.log("📩 WS message:", data);
+
+      // Example: incoming chat message
+      if (data.type === "NEW_MESSAGE") {
+        // update messages / users here
+      }
+    } catch (err) {
+      console.error("WS parse error", err);
+    }
+  };
+
+  ws.onerror = (err) => {
+    console.error("❌ WebSocket error", err);
+  };
+
+  ws.onclose = () => {
+    console.log("🔌 WebSocket disconnected");
+  };
+
+  return () => {
+    ws.close();
+  };
+}, [parentToken]);
+
+
+
   useEffect(() => {
     if (!parentToken) return;
 

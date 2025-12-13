@@ -159,15 +159,14 @@ export default function UserSidebar({
               </div>
             </div>
           ))
-        )}
+        )}  
 
         {/* Loading/Sentinel Indicator for Infinite Scroll */}
-      {hasMore && (
-  <div ref={loadingIndicatorRef}>
-    <UserSidebarSkeleton count={2} />
-  </div>
-)}
-
+        {hasMore && (
+          <div ref={loadingIndicatorRef}>
+            <UserSidebarSkeleton count={2} />
+          </div>
+        )}
 
         {!hasMore && users.length > 0 && searchQuery.length < 2 && (
           <div className={styles.endOfList}>
