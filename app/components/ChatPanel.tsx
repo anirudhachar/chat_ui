@@ -201,7 +201,7 @@ export default function ChatPanel({
         </div>
       </div>
 
-      {/* INPUT */}
+   
       <MessageInput onSendMessage={onSendMessage} />
     </div>
   );
