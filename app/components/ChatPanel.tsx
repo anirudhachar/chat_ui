@@ -23,12 +23,8 @@ interface ChatPanelProps {
     }
   ) => void;
   onBack: () => void;
-
-  // Pagination
   onLoadMoreMessages: () => void;
   hasMoreMessages: boolean;
-
-  // 🔑 used to reset scroll when switching chat
   resetKey?: string;
 }
 
@@ -45,36 +41,53 @@ export default function ChatPanel({
   const messagesAreaRef = useRef<HTMLDivElement>(null);
   const topMessageSentinelRef = useRef<HTMLDivElement>(null);
 
-  // 🔑 Track first load of a conversation
   const isFirstLoadRef = useRef(true);
+  const isLoadingOlderRef = useRef(false);
+  const prevScrollHeightRef = useRef(0);
 
-  // 🔁 Reset when switching users
+  /* 🔁 reset on chat switch */
   useEffect(() => {
     isFirstLoadRef.current = true;
   }, [resetKey]);
 
-  // ✅ Smart scrolling logic
+  /* ✅ SMART SCROLL HANDLING */
   useEffect(() => {
-    if (messages.length === 0) return;
+    const container = messagesAreaRef.current;
+    if (!container || messages.length === 0) return;
 
-    // Initial open → jump instantly (NO animation)
+    // 1️⃣ Initial chat open → jump instantly
     if (isFirstLoadRef.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
       isFirstLoadRef.current = false;
       return;
     }
 
-    // New message → smooth scroll
+    // 2️⃣ Loading older messages → preserve scroll
+    if (isLoadingOlderRef.current) {
+      const newScrollHeight = container.scrollHeight;
+      container.scrollTop =
+        newScrollHeight - prevScrollHeightRef.current;
+      isLoadingOlderRef.current = false;
+      return;
+    }
+
+    // 3️⃣ New outgoing/incoming message → smooth scroll
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
-  // 🔁 Infinite scroll (load older messages)
+  /* 🔁 INFINITE SCROLL (OLDER MESSAGES) */
   useEffect(() => {
     if (!hasMoreMessages || messages.length === 0) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
+          const container = messagesAreaRef.current;
+          if (!container) return;
+
+          isLoadingOlderRef.current = true;
+          prevScrollHeightRef.current = container.scrollHeight;
+
           onLoadMoreMessages();
         }
       },
@@ -92,7 +105,7 @@ export default function ChatPanel({
     };
   }, [hasMoreMessages, onLoadMoreMessages, messages.length]);
 
-  // Helpers
+  /* ---------- HELPERS ---------- */
   const getInitials = (name: string) =>
     name
       .split(" ")
@@ -119,7 +132,8 @@ export default function ChatPanel({
     status?: "sending" | "sent" | "delivered" | "read" | "failed"
   ) => {
     if (!status) return null;
-    if (status === "sending") return <span className={styles.sendingDot}>●</span>;
+    if (status === "sending")
+      return <span className={styles.sendingDot}>●</span>;
     if (status === "failed") return <span>❌</span>;
     if (status === "read")
       return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
@@ -128,7 +142,7 @@ export default function ChatPanel({
     return <BsCheck className={styles.tickIcon} />;
   };
 
-  // 🟡 Empty state
+  /* ---------- EMPTY STATE ---------- */
   if (!selectedUser) {
     return (
       <div className={styles.emptyState}>
@@ -145,27 +159,40 @@ export default function ChatPanel({
     <div className={styles.chatPanel}>
       {/* HEADER */}
       <div className={styles.chatHeader}>
-        <button onClick={onBack} className={styles.backButton}>
+        <button className={styles.backButton} onClick={onBack}>
           <FiArrowLeft />
         </button>
 
-        <div
-          className={styles.avatar}
-          style={{ backgroundColor: getAvatarColor(selectedUser.id) }}
-        >
-          {selectedUser.avatar ? (
-            <img src={selectedUser.avatar} alt={selectedUser.name} />
-          ) : (
-            getInitials(selectedUser.name)
+        <div className={styles.avatarWrapper}>
+          <div
+            className={styles.avatar}
+            style={{ backgroundColor: getAvatarColor(selectedUser.id) }}
+          >
+            {selectedUser.avatar ? (
+              <img
+                src={selectedUser.avatar}
+                alt={selectedUser.name}
+                className={styles.avatarImage}
+              />
+            ) : (
+              getInitials(selectedUser.name)
+            )}
+          </div>
+          {selectedUser.online && (
+            <div className={styles.onlineIndicator} />
           )}
         </div>
 
         <div className={styles.userInfo}>
-          <h3>{selectedUser.name}</h3>
-          <span>{selectedUser.online ? "Online" : "Offline"}</span>
+          <h2 className={styles.userName}>{selectedUser.name}</h2>
+          <p className={styles.userStatus}>
+            {selectedUser.online ? "Online" : "Offline"}
+          </p>
         </div>
 
-        <FiMoreVertical />
+        <button className={styles.moreButton}>
+          <FiMoreVertical />
+        </button>
       </div>
 
       {/* MESSAGES */}
@@ -176,7 +203,7 @@ export default function ChatPanel({
               ref={topMessageSentinelRef}
               className={styles.loadingOlderMessages}
             >
-              Loading older messages...
+              Loading older messages…
             </div>
           )}
 
@@ -188,9 +215,9 @@ export default function ChatPanel({
               }`}
             >
               <div className={styles.messageBubble}>
-                <p>{m.content}</p>
+                <p className={styles.messageText}>{m.content}</p>
                 <div className={styles.messageMeta}>
-                  <span>{m.timestamp}</span>
+                  <span className={styles.messageTime}>{m.timestamp}</span>
                   {m.sent && getStatusIcon(m.status)}
                 </div>
               </div>
@@ -201,7 +228,7 @@ export default function ChatPanel({
         </div>
       </div>
 
-   
+      {/* INPUT */}
       <MessageInput onSendMessage={onSendMessage} />
     </div>
   );
