@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { FiSearch } from "react-icons/fi";
 import { User } from "./ChatInterface";
 import styles from "./UserSidebar.module.scss";
@@ -10,6 +11,8 @@ interface UserSidebarProps {
   onUserSelect: (user: User) => void;
   onSearch: (query: string) => void;
   searchQuery: string;
+  onLoadMore: () => void; // NEW PROP for infinite scroll callback
+  hasMore: boolean; // NEW PROP to indicate if more data is available
 }
 
 export default function UserSidebar({
@@ -18,7 +21,42 @@ export default function UserSidebar({
   onUserSelect,
   onSearch,
   searchQuery,
+  onLoadMore, 
+  hasMore, 
 }: UserSidebarProps) {
+  const loadingIndicatorRef = useRef<HTMLDivElement>(null); 
+  const userListRef = useRef<HTMLDivElement>(null); // Ref for the scrollable container
+
+  // IntersectionObserver for infinite scrolling
+  useEffect(() => {
+    if (!hasMore || searchQuery.length >= 2) return; // Stop observing if no more data or if search is active
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // If the sentinel (loading indicator) is visible and we have more users to load
+        if (entries[0].isIntersecting) {
+          onLoadMore();
+        }
+      },
+      {
+        root: userListRef.current, // Use the userList div as the root
+        rootMargin: "0px 0px 100px 0px", // Load 100px before reaching the bottom
+        threshold: 0.1,
+      }
+    );
+
+    const currentRef = loadingIndicatorRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [hasMore, onLoadMore, searchQuery]);
+
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -41,7 +79,8 @@ export default function UserSidebar({
       "#f06292",
       "#ba68c8",
     ];
-    const index = parseInt(id, 10) % colors.length;
+    // Simple hash-like index based on ID to ensure color stability
+    const index = parseInt(id.replace(/\D/g, '').slice(-3) || '0', 10) % colors.length;
     return colors[index];
   };
 
@@ -67,14 +106,17 @@ export default function UserSidebar({
       </div>
 
       {/* User List */}
-      <div className={styles.userList}>
-        {users.length === 0 ? (
+      <div className={styles.userList} ref={userListRef}>
+        {users.length === 0 && searchQuery.length < 2 ? (
           <div className={styles.noResults}>
-            <p>No users found</p>
+            <p>Loading chats...</p>
           </div>
+        ) : users.length === 0 && searchQuery.length >= 2 ? (
+            <div className={styles.noResults}>
+                <p>No search results found.</p>
+            </div>
         ) : (
           users.map((user) => (
-            console.log(user,"usersmania"),
             <div
               key={user.id}
               className={`${styles.userCard} ${
@@ -118,6 +160,20 @@ export default function UserSidebar({
             </div>
           ))
         )}
+        
+        {/* Loading/Sentinel Indicator for Infinite Scroll */}
+        {hasMore && (
+          <div ref={loadingIndicatorRef} className={styles.loadingMore}>
+            <p>Loading more chats...</p>
+          </div>
+        )}
+
+        {!hasMore && users.length > 0 && searchQuery.length < 2 && (
+            <div className={styles.endOfList}>
+                <p>You've reached the end of the chat list.</p>
+            </div>
+        )}
+
       </div>
     </div>
   );
