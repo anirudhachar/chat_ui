@@ -47,25 +47,26 @@ const decodeToken = (token: string) => {
 };
 
 export default function ChatInterface() {
+  // Sidebar (User/Conversation) States
   const [users, setUsers] = useState<User[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMoreUsers, setHasMoreUsers] = useState(true); 
-
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [conversationId, setConversationId] = useState<string | null>(null);
-  
-  // State for message pagination
-  const [messageCursor, setMessageCursor] = useState<string | null>(null);
-  const [hasMoreMessages, setHasMoreMessages] = useState(true);
-
-  // NEW: State to store the scroll height *before* loading new messages
-  const [prevScrollHeight, setPrevScrollHeight] = useState<number | null>(null); 
-
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [showSidebar, setShowSidebar] = useState(true);
 
+  // Chat Panel (Message) States
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  
+  // Message Pagination and Scroll Anchoring States
+  const [messageCursor, setMessageCursor] = useState<string | null>(null);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [prevScrollHeight, setPrevScrollHeight] = useState<number | null>(null);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false); // NEW: To prevent infinite loop
+
+  // Global Context States
   const [parentToken, setParentToken] = useState<string | null>(null);
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
 
@@ -144,62 +145,6 @@ export default function ChatInterface() {
     fetchUsers(null, true);
   }, [parentToken, fetchUsers]);
 
-
-  // ───────────────────────────────────────────────
-  // SEARCH API — CALL WHEN TYPING
-  // ───────────────────────────────────────────────
-  useEffect(() => {
-    if (!parentToken) return;
-
-    const query = searchQuery.trim();
-
-    if (query.length < 2) {
-      setSearchResults([]);
-      setHasMoreUsers(!!cursor); 
-      return;
-    }
-
-    const fetchSearchResults = async () => {
-      setHasMoreUsers(false); 
-
-      try {
-        const url =
-          `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/search/people?query=${encodeURIComponent(
-            query
-          )}`;
-
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${parentToken}`,
-          },
-        });
-
-        const data = await res.json();
-        console.log("🔍 SEARCH API RESULT:", data);
-
-        const mapped: User[] =
-          data?.data?.users?.map((u: any) => ({
-            id: u.userId,
-            name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim(),
-            avatar: u.profilePhoto
-              ? `https://d34wmjl2ccaffd.cloudfront.net${u.profilePhoto}`
-              : "/user.png",
-            lastMessage: "",
-            lastMessageTime: "",
-            online: u.online ?? false,
-            unread: 0,
-          })) || [];
-
-        setSearchResults(mapped);
-      } catch (err) {
-        console.error("❌ Search API failed:", err);
-        setSearchResults([]);
-      }
-    };
-
-    fetchSearchResults();
-  }, [searchQuery, parentToken, cursor]);
-
   // ───────────────────────────────────────────────
   // GET OR CREATE CONVERSATION
   // ───────────────────────────────────────────────
@@ -218,8 +163,6 @@ export default function ChatInterface() {
       );
 
       const data = await res.json();
-      console.log("📥 Conversation Create:", data);
-
       const cid = data?.data?.conversationId;
       setConversationId(cid);
       return cid;
@@ -230,7 +173,7 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // FETCH MESSAGES (Refactored for pagination)
+  // FETCH MESSAGES (Updated for isLoadingMessages)
   // ───────────────────────────────────────────────
   const fetchMessages = useCallback(async (
     cid: string,
@@ -239,6 +182,8 @@ export default function ChatInterface() {
     currentCursor: string | null
   ) => {
     if (!myUserId || !cid) return;
+
+    setIsLoadingMessages(true); // START loading
 
     try {
       const baseUrl = "https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev";
@@ -272,7 +217,7 @@ export default function ChatInterface() {
       // If fetching with a cursor, prepend (load older messages). 
       // If cursor is null (initial fetch), replace and reverse (show newest at bottom).
       setMessages((prev) => {
-        const newMessages = mappedMessages.reverse(); // New messages are chronologically reversed
+        const newMessages = mappedMessages.reverse();
         return currentCursor ? [...newMessages, ...prev] : newMessages;
       });
 
@@ -283,23 +228,53 @@ export default function ChatInterface() {
     } catch (error) {
       console.error("❌ Failed to fetch messages:", error);
       setHasMoreMessages(false);
+    } finally {
+        setIsLoadingMessages(false); // END loading
     }
   }, []); 
 
   // NEW: Function to load the next page of messages (older ones)
-  // It now also saves the current scroll height via state.
   const loadMoreMessages = (currentScrollHeight: number) => {
+    // Only load if not already loading, more messages exist, and all context is present
+    if (isLoadingMessages) return; 
+
     if (conversationId && hasMoreMessages && parentToken && loggedInUserId) {
-        // Save the height before the fetch starts
-        setPrevScrollHeight(currentScrollHeight);
+        setPrevScrollHeight(currentScrollHeight); // Save scroll height before fetch
         fetchMessages(conversationId, parentToken, loggedInUserId, messageCursor);
     }
   };
 
   // ───────────────────────────────────────────────
-  // SEND MESSAGE
+  // CHAT SELECTION HANDLER
+  // ───────────────────────────────────────────────
+  const handleUserSelect = async (user: User) => {
+    if (!parentToken || !loggedInUserId) return;
+
+    setSelectedUser(user);
+    setMessages([]);
+    
+    // Reset message pagination and scroll states
+    setMessageCursor(null); 
+    setHasMoreMessages(true);
+    setPrevScrollHeight(null);
+    setIsLoadingMessages(false); // Ensure reset
+
+    // reset unread count
+    setUsers((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
+    );
+
+    const cid = await getConversationId(user.id, parentToken);
+    if (cid) fetchMessages(cid, parentToken, loggedInUserId, null);
+
+    if (window.innerWidth < 768) setShowSidebar(false);
+  };
+
+  // ───────────────────────────────────────────────
+  // SEND MESSAGE HANDLER (Logic remains the same)
   // ───────────────────────────────────────────────
   const sendMessageToApi = async (cid: string, content: string, token: string) => {
+    // ... (unchanged API call logic) ...
     try {
       const res = await fetch(
         "https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/send",
@@ -323,31 +298,6 @@ export default function ChatInterface() {
     }
   };
 
-  const handleUserSelect = async (user: User) => {
-    if (!parentToken || !loggedInUserId) return;
-
-    setSelectedUser(user);
-    setMessages([]);
-    
-    // NEW: Reset message pagination state and scroll height tracker
-    setMessageCursor(null); 
-    setHasMoreMessages(true);
-    setPrevScrollHeight(null); // Reset scroll height tracker on new chat selection
-
-    // reset unread count
-    setUsers((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
-    );
-
-    const cid = await getConversationId(user.id, parentToken);
-    if (cid) fetchMessages(cid, parentToken, loggedInUserId, null);
-
-    if (window.innerWidth < 768) setShowSidebar(false);
-  };
-
-  // ───────────────────────────────────────────────
-  // SEND MESSAGE HANDLER
-  // ───────────────────────────────────────────────
   const handleSendMessage = useCallback(async (content: string) => {
     if (!selectedUser || !parentToken) return;
 
@@ -408,63 +358,6 @@ export default function ChatInterface() {
   }, [selectedUser, parentToken, conversationId]);
 
   // ───────────────────────────────────────────────
-  // PARENT WINDOW EVENTS
-  // ───────────────────────────────────────────────
-  useEffect(() => {
-    window.parent.postMessage({ type: "CHAT_READY" }, "*");
-
-    const handleMessage = async (event: MessageEvent) => {
-      if (!event.data?.type) return;
-
-      if (event.data.type === "OPEN_CHAT") {
-        const token = event.data.payload?.token;
-        const incomingUser = event.data.payload?.user;
-
-        setParentToken(token);
-        const uid = decodeToken(token);
-        setLoggedInUserId(uid);
-
-        if (incomingUser) {
-          const user: User = {
-            id: incomingUser.user_id,
-            name: `${incomingUser.firstName} ${
-              incomingUser.lastName ?? ""
-            }`.trim(),
-            avatar: incomingUser.profilePhoto
-              ? `https://d34wmjl2ccaffd.cloudfront.net${incomingUser.profilePhoto}`
-              : "/user.png",
-            lastMessage: "",
-            lastMessageTime: "Now",
-            online: true,
-          };
-
-          setSelectedUser(user);
-          setMessages([]);
-
-          // Reset message pagination state and scroll height tracker
-          setMessageCursor(null); 
-          setHasMoreMessages(true);
-          setPrevScrollHeight(null); 
-
-          const cid = await getConversationId(user.id, token);
-          if (cid && uid) fetchMessages(cid, token, uid, null); // Initial fetch
-
-          setShowSidebar(false);
-        }
-      }
-
-      if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
-        if (selectedUser && parentToken) {
-          handleSendMessage(event.data.payload.message);
-        }
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [selectedUser, parentToken, conversationId, handleSendMessage, fetchMessages]);
-
-  // ───────────────────────────────────────────────
   // RENDER
   // ───────────────────────────────────────────────
   const listToShow = searchQuery.length >= 2 ? searchResults : users;
@@ -500,8 +393,9 @@ export default function ChatInterface() {
           // PROPS for message pagination and scroll anchoring
           onLoadMoreMessages={loadMoreMessages} 
           hasMoreMessages={hasMoreMessages}
-          prevScrollHeight={prevScrollHeight} // Pass the saved height
-          setPrevScrollHeight={setPrevScrollHeight} // Pass setter to reset it after adjustment
+          prevScrollHeight={prevScrollHeight} 
+          setPrevScrollHeight={setPrevScrollHeight}
+          isLoadingMessages={isLoadingMessages} // NEW: Pass loading state
         />
       </div>
     </div>

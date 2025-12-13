@@ -23,11 +23,12 @@ interface ChatPanelProps {
     }
   ) => void;
   onBack: () => void;
-  // PROPS for message pagination
+  // PROPS for message pagination and scroll anchoring
   onLoadMoreMessages: (currentScrollHeight: number) => void;
   hasMoreMessages: boolean;
-  prevScrollHeight: number | null; // NEW: Height saved before load
-  setPrevScrollHeight: React.Dispatch<React.SetStateAction<number | null>>; // NEW: Setter to reset
+  prevScrollHeight: number | null; 
+  setPrevScrollHeight: React.Dispatch<React.SetStateAction<number | null>>; 
+  isLoadingMessages: boolean; // NEW: Loading state
 }
 
 export default memo(function ChatPanel({
@@ -39,12 +40,13 @@ export default memo(function ChatPanel({
   hasMoreMessages,
   prevScrollHeight,
   setPrevScrollHeight,
+  isLoadingMessages, // Use new prop
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null); 
   const topMessageSentinelRef = useRef<HTMLDivElement>(null); 
   
-  // Flag to know if this is the initial load (to always scroll to bottom)
+  // Flag to manage initial scroll-to-bottom behavior
   const isInitialLoadRef = useRef(true); 
 
   // Helper to scroll to the bottom
@@ -53,14 +55,13 @@ export default memo(function ChatPanel({
   };
 
   // ───────────────────────────────────────────────
-  // SCROLL ANCHORING LOGIC (The Fix)
+  // SCROLL ANCHORING LOGIC (The Fix for the "Jump")
   // ───────────────────────────────────────────────
   useEffect(() => {
     const messagesArea = messagesAreaRef.current;
     
     // 1. Initial Load: Always scroll to bottom (using 'auto' for fast initial display)
     if (isInitialLoadRef.current) {
-        // Use 'auto' behavior to prevent visual flicker on first load
         scrollToBottom("auto"); 
         isInitialLoadRef.current = false;
         return;
@@ -85,24 +86,28 @@ export default memo(function ChatPanel({
       setPrevScrollHeight(null);
     }
     
-    // 3. New Message (Scroll Down): Only scroll to bottom if the user is already near the bottom
-    // We scroll if the saved height is null AND the user is near the bottom (or message count increased by 1)
-    // For simplicity, we stick to the initial load and pagination fix. New message logic should be handled separately
-    // but the `isInitialLoadRef` handles the first load, and the subsequent check focuses on pagination.
+    // 3. New Message: Scroll to bottom if new messages were added (not pagination)
+    if (prevScrollHeight === null && messages.length > 0 && messagesArea) {
+      const lastMessage = messages[messages.length - 1];
+      // Heuristic: If it's a message sent by the user, ensure smooth scroll to bottom.
+      if (lastMessage.sent) {
+        scrollToBottom("smooth");
+      }
+    }
 
-  }, [messages.length, prevScrollHeight, setPrevScrollHeight]);
-
+  }, [messages.length, prevScrollHeight, setPrevScrollHeight, messages]); // Added messages as dep to detect new messages
 
   // ───────────────────────────────────────────────
-  // INTERSECTION OBSERVER
+  // INTERSECTION OBSERVER (Fixed to prevent infinite loop)
   // ───────────────────────────────────────────────
   useEffect(() => {
-    if (!hasMoreMessages || messages.length === 0) return;
+    // If no more messages, or messages array is empty, or WE ARE LOADING, stop observation.
+    if (!hasMoreMessages || messages.length === 0 || isLoadingMessages) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        // If the sentinel (top of messages) is visible, trigger load
-        if (entries[0].isIntersecting) {
+        // Double-check the loading status and visibility
+        if (entries[0].isIntersecting && !isLoadingMessages) {
             const currentScrollHeight = messagesAreaRef.current?.scrollHeight || 0;
             // Pass the current scroll height to the parent component before fetching
             onLoadMoreMessages(currentScrollHeight);
@@ -125,11 +130,13 @@ export default memo(function ChatPanel({
         observer.unobserve(currentRef);
       }
     };
-  // IMPORTANT: Do not include prevScrollHeight in dependencies. 
-  // We only want the observer to re-run if the messages.length changes OR hasMoreMessages/onLoadMoreMessages changes.
-  }, [hasMoreMessages, onLoadMoreMessages, messages.length]);
+  // Dependency array now includes isLoadingMessages to re-trigger observer when loading finishes.
+  }, [hasMoreMessages, onLoadMoreMessages, messages.length, isLoadingMessages]);
 
 
+  // ───────────────────────────────────────────────
+  // UTILITY FUNCTIONS (Unchanged)
+  // ───────────────────────────────────────────────
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -199,7 +206,7 @@ export default memo(function ChatPanel({
 
   return (
     <div className={styles.chatPanel}>
-      {/* Chat Header */}
+      {/* Chat Header (Unchanged) */}
       <div className={styles.chatHeader}>
         <button className={styles.backButton} onClick={onBack}>
           <FiArrowLeft />
@@ -238,10 +245,10 @@ export default memo(function ChatPanel({
       {/* Messages Area */}
       <div className={styles.messagesArea} ref={messagesAreaRef}>
         <div className={styles.messagesContainer}>
-          {/* Loading/Sentinel Indicator for Infinite Scroll */}
+          {/* Loading/Sentinel Indicator */}
           {hasMoreMessages && messages.length > 0 && (
              <div ref={topMessageSentinelRef} className={styles.loadingOlderMessages}>
-                <p>Loading older messages...</p>
+                <p>{isLoadingMessages ? 'Loading messages...' : 'Scroll up to load older messages'}</p>
              </div>
           )}
           {!hasMoreMessages && messages.length > 0 && (
@@ -257,6 +264,7 @@ export default memo(function ChatPanel({
               }`}
             >
               <div className={styles.messageBubble}>
+                {/* ... Message content rendering ... */}
                 {message.type === "image" && message.fileUrl && (
                   <div className={styles.messageImage}>
                     <img src={message.fileUrl} alt={message.fileName} />
@@ -272,7 +280,6 @@ export default memo(function ChatPanel({
                   </div>
                 )}
 
-                {/* Link Preview Message */}
                 {message.type === "link" && message.linkUrl && (
                   <a
                     href={message.linkUrl}
@@ -317,7 +324,7 @@ export default memo(function ChatPanel({
         </div>
       </div>
 
-      {/* Message Input */}
+      {/* Message Input (Unchanged) */}
       <MessageInput onSendMessage={onSendMessage} />
     </div>
   );
