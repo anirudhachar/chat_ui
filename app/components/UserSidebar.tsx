@@ -12,8 +12,9 @@ interface UserSidebarProps {
   onUserSelect: (user: User) => void;
   onSearch: (query: string) => void;
   searchQuery: string;
-  onLoadMore: () => void; // NEW PROP for infinite scroll callback
-  hasMore: boolean; // NEW PROP to indicate if more data is available
+  onLoadMore: () => void;
+  hasMore: boolean;
+  isSearching: boolean; // 🔥 NEW
 }
 
 export default function UserSidebar({
@@ -24,48 +25,43 @@ export default function UserSidebar({
   searchQuery,
   onLoadMore,
   hasMore,
+  isSearching,
 }: UserSidebarProps) {
   const loadingIndicatorRef = useRef<HTMLDivElement>(null);
-  const userListRef = useRef<HTMLDivElement>(null); // Ref for the scrollable container
+  const userListRef = useRef<HTMLDivElement>(null);
 
-  // IntersectionObserver for infinite scrolling
+  /* Infinite scroll (disabled during search) */
   useEffect(() => {
-    if (!hasMore || searchQuery.length >= 2) return; // Stop observing if no more data or if search is active
+    if (!hasMore || searchQuery.length >= 2) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        // If the sentinel (loading indicator) is visible and we have more users to load
         if (entries[0].isIntersecting) {
           onLoadMore();
         }
       },
       {
-        root: userListRef.current, // Use the userList div as the root
-        rootMargin: "0px 0px 100px 0px", // Load 100px before reaching the bottom
+        root: userListRef.current,
+        rootMargin: "0px 0px 100px 0px",
         threshold: 0.1,
       }
     );
 
-    const currentRef = loadingIndicatorRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
+    const el = loadingIndicatorRef.current;
+    if (el) observer.observe(el);
 
     return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
+      if (el) observer.unobserve(el);
     };
   }, [hasMore, onLoadMore, searchQuery]);
 
-  const getInitials = (name: string) => {
-    return name
+  const getInitials = (name: string) =>
+    name
       .split(" ")
-      .map((word) => word[0])
+      .map((w) => w[0])
       .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+      .slice(0, 2)
+      .toUpperCase();
 
   const getAvatarColor = (id: string) => {
     const colors = [
@@ -80,7 +76,6 @@ export default function UserSidebar({
       "#f06292",
       "#ba68c8",
     ];
-    // Simple hash-like index based on ID to ensure color stability
     const index =
       parseInt(id.replace(/\D/g, "").slice(-3) || "0", 10) % colors.length;
     return colors[index];
@@ -93,7 +88,7 @@ export default function UserSidebar({
         <h1 className={styles.title}>Chats</h1>
       </div>
 
-      {/* Search Bar */}
+      {/* Search */}
       <div className={styles.searchContainer}>
         <div className={styles.searchWrapper}>
           <FiSearch className={styles.searchIcon} />
@@ -109,15 +104,17 @@ export default function UserSidebar({
 
       {/* User List */}
       <div className={styles.userList} ref={userListRef}>
-        {users.length === 0 && searchQuery.length < 2 ? (
+        {/* 🔥 SEARCH LOADING */}
+        {isSearching ? (
           <UserSidebarSkeleton count={6} />
         ) : users.length === 0 && searchQuery.length >= 2 ? (
           <div className={styles.noResults}>
             <p>No search results found.</p>
           </div>
+        ) : users.length === 0 ? (
+          <UserSidebarSkeleton count={6} />
         ) : (
           users.map((user) => (
-           
             <div
               key={user.id}
               className={`${styles.userCard} ${
@@ -140,7 +137,6 @@ export default function UserSidebar({
                     {getInitials(user.name)}
                   </div>
                 )}
-
                 {user.online && <div className={styles.onlineIndicator} />}
               </div>
 
@@ -160,18 +156,12 @@ export default function UserSidebar({
               </div>
             </div>
           ))
-        )}  
-
-        {/* Loading/Sentinel Indicator for Infinite Scroll */}
-        {hasMore && (
-          <div ref={loadingIndicatorRef}>
-            <UserSidebarSkeleton count={2} />
-          </div>
         )}
 
-        {!hasMore && users.length > 0 && searchQuery.length < 2 && (
-          <div className={styles.endOfList}>
-            <p>You've reached the end of the chat list.</p>
+        {/* Infinite scroll skeleton */}
+        {hasMore && searchQuery.length < 2 && !isSearching && (
+          <div ref={loadingIndicatorRef}>
+            <UserSidebarSkeleton count={2} />
           </div>
         )}
       </div>

@@ -69,6 +69,8 @@ export default function ChatInterface() {
   const conversationIdRef = useRef<string | null>(null);
 const loggedInUserIdRef = useRef<string | null>(null);
 const selectedUserRef = useRef<User | null>(null);
+const [isSearching, setIsSearching] = useState(false);
+
 
 
   // ───────────────────────────────────────────────
@@ -267,56 +269,58 @@ ws.onmessage = (event) => {
   // SEARCH API — CALL WHEN TYPING
   // ───────────────────────────────────────────────
 
-  useEffect(() => {
-    if (!parentToken) return;
+ useEffect(() => {
+  if (!parentToken) return;
 
-    const query = searchQuery.trim();
+  const query = searchQuery.trim();
 
-    if (query.length < 2) {
+  if (query.length < 2) {
+    setSearchResults([]);
+    setIsSearching(false);
+    setHasMoreUsers(!!cursor);
+    return;
+  }
+
+  const fetchSearchResults = async () => {
+    setIsSearching(true); // 🔥 START skeleton
+
+    try {
+      const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/search/people?query=${encodeURIComponent(
+        query
+      )}`;
+
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${parentToken}`,
+        },
+      });
+
+      const data = await res.json();
+
+      const mapped: User[] =
+        data?.data?.users?.map((u: any) => ({
+          id: u.user_id,
+          name: `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim(),
+          avatar: u.profile_photo_url
+            ? `https://d34wmjl2ccaffd.cloudfront.net${u.profile_photo_url}`
+            : "/user.png",
+          lastMessage: "",
+          lastMessageTime: "",
+          online: false,
+          unread: 0,
+        })) || [];
+
+      setSearchResults(mapped);
+    } catch {
       setSearchResults([]);
-      setHasMoreUsers(!!cursor);
-      return;
+    } finally {
+      setIsSearching(false); // 🔥 STOP skeleton
     }
+  };
 
-    const fetchSearchResults = async () => {
-      setHasMoreUsers(false);
+  fetchSearchResults();
+}, [searchQuery, parentToken, cursor]);
 
-      try {
-        const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/search/people?query=${encodeURIComponent(
-          query
-        )}`;
-
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${parentToken}`,
-          },
-        });
-
-        const data = await res.json();
-        console.log("🔍 SEARCH API RESULT:", data);
-
-        const mapped: User[] =
-          data?.data?.users?.map((u: any) => ({
-            id: u.user_id,
-            name: `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim(),
-            avatar: u.profile_photo_url
-              ? `https://d34wmjl2ccaffd.cloudfront.net${u.profile_photo_url}`
-              : "/user.png",
-            lastMessage: "",
-            lastMessageTime: "",
-            online: false, // search API does not return online
-            unread: 0,
-          })) || [];
-
-        setSearchResults(mapped);
-      } catch (err) {
-        console.error("❌ Search API failed:", err);
-        setSearchResults([]);
-      }
-    };
-
-    fetchSearchResults();
-  }, [searchQuery, parentToken, cursor]);
 
   // ───────────────────────────────────────────────
   // GET OR CREATE CONVERSATION
@@ -612,6 +616,7 @@ ws.onmessage = (event) => {
           searchQuery={searchQuery}
           onLoadMore={loadMoreUsers}
           hasMore={hasMoreUsers && !isSearchActive}
+          isSearching={isSearching}
         />
       </div>
 
