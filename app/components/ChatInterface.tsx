@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import styles from "./ChatInterface.module.scss";
 import UserSidebar from "./UserSidebar";
 import ChatPanel from "./ChatPanel";
@@ -66,6 +66,11 @@ export default function ChatInterface() {
   const [parentToken, setParentToken] = useState<string | null>(null);
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
 
+  const conversationIdRef = useRef<string | null>(null);
+const loggedInUserIdRef = useRef<string | null>(null);
+const selectedUserRef = useRef<User | null>(null);
+
+
   // ───────────────────────────────────────────────
   // FETCH USERS LIST
   // ───────────────────────────────────────────────
@@ -129,6 +134,19 @@ export default function ChatInterface() {
     }
   };
 
+  useEffect(() => {
+  conversationIdRef.current = conversationId;
+}, [conversationId]);
+
+useEffect(() => {
+  loggedInUserIdRef.current = loggedInUserId;
+}, [loggedInUserId]);
+
+useEffect(() => {
+  selectedUserRef.current = selectedUser;
+}, [selectedUser]);
+
+
  
 useEffect(() => {
   if (!parentToken) return;
@@ -154,26 +172,25 @@ ws.onmessage = (event) => {
       // ─────────────────────────────
       // NEW MESSAGE (RIGHT CHAT)
       // ─────────────────────────────
-      case "newMessage": {
-        // Only append if this chat is open
-        if (data.conversationId === conversationId) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: data.messageId,
-              content: data.content,
-              timestamp: new Date(data.createdAt).toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-              }),
-              sent: data.senderUserId === loggedInUserId,
-              type: "text",
-              status: "delivered",
-            },
-          ]);
-        }
-        break;
-      }
+    case "newMessage": {
+  if (data.conversationId === conversationIdRef.current) {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: data.messageId,
+        content: data.content,
+        timestamp: new Date(data.createdAt).toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+        }),
+        sent: data.senderUserId === loggedInUserIdRef.current,
+        type: "text",
+        status: "delivered",
+      },
+    ]);
+  }
+  break;
+}
 
       // ─────────────────────────────
       // SIDEBAR UPDATE
@@ -192,7 +209,7 @@ ws.onmessage = (event) => {
                     minute: "2-digit",
                   }),
                   unread:
-                    selectedUser?.id === u.id
+                   selectedUserRef.current?.id === u.id
                       ? 0
                       : (u.unread ?? 0) + (data.unreadIncrement ?? 0),
                 }
