@@ -3,11 +3,11 @@
 import { useEffect, useRef } from "react";
 import { FiArrowLeft, FiMoreVertical } from "react-icons/fi";
 import { BsCheck, BsCheckAll } from "react-icons/bs";
-import { User, Message } from "./ChatInterface";
-
-import styles from "./ChatPanel.module.scss";
-import MessageInput from "./MessageInput";
 import Image from "next/image";
+
+import { User, Message } from "./ChatInterface";
+import MessageInput from "./MessageInput";
+import styles from "./ChatPanel.module.scss";
 
 interface ChatPanelProps {
   selectedUser: User | null;
@@ -15,17 +15,21 @@ interface ChatPanelProps {
   onSendMessage: (
     content: string,
     type?: "text" | "image" | "document" | "link",
-    file?: { 
-      name: string; 
-      url: string; 
+    file?: {
+      name: string;
+      url: string;
       image?: string;
       description?: string;
     }
   ) => void;
   onBack: () => void;
-  // NEW PROPS for message pagination
+
+  // Pagination
   onLoadMoreMessages: () => void;
   hasMoreMessages: boolean;
+
+  // 🔑 used to reset scroll when switching chat
+  resetKey?: string;
 }
 
 export default function ChatPanel({
@@ -33,62 +37,69 @@ export default function ChatPanel({
   messages,
   onSendMessage,
   onBack,
-  onLoadMoreMessages, // NEW
-  hasMoreMessages,    // NEW
+  onLoadMoreMessages,
+  hasMoreMessages,
+  resetKey,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesAreaRef = useRef<HTMLDivElement>(null); // Ref for the scrollable area
-  const topMessageSentinelRef = useRef<HTMLDivElement>(null); // NEW Ref for IntersectionObserver
+  const messagesAreaRef = useRef<HTMLDivElement>(null);
+  const topMessageSentinelRef = useRef<HTMLDivElement>(null);
 
-  // Helper to scroll to the bottom (used when sending a new message or first load)
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // 🔑 Track first load of a conversation
+  const isFirstLoadRef = useRef(true);
 
-  // Scroll to bottom on initial load or new message
+  // 🔁 Reset when switching users
   useEffect(() => {
-    scrollToBottom();
-  }, [messages.length]); // Scroll only when the total count changes
+    isFirstLoadRef.current = true;
+  }, [resetKey]);
 
-  // NEW: IntersectionObserver for message infinite scrolling
+  // ✅ Smart scrolling logic
+  useEffect(() => {
+    if (messages.length === 0) return;
+
+    // Initial open → jump instantly (NO animation)
+    if (isFirstLoadRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+      isFirstLoadRef.current = false;
+      return;
+    }
+
+    // New message → smooth scroll
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  // 🔁 Infinite scroll (load older messages)
   useEffect(() => {
     if (!hasMoreMessages || messages.length === 0) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        // If the sentinel (top of messages) is visible
         if (entries[0].isIntersecting) {
           onLoadMoreMessages();
         }
       },
       {
-        root: messagesAreaRef.current, // Observe within the scrollable messages area
-        rootMargin: "0px", 
+        root: messagesAreaRef.current,
         threshold: 0.1,
       }
     );
 
-    const currentRef = topMessageSentinelRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
+    const el = topMessageSentinelRef.current;
+    if (el) observer.observe(el);
 
     return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
+      if (el) observer.unobserve(el);
     };
   }, [hasMoreMessages, onLoadMoreMessages, messages.length]);
 
-
-  const getInitials = (name: string) => {
-    return name
+  // Helpers
+  const getInitials = (name: string) =>
+    name
       .split(" ")
-      .map((word) => word[0])
+      .map((w) => w[0])
       .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+      .slice(0, 2)
+      .toUpperCase();
 
   const getAvatarColor = (id: string) => {
     const colors = [
@@ -100,50 +111,31 @@ export default function ChatPanel({
       "#00897b",
       "#ff6b6b",
       "#4fb3d4",
-      "#f06292",
-      "#ba68c8",
     ];
-    // Simple hash-like index based on ID
-    const index = parseInt(id.replace(/\D/g, '').slice(-3) || '0', 10) % colors.length;
-    return colors[index];
+    return colors[parseInt(id.replace(/\D/g, "") || "0", 10) % colors.length];
   };
 
- const getStatusIcon = (
-  status?: "sending" | "sent" | "delivered" | "read" | "failed"
-) => {
-  if (!status) return null;
+  const getStatusIcon = (
+    status?: "sending" | "sent" | "delivered" | "read" | "failed"
+  ) => {
+    if (!status) return null;
+    if (status === "sending") return <span className={styles.sendingDot}>●</span>;
+    if (status === "failed") return <span>❌</span>;
+    if (status === "read")
+      return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
+    if (status === "delivered")
+      return <BsCheckAll className={styles.tickIcon} />;
+    return <BsCheck className={styles.tickIcon} />;
+  };
 
-  if (status === "sending") {
-    return <span className={styles.sendingDot}>●</span>;
-  }
-
-  if (status === "failed") {
-    return <span className={styles.failedIcon}>❌</span>;
-  }
-
-  if (status === "read") {
-    return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
-  }
-
-  if (status === "delivered") {
-    return <BsCheckAll className={styles.tickIcon} />;
-  }
-
-  return <BsCheck className={styles.tickIcon} />;
-};
-
-
+  // 🟡 Empty state
   if (!selectedUser) {
     return (
       <div className={styles.emptyState}>
         <div className={styles.emptyContent}>
-          <div className={styles.emptyIcon}>
-            <Image src="Frame 238021 (1).svg" alt="" width={100} height={100} />
-          </div>
-          <h2 className={styles.emptyTitle}>Start a conversation</h2>
-          <p className={styles.emptyText}>
-            Select a chat from the sidebar to start messaging
-          </p>
+          <Image src="Frame 238021 (1).svg" alt="" width={100} height={100} />
+          <h2>Start a conversation</h2>
+          <p>Select a chat from the sidebar</p>
         </div>
       </div>
     );
@@ -151,125 +143,65 @@ export default function ChatPanel({
 
   return (
     <div className={styles.chatPanel}>
-      {/* Chat Header */}
+      {/* HEADER */}
       <div className={styles.chatHeader}>
-        <button className={styles.backButton} onClick={onBack}>
+        <button onClick={onBack} className={styles.backButton}>
           <FiArrowLeft />
         </button>
 
-        <div className={styles.avatarWrapper}>
-          <div
-            className={styles.avatar}
-            style={{ backgroundColor: getAvatarColor(selectedUser.id) }}
-          >
-            {selectedUser.avatar && (
-              <img
-                src={selectedUser.avatar}
-                alt={selectedUser.name}
-                style={{ width: "30px", height: "30px", borderRadius: "50%" }}
-                className={styles.avatarImage}
-              />
-            )}
-            {!selectedUser.avatar && getInitials(selectedUser.name)}
-          </div>
-          {selectedUser.online && <div className={styles.onlineIndicator} />}
+        <div
+          className={styles.avatar}
+          style={{ backgroundColor: getAvatarColor(selectedUser.id) }}
+        >
+          {selectedUser.avatar ? (
+            <img src={selectedUser.avatar} alt={selectedUser.name} />
+          ) : (
+            getInitials(selectedUser.name)
+          )}
         </div>
 
         <div className={styles.userInfo}>
-          <h2 className={styles.userName}>{selectedUser.name}</h2>
-          <p className={styles.userStatus}>
-            {selectedUser.online ? "Online" : "Offline"}
-          </p>
+          <h3>{selectedUser.name}</h3>
+          <span>{selectedUser.online ? "Online" : "Offline"}</span>
         </div>
 
-        <button className={styles.moreButton}>
-          <FiMoreVertical />
-        </button>
+        <FiMoreVertical />
       </div>
 
-      {/* Messages Area */}
+      {/* MESSAGES */}
       <div className={styles.messagesArea} ref={messagesAreaRef}>
         <div className={styles.messagesContainer}>
-          {/* NEW: Loading/Sentinel Indicator for Infinite Scroll */}
-          {hasMoreMessages && messages.length > 0 && (
-             <div ref={topMessageSentinelRef} className={styles.loadingOlderMessages}>
-                <p>Loading older messages...</p>
-             </div>
-          )}
-          {!hasMoreMessages && messages.length > 0 && (
-             <div className={styles.startOfConversation}>
-                <p>Start of conversation</p>
-             </div>
-          )}
-          {messages.map((message) => (
+          {hasMoreMessages && (
             <div
-              key={message.id}
+              ref={topMessageSentinelRef}
+              className={styles.loadingOlderMessages}
+            >
+              Loading older messages...
+            </div>
+          )}
+
+          {messages.map((m) => (
+            <div
+              key={m.id}
               className={`${styles.messageWrapper} ${
-                message.sent ? styles.sent : styles.received
+                m.sent ? styles.sent : styles.received
               }`}
             >
               <div className={styles.messageBubble}>
-                {message.type === "image" && message.fileUrl && (
-                  <div className={styles.messageImage}>
-                    <img src={message.fileUrl} alt={message.fileName} />
-                  </div>
-                )}
-
-                {message.type === "document" && message.fileName && (
-                  <div className={styles.messageDocument}>
-                    <div className={styles.documentIcon}>📄</div>
-                    <div className={styles.documentInfo}>
-                      <p className={styles.documentName}>{message.fileName}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Link Preview Message */}
-                {message.type === "link" && message.linkUrl && (
-                  <a
-                    href={message.linkUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.linkPreviewCard}
-                  >
-                    {message.linkImage && (
-                      <img
-                        src={message.linkImage}
-                        alt={message.linkTitle}
-                        className={styles.linkPreviewImage}
-                      />
-                    )}
-
-                    <div className={styles.linkPreviewContent}>
-                      <p className={styles.linkPreviewTitle}>
-                        {message.linkTitle}
-                      </p>
-                      <p className={styles.linkPreviewDescription}>
-                        {message.linkDescription}
-                      </p>
-                      <p className={styles.linkPreviewUrl}>{message.linkUrl}</p>
-                    </div>
-                  </a>
-                )}
-
-                {message.content && (
-                  <p className={styles.messageText}>{message.content}</p>
-                )}
-
+                <p>{m.content}</p>
                 <div className={styles.messageMeta}>
-                  <span className={styles.messageTime}>
-                    {message.timestamp}
-                  </span>
-                  {message.sent && getStatusIcon(message.status)}
+                  <span>{m.timestamp}</span>
+                  {m.sent && getStatusIcon(m.status)}
                 </div>
               </div>
             </div>
           ))}
+
           <div ref={messagesEndRef} />
         </div>
       </div>
 
-      {/* Message Input */}
+      {/* INPUT */}
       <MessageInput onSendMessage={onSendMessage} />
     </div>
   );

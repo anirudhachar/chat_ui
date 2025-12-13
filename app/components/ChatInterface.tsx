@@ -49,12 +49,12 @@ const decodeToken = (token: string) => {
 export default function ChatInterface() {
   const [users, setUsers] = useState<User[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
-  const [hasMoreUsers, setHasMoreUsers] = useState(true); 
+  const [hasMoreUsers, setHasMoreUsers] = useState(true);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  
+
   // NEW: State for message pagination
   const [messageCursor, setMessageCursor] = useState<string | null>(null);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
@@ -69,57 +69,59 @@ export default function ChatInterface() {
   // ───────────────────────────────────────────────
   // FETCH USERS LIST
   // ───────────────────────────────────────────────
-  const fetchUsers = useCallback(async (currentCursor: string | null, isInitialFetch: boolean) => {
-    if (!parentToken) return;
+  const fetchUsers = useCallback(
+    async (currentCursor: string | null, isInitialFetch: boolean) => {
+      if (!parentToken) return;
 
-    try {
-      const url =
-        `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/conversations/list?limit=10` +
-        (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
+      try {
+        const url =
+          `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/conversations/list?limit=10` +
+          (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
 
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${parentToken}`,
-        },
-      });
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${parentToken}`,
+          },
+        });
 
-      const data = await res.json();
-      console.log("📥 Conversations List:", data);
+        const data = await res.json();
+        console.log("📥 Conversations List:", data);
 
-      const mappedUsers: User[] =
-        data?.data?.conversations?.map((c: any) => ({
-          id: c.user?.userId,
-          name: `${c.user?.firstName ?? ""} ${
-            c.user?.lastName ?? ""
-          }`.trim(),
-          avatar: c.user?.avatarUrl
-            ? `https://d34wmjl2ccaffd.cloudfront.net${c.user.avatarUrl}`
-            : "/user.png",
+        const mappedUsers: User[] =
+          data?.data?.conversations?.map((c: any) => ({
+            id: c.user?.userId,
+            name: `${c.user?.firstName ?? ""} ${c.user?.lastName ?? ""}`.trim(),
+            avatar: c.user?.avatarUrl
+              ? `https://d34wmjl2ccaffd.cloudfront.net${c.user.avatarUrl}`
+              : "/user.png",
 
-          lastMessage: c.lastMessagePreview ?? "",
-          lastMessageTime: c.lastMessageAt
-            ? new Date(c.lastMessageAt).toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-              })
-            : "",
+            lastMessage: c.lastMessagePreview ?? "",
+            lastMessageTime: c.lastMessageAt
+              ? new Date(c.lastMessageAt).toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })
+              : "",
 
-          online: c.user?.online ?? false,
-          unread: c.unreadCount ?? 0,
-        })) || [];
+            online: c.user?.online ?? false,
+            unread: c.unreadCount ?? 0,
+          })) || [];
 
-      // If it's the initial fetch (cursor is null), replace the list. Otherwise, append.
-      setUsers((prev) => (isInitialFetch ? mappedUsers : [...prev, ...mappedUsers]));
+        // If it's the initial fetch (cursor is null), replace the list. Otherwise, append.
+        setUsers((prev) =>
+          isInitialFetch ? mappedUsers : [...prev, ...mappedUsers]
+        );
 
-      const nextCursor = data?.data?.cursor || null;
-      setCursor(nextCursor);
-      setHasMoreUsers(!!nextCursor); 
-
-    } catch (error) {
-      console.error("❌ Failed to fetch users:", error);
-      setHasMoreUsers(false); 
-    }
-  }, [parentToken]);
+        const nextCursor = data?.data?.cursor || null;
+        setCursor(nextCursor);
+        setHasMoreUsers(!!nextCursor);
+      } catch (error) {
+        console.error("❌ Failed to fetch users:", error);
+        setHasMoreUsers(false);
+      }
+    },
+    [parentToken]
+  );
 
   const loadMoreUsers = () => {
     if (hasMoreUsers && searchQuery.length < 2) {
@@ -136,12 +138,11 @@ export default function ChatInterface() {
     const uid = decodeToken(parentToken);
     setLoggedInUserId(uid);
 
-    setUsers([]); 
+    setUsers([]);
     setCursor(null);
-    setHasMoreUsers(true); 
+    setHasMoreUsers(true);
     fetchUsers(null, true);
   }, [parentToken, fetchUsers]);
-
 
   // ───────────────────────────────────────────────
   // SEARCH API — CALL WHEN TYPING
@@ -153,18 +154,17 @@ export default function ChatInterface() {
 
     if (query.length < 2) {
       setSearchResults([]);
-      setHasMoreUsers(!!cursor); 
+      setHasMoreUsers(!!cursor);
       return;
     }
 
     const fetchSearchResults = async () => {
-      setHasMoreUsers(false); 
+      setHasMoreUsers(false);
 
       try {
-        const url =
-          `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/search/people?query=${encodeURIComponent(
-            query
-          )}`;
+        const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/search/people?query=${encodeURIComponent(
+          query
+        )}`;
 
         const res = await fetch(url, {
           headers: {
@@ -230,60 +230,63 @@ export default function ChatInterface() {
   // ───────────────────────────────────────────────
   // FETCH MESSAGES (Refactored for pagination)
   // ───────────────────────────────────────────────
-  const fetchMessages = useCallback(async (
-    cid: string,
-    token: string,
-    myUserId: string | null,
-    currentCursor: string | null
-  ) => {
-    if (!myUserId || !cid) return;
+  const fetchMessages = useCallback(
+    async (
+      cid: string,
+      token: string,
+      myUserId: string | null,
+      currentCursor: string | null
+    ) => {
+      if (!myUserId || !cid) return;
 
-    try {
-      // Use the provided local endpoint for testing if needed, otherwise use the live one
-      const baseUrl = "https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev";
-      
-      const url = 
-        `${baseUrl}/chat/message/${cid}/list?limit=10` +
-        (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
+      try {
+        // Use the provided local endpoint for testing if needed, otherwise use the live one
+        const baseUrl =
+          "https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev";
 
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+        const url =
+          `${baseUrl}/chat/message/${cid}/list?limit=10` +
+          (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
 
-      const data = await res.json();
-      console.log("📥 Messages:", data);
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-      const mappedMessages: Message[] =
-        data?.data?.messages?.map((msg: any) => ({
-          id: msg.messageId,
-          content: msg.content,
-          timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-          }),
-          sent: msg.senderUserId === myUserId,
-          type: "text",
-          status: msg.senderUserId === myUserId ? "sent" : undefined,
-        })) || [];
+        const data = await res.json();
+        console.log("📥 Messages:", data);
 
-      // If fetching with a cursor, prepend (load older messages). 
-      // If cursor is null (initial fetch), replace and reverse (show newest at bottom).
-      setMessages((prev) => {
-        const newMessages = mappedMessages.reverse(); // New messages are chronologically reversed
-        return currentCursor ? [...newMessages, ...prev] : newMessages;
-      });
+        const mappedMessages: Message[] =
+          data?.data?.messages?.map((msg: any) => ({
+            id: msg.messageId,
+            content: msg.content,
+            timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+            }),
+            sent: msg.senderUserId === myUserId,
+            type: "text",
+            status: msg.senderUserId === myUserId ? "sent" : undefined,
+          })) || [];
 
-      const nextCursor = data?.data?.cursor || null;
-      setMessageCursor(nextCursor);
-      setHasMoreMessages(!!nextCursor); 
+        // If fetching with a cursor, prepend (load older messages).
+        // If cursor is null (initial fetch), replace and reverse (show newest at bottom).
+        setMessages((prev) => {
+          const newMessages = mappedMessages.reverse(); // New messages are chronologically reversed
+          return currentCursor ? [...newMessages, ...prev] : newMessages;
+        });
 
-    } catch (error) {
-      console.error("❌ Failed to fetch messages:", error);
-      setHasMoreMessages(false);
-    }
-  }, []); // Dependencies: empty since all required dependencies are passed as arguments or are stable state/props
+        const nextCursor = data?.data?.cursor || null;
+        setMessageCursor(nextCursor);
+        setHasMoreMessages(!!nextCursor);
+      } catch (error) {
+        console.error("❌ Failed to fetch messages:", error);
+        setHasMoreMessages(false);
+      }
+    },
+    []
+  ); // Dependencies: empty since all required dependencies are passed as arguments or are stable state/props
 
   // NEW: Function to load the next page of messages (older ones)
   const loadMoreMessages = () => {
@@ -295,7 +298,11 @@ export default function ChatInterface() {
   // ───────────────────────────────────────────────
   // SEND MESSAGE
   // ───────────────────────────────────────────────
-  const sendMessageToApi = async (cid: string, content: string, token: string) => {
+  const sendMessageToApi = async (
+    cid: string,
+    content: string,
+    token: string
+  ) => {
     try {
       const res = await fetch(
         "https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/send",
@@ -324,9 +331,9 @@ export default function ChatInterface() {
 
     setSelectedUser(user);
     setMessages([]);
-    
+
     // NEW: Reset message pagination state
-    setMessageCursor(null); 
+    setMessageCursor(null);
     setHasMoreMessages(true);
 
     // reset unread count
@@ -344,65 +351,65 @@ export default function ChatInterface() {
   // ───────────────────────────────────────────────
   // SEND MESSAGE HANDLER
   // ───────────────────────────────────────────────
-  const handleSendMessage = useCallback(async (content: string) => {
-    if (!selectedUser || !parentToken) return;
+  const handleSendMessage = useCallback(
+    async (content: string) => {
+      if (!selectedUser || !parentToken) return;
 
-    let cid = conversationId;
-    if (!cid) {
-      cid = await getConversationId(selectedUser.id, parentToken);
-      if (!cid) return;
-    }
+      let cid = conversationId;
+      if (!cid) {
+        cid = await getConversationId(selectedUser.id, parentToken);
+        if (!cid) return;
+      }
 
-    const tempId = `temp-${Date.now()}`;
-    const timeString = new Date().toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
+      const tempId = `temp-${Date.now()}`;
+      const timeString = new Date().toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
 
-    const optimistic: Message = {
-      id: tempId,
-      content,
-      timestamp: timeString,
-      sent: true,
-      type: "text",
-      status: "sending",
-    };
+      const optimistic: Message = {
+        id: tempId,
+        content,
+        timestamp: timeString,
+        sent: true,
+        type: "text",
+        status: "sending",
+      };
 
-    // Add optimistic message to the bottom
-    setMessages((p) => [...p, optimistic]);
+      // Add optimistic message to the bottom
+      setMessages((p) => [...p, optimistic]);
 
-    try {
-      const data = await sendMessageToApi(cid, content, parentToken);
-      const realId =
-        data?.data?.messageId ?? data?.data?.message?.messageId;
-      const realTime =
-        data?.data?.createdAt ?? data?.data?.message?.createdAt;
+      try {
+        const data = await sendMessageToApi(cid, content, parentToken);
+        const realId = data?.data?.messageId ?? data?.data?.message?.messageId;
+        const realTime =
+          data?.data?.createdAt ?? data?.data?.message?.createdAt;
 
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === tempId
-            ? {
-                ...m,
-                id: realId ?? m.id,
-                status: "sent",
-                timestamp: realTime
-                  ? new Date(realTime).toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })
-                  : m.timestamp,
-              }
-            : m
-        )
-      );
-    } catch {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === tempId ? { ...m, status: "failed" } : m
-        )
-      );
-    }
-  }, [selectedUser, parentToken, conversationId]);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tempId
+              ? {
+                  ...m,
+                  id: realId ?? m.id,
+                  status: "sent",
+                  timestamp: realTime
+                    ? new Date(realTime).toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })
+                    : m.timestamp,
+                }
+              : m
+          )
+        );
+      } catch {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
+        );
+      }
+    },
+    [selectedUser, parentToken, conversationId]
+  );
 
   // ───────────────────────────────────────────────
   // PARENT WINDOW EVENTS
@@ -439,7 +446,7 @@ export default function ChatInterface() {
           setMessages([]);
 
           // Reset message pagination state
-          setMessageCursor(null); 
+          setMessageCursor(null);
           setHasMoreMessages(true);
 
           const cid = await getConversationId(user.id, token);
@@ -458,7 +465,13 @@ export default function ChatInterface() {
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [selectedUser, parentToken, conversationId, handleSendMessage, fetchMessages]);
+  }, [
+    selectedUser,
+    parentToken,
+    conversationId,
+    handleSendMessage,
+    fetchMessages,
+  ]);
 
   // ───────────────────────────────────────────────
   // RENDER
@@ -477,26 +490,27 @@ export default function ChatInterface() {
           onUserSelect={handleUserSelect}
           onSearch={setSearchQuery}
           searchQuery={searchQuery}
-          onLoadMore={loadMoreUsers} 
-          hasMore={hasMoreUsers && !isSearchActive} 
+          onLoadMore={loadMoreUsers}
+          hasMore={hasMoreUsers && !isSearchActive}
         />
       </div>
 
       <div
         className={`${styles.chatWrapper} ${!showSidebar ? styles.show : ""}`}
       >
-        <ChatPanel
-          selectedUser={selectedUser}
-          messages={messages}
-          onSendMessage={handleSendMessage}
-          onBack={() => {
-            setSelectedUser(null);
-            setShowSidebar(true);
-          }}
-          // NEW PROPS for message pagination
-          onLoadMoreMessages={loadMoreMessages} 
-          hasMoreMessages={hasMoreMessages}
-        />
+     <ChatPanel
+  selectedUser={selectedUser}
+  messages={messages}
+  onSendMessage={handleSendMessage}
+  onBack={() => {
+    setSelectedUser(null);
+    setShowSidebar(true);
+  }}
+  onLoadMoreMessages={loadMoreMessages}
+  hasMoreMessages={hasMoreMessages}
+  resetKey={selectedUser?.id}
+/>
+
       </div>
     </div>
   );
