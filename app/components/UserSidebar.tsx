@@ -117,6 +117,7 @@ export default function UserSidebar({
           </div>
         ) : (
           users.map((user) => (
+            console.log("usertoday",user),
             <div
               key={user.id}
               className={`${styles.userCard} ${
