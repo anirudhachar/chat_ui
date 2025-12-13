@@ -67,11 +67,9 @@ export default function ChatInterface() {
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
 
   const conversationIdRef = useRef<string | null>(null);
-const loggedInUserIdRef = useRef<string | null>(null);
-const selectedUserRef = useRef<User | null>(null);
-const [isSearching, setIsSearching] = useState(false);
-
-
+  const loggedInUserIdRef = useRef<string | null>(null);
+  const selectedUserRef = useRef<User | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   // ───────────────────────────────────────────────
   // FETCH USERS LIST
@@ -137,121 +135,119 @@ const [isSearching, setIsSearching] = useState(false);
   };
 
   useEffect(() => {
-  conversationIdRef.current = conversationId;
-}, [conversationId]);
+    conversationIdRef.current = conversationId;
+  }, [conversationId]);
 
-useEffect(() => {
-  loggedInUserIdRef.current = loggedInUserId;
-}, [loggedInUserId]);
+  useEffect(() => {
+    loggedInUserIdRef.current = loggedInUserId;
+  }, [loggedInUserId]);
 
-useEffect(() => {
-  selectedUserRef.current = selectedUser;
-}, [selectedUser]);
+  useEffect(() => {
+    selectedUserRef.current = selectedUser;
+  }, [selectedUser]);
 
+  useEffect(() => {
+    if (!parentToken) return;
 
- 
-useEffect(() => {
-  if (!parentToken) return;
+    const wsUrl = `wss://k4g7m4879h.execute-api.us-east-1.amazonaws.com/dev?token=${encodeURIComponent(
+      parentToken
+    )}`;
 
-  const wsUrl = `wss://k4g7m4879h.execute-api.us-east-1.amazonaws.com/dev?token=${encodeURIComponent(
-    parentToken
-  )}`;
+    const ws = new WebSocket(wsUrl);
 
-  const ws = new WebSocket(wsUrl);
+    ws.onopen = () => {
+      console.log("WebSocket connected");
+    };
 
-  ws.onopen = () => {
-    console.log("WebSocket connected");
-  };
+    ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        const { event: eventType, data } = payload;
 
-ws.onmessage = (event) => {
-  try {
-    const payload = JSON.parse(event.data);
-    const { event: eventType, data } = payload;
+        console.log("WS event:", eventType, data);
 
-    console.log("WS event:", eventType, data);
+        switch (eventType) {
+          // ─────────────────────────────
+          // NEW MESSAGE (RIGHT CHAT)
+          // ─────────────────────────────
+          case "newMessage": {
+            if (data.conversationId === conversationIdRef.current) {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: data.messageId,
+                  content: data.content,
+                  timestamp: new Date(data.createdAt).toLocaleTimeString(
+                    "en-US",
+                    {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    }
+                  ),
+                  sent: data.senderUserId === loggedInUserIdRef.current,
+                  type: "text",
+                  status: "delivered",
+                },
+              ]);
+            }
+            break;
+          }
 
-    switch (eventType) {
-      // ─────────────────────────────
-      // NEW MESSAGE (RIGHT CHAT)
-      // ─────────────────────────────
-    case "newMessage": {
-  if (data.conversationId === conversationIdRef.current) {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: data.messageId,
-        content: data.content,
-        timestamp: new Date(data.createdAt).toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-        }),
-        sent: data.senderUserId === loggedInUserIdRef.current,
-        type: "text",
-        status: "delivered",
-      },
-    ]);
-  }
-  break;
-}
+          // ─────────────────────────────
+          // SIDEBAR UPDATE
+          // ─────────────────────────────
+          case "conversationUpdated": {
+            setUsers((prev) =>
+              prev.map((u) =>
+                u.id === data.lastMessageSenderId
+                  ? {
+                      ...u,
+                      lastMessage: data.lastMessagePreview,
+                      lastMessageTime: new Date(
+                        data.lastMessageAt
+                      ).toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      }),
+                      unread:
+                        selectedUserRef.current?.id === u.id
+                          ? 0
+                          : (u.unread ?? 0) + (data.unreadIncrement ?? 0),
+                    }
+                  : u
+              )
+            );
+            break;
+          }
 
-      // ─────────────────────────────
-      // SIDEBAR UPDATE
-      // ─────────────────────────────
-      case "conversationUpdated": {
-        setUsers((prev) =>
-          prev.map((u) =>
-            u.id === data.lastMessageSenderId
-              ? {
-                  ...u,
-                  lastMessage: data.lastMessagePreview,
-                  lastMessageTime: new Date(
-                    data.lastMessageAt
-                  ).toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  }),
-                  unread:
-                   selectedUserRef.current?.id === u.id
-                      ? 0
-                      : (u.unread ?? 0) + (data.unreadIncrement ?? 0),
-                }
-              : u
-          )
-        );
-        break;
+          // ─────────────────────────────
+          // ACK (OPTIONAL)
+          // ─────────────────────────────
+          case "messageSentAck": {
+            console.log("✅ Message acknowledged by server");
+            break;
+          }
+
+          default:
+            console.log("⚠️ Unknown WS event", payload);
+        }
+      } catch (err) {
+        console.error("WS parse error", err);
       }
+    };
 
-      // ─────────────────────────────
-      // ACK (OPTIONAL)
-      // ─────────────────────────────
-      case "messageSentAck": {
-        console.log("✅ Message acknowledged by server");
-        break;
-      }
+    ws.onerror = (err) => {
+      console.error("❌ WebSocket error", err);
+    };
 
-      default:
-        console.log("⚠️ Unknown WS event", payload);
-    }
-  } catch (err) {
-    console.error("WS parse error", err);
-  }
-};
+    ws.onclose = () => {
+      console.log("🔌 WebSocket disconnected");
+    };
 
-
-  ws.onerror = (err) => {
-    console.error("❌ WebSocket error", err);
-  };
-
-  ws.onclose = () => {
-    console.log("🔌 WebSocket disconnected");
-  };
-
-  return () => {
-    ws.close();
-  };
-}, [parentToken]);
-
-
+    return () => {
+      ws.close();
+    };
+  }, [parentToken]);
 
   useEffect(() => {
     if (!parentToken) return;
@@ -269,58 +265,57 @@ ws.onmessage = (event) => {
   // SEARCH API — CALL WHEN TYPING
   // ───────────────────────────────────────────────
 
- useEffect(() => {
-  if (!parentToken) return;
+  useEffect(() => {
+    if (!parentToken) return;
 
-  const query = searchQuery.trim();
+    const query = searchQuery.trim();
 
-  if (query.length < 2) {
-    setSearchResults([]);
-    setIsSearching(false);
-    setHasMoreUsers(!!cursor);
-    return;
-  }
-
-  const fetchSearchResults = async () => {
-    setIsSearching(true); // 🔥 START skeleton
-
-    try {
-      const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/search/people?query=${encodeURIComponent(
-        query
-      )}`;
-
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${parentToken}`,
-        },
-      });
-
-      const data = await res.json();
-
-      const mapped: User[] =
-        data?.data?.users?.map((u: any) => ({
-          id: u.user_id,
-          name: `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim(),
-          avatar: u.profile_photo_url
-            ? `https://d34wmjl2ccaffd.cloudfront.net${u.profile_photo_url}`
-            : "/user.png",
-          lastMessage: "",
-          lastMessageTime: "",
-          online: false,
-          unread: 0,
-        })) || [];
-
-      setSearchResults(mapped);
-    } catch {
+    if (query.length < 2) {
       setSearchResults([]);
-    } finally {
-      setIsSearching(false); // 🔥 STOP skeleton
+      setIsSearching(false);
+      setHasMoreUsers(!!cursor);
+      return;
     }
-  };
 
-  fetchSearchResults();
-}, [searchQuery, parentToken, cursor]);
+    const fetchSearchResults = async () => {
+      setIsSearching(true); // 🔥 START skeleton
 
+      try {
+        const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/search/people?query=${encodeURIComponent(
+          query
+        )}`;
+
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${parentToken}`,
+          },
+        });
+
+        const data = await res.json();
+
+        const mapped: User[] =
+          data?.data?.users?.map((u: any) => ({
+            id: u.user_id,
+            name: `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim(),
+            avatar: u.profile_photo_url
+              ? `https://d34wmjl2ccaffd.cloudfront.net${u.profile_photo_url}`
+              : "/user.png",
+            lastMessage: "",
+            lastMessageTime: "",
+            online: false,
+            unread: 0,
+          })) || [];
+
+        setSearchResults(mapped);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false); // 🔥 STOP skeleton
+      }
+    };
+
+    fetchSearchResults();
+  }, [searchQuery, parentToken, cursor]);
 
   // ───────────────────────────────────────────────
   // GET OR CREATE CONVERSATION
@@ -450,90 +445,129 @@ ws.onmessage = (event) => {
     }
   };
 
-  const handleUserSelect = async (user: User) => {
-    if (!parentToken || !loggedInUserId) return;
+const handleUserSelect = async (user: User) => {
+  if (!parentToken || !loggedInUserId) return;
 
-    setSelectedUser(user);
-    setMessages([]);
+  // 🔥 EXIT SEARCH MODE (CRITICAL)
+  setSearchQuery("");
+  setSearchResults([]);
+  setIsSearching(false);
 
-    // NEW: Reset message pagination state
-    setMessageCursor(null);
-    setHasMoreMessages(true);
+  setSelectedUser(user);
+  setMessages([]);
 
-    // reset unread count
-    setUsers((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
-    );
+  // 🔁 Reset message pagination
+  setMessageCursor(null);
+  setHasMoreMessages(true);
 
-    const cid = await getConversationId(user.id, parentToken);
-    // Initial message fetch starts with a null cursor
-    if (cid) fetchMessages(cid, parentToken, loggedInUserId, null);
+  // 🔕 Reset unread count in sidebar
+  setUsers((prev) =>
+    prev.map((u) =>
+      u.id === user.id ? { ...u, unread: 0 } : u
+    )
+  );
 
-    if (window.innerWidth < 768) setShowSidebar(false);
-  };
+  const cid = await getConversationId(user.id, parentToken);
+
+  // 📥 Initial message fetch
+  if (cid) {
+    fetchMessages(cid, parentToken, loggedInUserId, null);
+  }
+
+  // 📱 Mobile UX
+  if (window.innerWidth < 768) {
+    setShowSidebar(false);
+  }
+};
+
 
   // ───────────────────────────────────────────────
   // SEND MESSAGE HANDLER
   // ───────────────────────────────────────────────
-  const handleSendMessage = useCallback(
-    async (content: string) => {
-      if (!selectedUser || !parentToken) return;
+ const handleSendMessage = useCallback(
+  async (content: string) => {
+    if (!selectedUser || !parentToken) return;
 
-      let cid = conversationId;
-      if (!cid) {
-        cid = await getConversationId(selectedUser.id, parentToken);
-        if (!cid) return;
-      }
+    let cid = conversationId;
+    if (!cid) {
+      cid = await getConversationId(selectedUser.id, parentToken);
+      if (!cid) return;
+    }
 
-      const tempId = `temp-${Date.now()}`;
-      const timeString = new Date().toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      });
+    const tempId = `temp-${Date.now()}`;
+    const timeString = new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
 
-      const optimistic: Message = {
-        id: tempId,
-        content,
-        timestamp: timeString,
-        sent: true,
-        type: "text",
-        status: "sending",
+    const optimistic: Message = {
+      id: tempId,
+      content,
+      timestamp: timeString,
+      sent: true,
+      type: "text",
+      status: "sending",
+    };
+
+    // 📥 Add optimistic message
+    setMessages((p) => [...p, optimistic]);
+
+    // 🔥 MOVE CONVERSATION TO TOP (SIDEBAR)
+    setUsers((prev) => {
+      const updatedUser: User = {
+        ...selectedUser,
+        lastMessage: content,
+        lastMessageTime: timeString,
+        unread: 0,
       };
 
-      // Add optimistic message to the bottom
-      setMessages((p) => [...p, optimistic]);
+      const exists = prev.find((u) => u.id === selectedUser.id);
 
-      try {
-        const data = await sendMessageToApi(cid, content, parentToken);
-        const realId = data?.data?.messageId ?? data?.data?.message?.messageId;
-        const realTime =
-          data?.data?.createdAt ?? data?.data?.message?.createdAt;
-
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === tempId
-              ? {
-                  ...m,
-                  id: realId ?? m.id,
-                  status: "sent",
-                  timestamp: realTime
-                    ? new Date(realTime).toLocaleTimeString("en-US", {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })
-                    : m.timestamp,
-                }
-              : m
-          )
-        );
-      } catch {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
-        );
+      if (exists) {
+        return [
+          updatedUser,
+          ...prev.filter((u) => u.id !== selectedUser.id),
+        ];
       }
-    },
-    [selectedUser, parentToken, conversationId]
-  );
+
+      // New conversation (came from search)
+      return [updatedUser, ...prev];
+    });
+
+    try {
+      const data = await sendMessageToApi(cid, content, parentToken);
+      const realId = data?.data?.messageId ?? data?.data?.message?.messageId;
+      const realTime =
+        data?.data?.createdAt ?? data?.data?.message?.createdAt;
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId
+            ? {
+                ...m,
+                id: realId ?? m.id,
+                status: "sent",
+                timestamp: realTime
+                  ? new Date(realTime).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })
+                  : m.timestamp,
+              }
+            : m
+        )
+      );
+    } catch {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId ? { ...m, status: "failed" } : m
+        )
+      );
+    }
+  },
+  [selectedUser, parentToken, conversationId]
+);
+
 
   // ───────────────────────────────────────────────
   // PARENT WINDOW EVENTS
