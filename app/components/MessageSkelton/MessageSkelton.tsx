@@ -1,4 +1,4 @@
-// MessageSkeleton.tsx
+
 import styles from "./MessageSkelton.module.scss";
 
 export default function MessageSkeleton() {
