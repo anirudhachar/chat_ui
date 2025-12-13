@@ -143,20 +143,81 @@ useEffect(() => {
     console.log("WebSocket connected");
   };
 
-  ws.onmessage = (event) => {
-    console.log(event,"event triggerer")
-    try {
-      const data = JSON.parse(event.data);
-      console.log("WS message:", data);
+ws.onmessage = (event) => {
+  try {
+    const payload = JSON.parse(event.data);
+    const { event: eventType, data } = payload;
 
-      // Example: incoming chat message
-      if (data.type === "NEW_MESSAGE") {
-        // update messages / users here
+    console.log("WS event:", eventType, data);
+
+    switch (eventType) {
+      // ─────────────────────────────
+      // NEW MESSAGE (RIGHT CHAT)
+      // ─────────────────────────────
+      case "newMessage": {
+        // Only append if this chat is open
+        if (data.conversationId === conversationId) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: data.messageId,
+              content: data.content,
+              timestamp: new Date(data.createdAt).toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+              }),
+              sent: data.senderUserId === loggedInUserId,
+              type: "text",
+              status: "delivered",
+            },
+          ]);
+        }
+        break;
       }
-    } catch (err) {
-      console.error("WS parse error", err);
+
+      // ─────────────────────────────
+      // SIDEBAR UPDATE
+      // ─────────────────────────────
+      case "conversationUpdated": {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === data.lastMessageSenderId
+              ? {
+                  ...u,
+                  lastMessage: data.lastMessagePreview,
+                  lastMessageTime: new Date(
+                    data.lastMessageAt
+                  ).toLocaleTimeString("en-US", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  }),
+                  unread:
+                    selectedUser?.id === u.id
+                      ? 0
+                      : (u.unread ?? 0) + (data.unreadIncrement ?? 0),
+                }
+              : u
+          )
+        );
+        break;
+      }
+
+      // ─────────────────────────────
+      // ACK (OPTIONAL)
+      // ─────────────────────────────
+      case "messageSentAck": {
+        console.log("✅ Message acknowledged by server");
+        break;
+      }
+
+      default:
+        console.log("⚠️ Unknown WS event", payload);
     }
-  };
+  } catch (err) {
+    console.error("WS parse error", err);
+  }
+};
+
 
   ws.onerror = (err) => {
     console.error("❌ WebSocket error", err);
