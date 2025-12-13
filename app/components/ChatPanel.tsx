@@ -14,16 +14,18 @@ interface ChatPanelProps {
   messages: Message[];
   onSendMessage: (
     content: string,
-  type?: "text" | "image" | "document" | "link",
-file?: { 
-  name: string; 
-  url: string; 
-  image?: string;
-  description?: string;
-}
-
+    type?: "text" | "image" | "document" | "link",
+    file?: { 
+      name: string; 
+      url: string; 
+      image?: string;
+      description?: string;
+    }
   ) => void;
   onBack: () => void;
+  // NEW PROPS for message pagination
+  onLoadMoreMessages: () => void;
+  hasMoreMessages: boolean;
 }
 
 export default function ChatPanel({
@@ -31,16 +33,53 @@ export default function ChatPanel({
   messages,
   onSendMessage,
   onBack,
+  onLoadMoreMessages, // NEW
+  hasMoreMessages,    // NEW
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesAreaRef = useRef<HTMLDivElement>(null); // Ref for the scrollable area
+  const topMessageSentinelRef = useRef<HTMLDivElement>(null); // NEW Ref for IntersectionObserver
 
+  // Helper to scroll to the bottom (used when sending a new message or first load)
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Scroll to bottom on initial load or new message
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages.length]); // Scroll only when the total count changes
+
+  // NEW: IntersectionObserver for message infinite scrolling
+  useEffect(() => {
+    if (!hasMoreMessages || messages.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // If the sentinel (top of messages) is visible
+        if (entries[0].isIntersecting) {
+          onLoadMoreMessages();
+        }
+      },
+      {
+        root: messagesAreaRef.current, // Observe within the scrollable messages area
+        rootMargin: "0px", 
+        threshold: 0.1,
+      }
+    );
+
+    const currentRef = topMessageSentinelRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [hasMoreMessages, onLoadMoreMessages, messages.length]);
+
 
   const getInitials = (name: string) => {
     return name
@@ -64,7 +103,8 @@ export default function ChatPanel({
       "#f06292",
       "#ba68c8",
     ];
-    const index = parseInt(id, 10) % colors.length;
+    // Simple hash-like index based on ID
+    const index = parseInt(id.replace(/\D/g, '').slice(-3) || '0', 10) % colors.length;
     return colors[index];
   };
 
@@ -130,7 +170,7 @@ export default function ChatPanel({
                 className={styles.avatarImage}
               />
             )}
-            {getInitials(selectedUser.name)}
+            {!selectedUser.avatar && getInitials(selectedUser.name)}
           </div>
           {selectedUser.online && <div className={styles.onlineIndicator} />}
         </div>
@@ -148,8 +188,19 @@ export default function ChatPanel({
       </div>
 
       {/* Messages Area */}
-      <div className={styles.messagesArea}>
+      <div className={styles.messagesArea} ref={messagesAreaRef}>
         <div className={styles.messagesContainer}>
+          {/* NEW: Loading/Sentinel Indicator for Infinite Scroll */}
+          {hasMoreMessages && messages.length > 0 && (
+             <div ref={topMessageSentinelRef} className={styles.loadingOlderMessages}>
+                <p>Loading older messages...</p>
+             </div>
+          )}
+          {!hasMoreMessages && messages.length > 0 && (
+             <div className={styles.startOfConversation}>
+                <p>Start of conversation</p>
+             </div>
+          )}
           {messages.map((message) => (
             <div
               key={message.id}

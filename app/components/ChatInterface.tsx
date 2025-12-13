@@ -49,11 +49,15 @@ const decodeToken = (token: string) => {
 export default function ChatInterface() {
   const [users, setUsers] = useState<User[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
-  const [hasMoreUsers, setHasMoreUsers] = useState(true); // NEW: To control infinite loading
+  const [hasMoreUsers, setHasMoreUsers] = useState(true); 
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  
+  // NEW: State for message pagination
+  const [messageCursor, setMessageCursor] = useState<string | null>(null);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<User[]>([]);
@@ -63,7 +67,7 @@ export default function ChatInterface() {
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
 
   // ───────────────────────────────────────────────
-  // FETCH USERS LIST (Refactored to be callable)
+  // FETCH USERS LIST
   // ───────────────────────────────────────────────
   const fetchUsers = useCallback(async (currentCursor: string | null, isInitialFetch: boolean) => {
     if (!parentToken) return;
@@ -109,7 +113,6 @@ export default function ChatInterface() {
 
       const nextCursor = data?.data?.cursor || null;
       setCursor(nextCursor);
-      // No more data if there is no next cursor
       setHasMoreUsers(!!nextCursor); 
 
     } catch (error) {
@@ -118,10 +121,8 @@ export default function ChatInterface() {
     }
   }, [parentToken]);
 
-  // NEW: Function to load the next page, passed to UserSidebar
   const loadMoreUsers = () => {
     if (hasMoreUsers && searchQuery.length < 2) {
-      // Only load more if not currently searching and there are more pages
       fetchUsers(cursor, false);
     }
   };
@@ -135,7 +136,6 @@ export default function ChatInterface() {
     const uid = decodeToken(parentToken);
     setLoggedInUserId(uid);
 
-    // Initial fetch: Reset states and start with null cursor
     setUsers([]); 
     setCursor(null);
     setHasMoreUsers(true); 
@@ -151,15 +151,13 @@ export default function ChatInterface() {
 
     const query = searchQuery.trim();
 
-    // If query too short → show normal user list
     if (query.length < 2) {
       setSearchResults([]);
-      setHasMoreUsers(!!cursor); // Restore pagination status based on last cursor
+      setHasMoreUsers(!!cursor); 
       return;
     }
 
     const fetchSearchResults = async () => {
-      // Disable pagination when searching
       setHasMoreUsers(false); 
 
       try {
@@ -198,7 +196,7 @@ export default function ChatInterface() {
     };
 
     fetchSearchResults();
-  }, [searchQuery, parentToken, cursor]); // Added cursor to re-evaluate hasMore when search ends
+  }, [searchQuery, parentToken, cursor]);
 
   // ───────────────────────────────────────────────
   // GET OR CREATE CONVERSATION
@@ -230,17 +228,23 @@ export default function ChatInterface() {
   };
 
   // ───────────────────────────────────────────────
-  // FETCH MESSAGES
+  // FETCH MESSAGES (Refactored for pagination)
   // ───────────────────────────────────────────────
-  const fetchMessages = async (
+  const fetchMessages = useCallback(async (
     cid: string,
     token: string,
-    myUserId: string | null
+    myUserId: string | null,
+    currentCursor: string | null
   ) => {
-    if (!myUserId) return;
+    if (!myUserId || !cid) return;
 
     try {
-      const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/${cid}/list?limit=10`;
+      // Use the provided local endpoint for testing if needed, otherwise use the live one
+      const baseUrl = "https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev";
+      
+      const url = 
+        `${baseUrl}/chat/message/${cid}/list?limit=10` +
+        (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
 
       const res = await fetch(url, {
         headers: {
@@ -264,9 +268,27 @@ export default function ChatInterface() {
           status: msg.senderUserId === myUserId ? "sent" : undefined,
         })) || [];
 
-      setMessages(mappedMessages.reverse()); // Reverse to show latest at the bottom
+      // If fetching with a cursor, prepend (load older messages). 
+      // If cursor is null (initial fetch), replace and reverse (show newest at bottom).
+      setMessages((prev) => {
+        const newMessages = mappedMessages.reverse(); // New messages are chronologically reversed
+        return currentCursor ? [...newMessages, ...prev] : newMessages;
+      });
+
+      const nextCursor = data?.data?.cursor || null;
+      setMessageCursor(nextCursor);
+      setHasMoreMessages(!!nextCursor); 
+
     } catch (error) {
       console.error("❌ Failed to fetch messages:", error);
+      setHasMoreMessages(false);
+    }
+  }, []); // Dependencies: empty since all required dependencies are passed as arguments or are stable state/props
+
+  // NEW: Function to load the next page of messages (older ones)
+  const loadMoreMessages = () => {
+    if (conversationId && hasMoreMessages && parentToken && loggedInUserId) {
+      fetchMessages(conversationId, parentToken, loggedInUserId, messageCursor);
     }
   };
 
@@ -302,6 +324,10 @@ export default function ChatInterface() {
 
     setSelectedUser(user);
     setMessages([]);
+    
+    // NEW: Reset message pagination state
+    setMessageCursor(null); 
+    setHasMoreMessages(true);
 
     // reset unread count
     setUsers((prev) =>
@@ -309,7 +335,8 @@ export default function ChatInterface() {
     );
 
     const cid = await getConversationId(user.id, parentToken);
-    if (cid) fetchMessages(cid, parentToken, loggedInUserId);
+    // Initial message fetch starts with a null cursor
+    if (cid) fetchMessages(cid, parentToken, loggedInUserId, null);
 
     if (window.innerWidth < 768) setShowSidebar(false);
   };
@@ -341,6 +368,7 @@ export default function ChatInterface() {
       status: "sending",
     };
 
+    // Add optimistic message to the bottom
     setMessages((p) => [...p, optimistic]);
 
     try {
@@ -410,8 +438,12 @@ export default function ChatInterface() {
           setSelectedUser(user);
           setMessages([]);
 
+          // Reset message pagination state
+          setMessageCursor(null); 
+          setHasMoreMessages(true);
+
           const cid = await getConversationId(user.id, token);
-          if (cid && uid) fetchMessages(cid, token, uid);
+          if (cid && uid) fetchMessages(cid, token, uid, null); // Initial fetch
 
           setShowSidebar(false);
         }
@@ -426,7 +458,7 @@ export default function ChatInterface() {
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [selectedUser, parentToken, conversationId, handleSendMessage]);
+  }, [selectedUser, parentToken, conversationId, handleSendMessage, fetchMessages]);
 
   // ───────────────────────────────────────────────
   // RENDER
@@ -445,8 +477,8 @@ export default function ChatInterface() {
           onUserSelect={handleUserSelect}
           onSearch={setSearchQuery}
           searchQuery={searchQuery}
-          onLoadMore={loadMoreUsers} // NEW PROP for pagination
-          hasMore={hasMoreUsers && !isSearchActive} // NEW PROP for pagination
+          onLoadMore={loadMoreUsers} 
+          hasMore={hasMoreUsers && !isSearchActive} 
         />
       </div>
 
@@ -461,6 +493,9 @@ export default function ChatInterface() {
             setSelectedUser(null);
             setShowSidebar(true);
           }}
+          // NEW PROPS for message pagination
+          onLoadMoreMessages={loadMoreMessages} 
+          hasMoreMessages={hasMoreMessages}
         />
       </div>
     </div>
