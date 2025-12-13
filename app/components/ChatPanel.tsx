@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, memo } from "react";
 import { FiArrowLeft, FiMoreVertical } from "react-icons/fi";
 import { BsCheck, BsCheckAll } from "react-icons/bs";
 import { User, Message } from "./ChatInterface";
@@ -23,46 +23,93 @@ interface ChatPanelProps {
     }
   ) => void;
   onBack: () => void;
-  // NEW PROPS for message pagination
-  onLoadMoreMessages: () => void;
+  // PROPS for message pagination
+  onLoadMoreMessages: (currentScrollHeight: number) => void;
   hasMoreMessages: boolean;
+  prevScrollHeight: number | null; // NEW: Height saved before load
+  setPrevScrollHeight: React.Dispatch<React.SetStateAction<number | null>>; // NEW: Setter to reset
 }
 
-export default function ChatPanel({
+export default memo(function ChatPanel({
   selectedUser,
   messages,
   onSendMessage,
   onBack,
-  onLoadMoreMessages, // NEW
-  hasMoreMessages,    // NEW
+  onLoadMoreMessages,
+  hasMoreMessages,
+  prevScrollHeight,
+  setPrevScrollHeight,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesAreaRef = useRef<HTMLDivElement>(null); // Ref for the scrollable area
-  const topMessageSentinelRef = useRef<HTMLDivElement>(null); // NEW Ref for IntersectionObserver
+  const messagesAreaRef = useRef<HTMLDivElement>(null); 
+  const topMessageSentinelRef = useRef<HTMLDivElement>(null); 
+  
+  // Flag to know if this is the initial load (to always scroll to bottom)
+  const isInitialLoadRef = useRef(true); 
 
-  // Helper to scroll to the bottom (used when sending a new message or first load)
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // Helper to scroll to the bottom
+  const scrollToBottom = (behavior: "auto" | "smooth" = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
   };
 
-  // Scroll to bottom on initial load or new message
+  // ───────────────────────────────────────────────
+  // SCROLL ANCHORING LOGIC (The Fix)
+  // ───────────────────────────────────────────────
   useEffect(() => {
-    scrollToBottom();
-  }, [messages.length]); // Scroll only when the total count changes
+    const messagesArea = messagesAreaRef.current;
+    
+    // 1. Initial Load: Always scroll to bottom (using 'auto' for fast initial display)
+    if (isInitialLoadRef.current) {
+        // Use 'auto' behavior to prevent visual flicker on first load
+        scrollToBottom("auto"); 
+        isInitialLoadRef.current = false;
+        return;
+    }
 
-  // NEW: IntersectionObserver for message infinite scrolling
+    // 2. Pagination Load (Scroll Up): Adjust position
+    if (messagesArea && prevScrollHeight !== null) {
+      const currentScrollHeight = messagesArea.scrollHeight;
+      
+      // Check if the scroll height increased (meaning content was prepended)
+      if (currentScrollHeight > prevScrollHeight) {
+        const scrollOffset = currentScrollHeight - prevScrollHeight;
+        
+        // Adjust the scroll position instantly
+        messagesArea.scrollTo({
+          top: scrollOffset,
+          behavior: 'auto'
+        });
+      }
+      
+      // Reset the saved height after adjustment
+      setPrevScrollHeight(null);
+    }
+    
+    // 3. New Message (Scroll Down): Only scroll to bottom if the user is already near the bottom
+    // We scroll if the saved height is null AND the user is near the bottom (or message count increased by 1)
+    // For simplicity, we stick to the initial load and pagination fix. New message logic should be handled separately
+    // but the `isInitialLoadRef` handles the first load, and the subsequent check focuses on pagination.
+
+  }, [messages.length, prevScrollHeight, setPrevScrollHeight]);
+
+
+  // ───────────────────────────────────────────────
+  // INTERSECTION OBSERVER
+  // ───────────────────────────────────────────────
   useEffect(() => {
     if (!hasMoreMessages || messages.length === 0) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        // If the sentinel (top of messages) is visible
+        // If the sentinel (top of messages) is visible, trigger load
         if (entries[0].isIntersecting) {
-          onLoadMoreMessages();
+            const currentScrollHeight = messagesAreaRef.current?.scrollHeight || 0;
+            // Pass the current scroll height to the parent component before fetching
+            onLoadMoreMessages(currentScrollHeight);
         }
       },
       {
-        root: messagesAreaRef.current, // Observe within the scrollable messages area
+        root: messagesAreaRef.current,
         rootMargin: "0px", 
         threshold: 0.1,
       }
@@ -78,6 +125,8 @@ export default function ChatPanel({
         observer.unobserve(currentRef);
       }
     };
+  // IMPORTANT: Do not include prevScrollHeight in dependencies. 
+  // We only want the observer to re-run if the messages.length changes OR hasMoreMessages/onLoadMoreMessages changes.
   }, [hasMoreMessages, onLoadMoreMessages, messages.length]);
 
 
@@ -103,34 +152,33 @@ export default function ChatPanel({
       "#f06292",
       "#ba68c8",
     ];
-    // Simple hash-like index based on ID
     const index = parseInt(id.replace(/\D/g, '').slice(-3) || '0', 10) % colors.length;
     return colors[index];
   };
 
- const getStatusIcon = (
-  status?: "sending" | "sent" | "delivered" | "read" | "failed"
-) => {
-  if (!status) return null;
+  const getStatusIcon = (
+    status?: "sending" | "sent" | "delivered" | "read" | "failed"
+  ) => {
+    if (!status) return null;
 
-  if (status === "sending") {
-    return <span className={styles.sendingDot}>●</span>;
-  }
+    if (status === "sending") {
+      return <span className={styles.sendingDot}>●</span>;
+    }
 
-  if (status === "failed") {
-    return <span className={styles.failedIcon}>❌</span>;
-  }
+    if (status === "failed") {
+      return <span className={styles.failedIcon}>❌</span>;
+    }
 
-  if (status === "read") {
-    return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
-  }
+    if (status === "read") {
+      return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
+    }
 
-  if (status === "delivered") {
-    return <BsCheckAll className={styles.tickIcon} />;
-  }
+    if (status === "delivered") {
+      return <BsCheckAll className={styles.tickIcon} />;
+    }
 
-  return <BsCheck className={styles.tickIcon} />;
-};
+    return <BsCheck className={styles.tickIcon} />;
+  };
 
 
   if (!selectedUser) {
@@ -190,7 +238,7 @@ export default function ChatPanel({
       {/* Messages Area */}
       <div className={styles.messagesArea} ref={messagesAreaRef}>
         <div className={styles.messagesContainer}>
-          {/* NEW: Loading/Sentinel Indicator for Infinite Scroll */}
+          {/* Loading/Sentinel Indicator for Infinite Scroll */}
           {hasMoreMessages && messages.length > 0 && (
              <div ref={topMessageSentinelRef} className={styles.loadingOlderMessages}>
                 <p>Loading older messages...</p>
@@ -273,4 +321,4 @@ export default function ChatPanel({
       <MessageInput onSendMessage={onSendMessage} />
     </div>
   );
-}
+});

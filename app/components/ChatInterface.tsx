@@ -55,9 +55,12 @@ export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   
-  // NEW: State for message pagination
+  // State for message pagination
   const [messageCursor, setMessageCursor] = useState<string | null>(null);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
+
+  // NEW: State to store the scroll height *before* loading new messages
+  const [prevScrollHeight, setPrevScrollHeight] = useState<number | null>(null); 
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<User[]>([]);
@@ -108,7 +111,6 @@ export default function ChatInterface() {
           unread: c.unreadCount ?? 0,
         })) || [];
 
-      // If it's the initial fetch (cursor is null), replace the list. Otherwise, append.
       setUsers((prev) => (isInitialFetch ? mappedUsers : [...prev, ...mappedUsers]));
 
       const nextCursor = data?.data?.cursor || null;
@@ -239,7 +241,6 @@ export default function ChatInterface() {
     if (!myUserId || !cid) return;
 
     try {
-      // Use the provided local endpoint for testing if needed, otherwise use the live one
       const baseUrl = "https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev";
       
       const url = 
@@ -283,12 +284,15 @@ export default function ChatInterface() {
       console.error("❌ Failed to fetch messages:", error);
       setHasMoreMessages(false);
     }
-  }, []); // Dependencies: empty since all required dependencies are passed as arguments or are stable state/props
+  }, []); 
 
   // NEW: Function to load the next page of messages (older ones)
-  const loadMoreMessages = () => {
+  // It now also saves the current scroll height via state.
+  const loadMoreMessages = (currentScrollHeight: number) => {
     if (conversationId && hasMoreMessages && parentToken && loggedInUserId) {
-      fetchMessages(conversationId, parentToken, loggedInUserId, messageCursor);
+        // Save the height before the fetch starts
+        setPrevScrollHeight(currentScrollHeight);
+        fetchMessages(conversationId, parentToken, loggedInUserId, messageCursor);
     }
   };
 
@@ -325,9 +329,10 @@ export default function ChatInterface() {
     setSelectedUser(user);
     setMessages([]);
     
-    // NEW: Reset message pagination state
+    // NEW: Reset message pagination state and scroll height tracker
     setMessageCursor(null); 
     setHasMoreMessages(true);
+    setPrevScrollHeight(null); // Reset scroll height tracker on new chat selection
 
     // reset unread count
     setUsers((prev) =>
@@ -335,7 +340,6 @@ export default function ChatInterface() {
     );
 
     const cid = await getConversationId(user.id, parentToken);
-    // Initial message fetch starts with a null cursor
     if (cid) fetchMessages(cid, parentToken, loggedInUserId, null);
 
     if (window.innerWidth < 768) setShowSidebar(false);
@@ -368,7 +372,6 @@ export default function ChatInterface() {
       status: "sending",
     };
 
-    // Add optimistic message to the bottom
     setMessages((p) => [...p, optimistic]);
 
     try {
@@ -438,9 +441,10 @@ export default function ChatInterface() {
           setSelectedUser(user);
           setMessages([]);
 
-          // Reset message pagination state
+          // Reset message pagination state and scroll height tracker
           setMessageCursor(null); 
           setHasMoreMessages(true);
+          setPrevScrollHeight(null); 
 
           const cid = await getConversationId(user.id, token);
           if (cid && uid) fetchMessages(cid, token, uid, null); // Initial fetch
@@ -493,9 +497,11 @@ export default function ChatInterface() {
             setSelectedUser(null);
             setShowSidebar(true);
           }}
-          // NEW PROPS for message pagination
+          // PROPS for message pagination and scroll anchoring
           onLoadMoreMessages={loadMoreMessages} 
           hasMoreMessages={hasMoreMessages}
+          prevScrollHeight={prevScrollHeight} // Pass the saved height
+          setPrevScrollHeight={setPrevScrollHeight} // Pass setter to reset it after adjustment
         />
       </div>
     </div>
