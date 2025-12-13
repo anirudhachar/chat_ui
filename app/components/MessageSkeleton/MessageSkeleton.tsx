@@ -1,5 +1,5 @@
 
-import styles from "./MessageSkelton.module.scss";
+import styles from "./MessageSkeleton.module.scss";
 
 export default function MessageSkeleton() {
   return (

@@ -8,7 +8,8 @@ import Image from "next/image";
 import { User, Message } from "./ChatInterface";
 import MessageInput from "./MessageInput";
 import styles from "./ChatPanel.module.scss";
-import MessageSkeleton from "./MessageSkelton/MessageSkelton";
+import MessageSkeleton from "./MessageSkeleton/MessageSkeleton";
+
 
 interface ChatPanelProps {
   selectedUser: User | null;
