@@ -85,7 +85,7 @@ export default function UserSidebar({
     <div className={styles.userSidebar}>
       {/* Header */}
       <div className={styles.header}>
-        <h1 className={styles.title}>Chats</h1>
+        <h1 className={styles.title}>Messaging</h1>
       </div>
 
       {/* Search */}
