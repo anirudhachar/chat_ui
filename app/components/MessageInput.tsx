@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, ChangeEvent, useEffect } from "react";
-import { FiSmile, FiPaperclip, FiSend, FiX } from "react-icons/fi";
+import { FiSmile, FiPaperclip, FiSend } from "react-icons/fi";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import styles from "./MessageInput.module.scss";
 
@@ -13,6 +13,7 @@ interface MessageInputProps {
   ) => void;
 }
 
+
 const extractURL = (text: string) => {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   const match = text.match(urlRegex);
@@ -20,106 +21,39 @@ const extractURL = (text: string) => {
 };
 
 export default function MessageInput({ onSendMessage }: MessageInputProps) {
+  
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [linkPreview, setLinkPreview] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [selectedFile, setSelectedFile] = useState<{
-    file: File;
-    type: "image" | "document";
-    previewUrl?: string;
-  } | null>(null);
-
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const docInputRef = useRef<HTMLInputElement>(null);
-
-  // ───────────────────────────────────────────────
-  // LINK PREVIEW (DEBOUNCED)
-  // ───────────────────────────────────────────────
+  // Stable debounced function
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
-
   const fetchPreviewDebounced = (url: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => fetchPreview(url), 500);
   };
 
-  const fetchPreview = async (url: string) => {
-    try {
-      const res = await fetch("/api/preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
-      const data = await res.json();
-      if (!data.error) setLinkPreview(data);
-    } catch {
-      setLinkPreview(null);
-    }
-  };
+const handleSend = () => {
+  if (!message.trim() && !linkPreview) return;
 
-  useEffect(() => {
-    const url = extractURL(message);
-    if (url) fetchPreviewDebounced(url);
-    else setLinkPreview(null);
-  }, [message]);
-
-  // ───────────────────────────────────────────────
-  // FILE PICK HANDLER
-  // ───────────────────────────────────────────────
-  const handleFilePick = (
-    e: ChangeEvent<HTMLInputElement>,
-    type: "image" | "document"
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setSelectedFile({
-      file,
-      type,
-      previewUrl: type === "image" ? URL.createObjectURL(file) : undefined,
+  // If link preview exists, send it as a special message
+  if (linkPreview) {
+    onSendMessage(message.trim(), 'link', {
+      name: linkPreview.title,
+      url: linkPreview.url,
+      image: linkPreview.image,
+      description: linkPreview.description,
     });
+  } else {
+    onSendMessage(message.trim(), 'text');
+  }
 
-    e.target.value = "";
-  };
+  setMessage('');
+  setLinkPreview(null);
+  setShowEmojiPicker(false);
+};
 
-  // ───────────────────────────────────────────────
-  // SEND MESSAGE
-  // ───────────────────────────────────────────────
-  const handleSend = () => {
-    if (!message.trim() && !linkPreview && !selectedFile) return;
-
- if (selectedFile) {
-  const fallbackContent =
-    message.trim() ||
-    (selectedFile.type === "image"
-      ? "📷 Photo"
-      : selectedFile.file.name);
-
-  onSendMessage(fallbackContent); // 🔥 SEND STRING ONLY
-
-  setSelectedFile(null);
-  setMessage("");
-  return;
-}
-
-
-    // 🔗 LINK SEND
-    if (linkPreview) {
-      onSendMessage(message.trim(), "link", {
-        name: linkPreview.title,
-        url: linkPreview.url,
-        image: linkPreview.image,
-        description: linkPreview.description,
-      });
-    } else {
-      onSendMessage(message.trim(), "text");
-    }
-
-    setMessage("");
-    setLinkPreview(null);
-    setShowEmojiPicker(false);
-  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -132,33 +66,48 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
     setMessage((prev) => prev + emojiData.emoji);
   };
 
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileUrl = URL.createObjectURL(file);
+    const isImage = file.type.startsWith("image/");
+
+    onSendMessage(isImage ? "" : file.name, isImage ? "image" : "document", {
+      name: file.name,
+      url: fileUrl,
+    });
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const fetchPreview = async (url: string) => {
+    try {
+      const res = await fetch("/api/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+      if (!data.error) setLinkPreview(data);
+    } catch (err) {
+      console.error("Preview failed", err);
+      setLinkPreview(null);
+    }
+  };
+
+  useEffect(() => {
+    const url = extractURL(message);
+    if (url) {
+      fetchPreviewDebounced(url);
+    } else {
+      setLinkPreview(null);
+    }
+  }, [message]);
+
   return (
     <div className={styles.messageInputWrapper}>
-      {/* FILE PREVIEW */}
-      {selectedFile && (
-        <div className={styles.filePreview}>
-          {selectedFile.type === "image" ? (
-            <img
-              src={selectedFile.previewUrl}
-              className={styles.imagePreview}
-              alt="preview"
-            />
-          ) : (
-            <div className={styles.docPreview}>
-              📄 {selectedFile.file.name}
-            </div>
-          )}
-
-          <button
-            className={styles.removePreview}
-            onClick={() => setSelectedFile(null)}
-          >
-            <FiX />
-          </button>
-        </div>
-      )}
-
-      {/* LINK PREVIEW */}
+      {/* Link Preview Above Input */}
       {linkPreview && (
         <div className={styles.linkPreview}>
           {linkPreview.image && (
@@ -179,7 +128,7 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
       )}
 
       <div className={styles.messageInput}>
-        {/* EMOJI PICKER */}
+        {/* Emoji Picker */}
         {showEmojiPicker && (
           <>
             <div
@@ -187,76 +136,42 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
               onClick={() => setShowEmojiPicker(false)}
             />
             <div className={styles.emojiPickerWrapper}>
-              <EmojiPicker onEmojiClick={handleEmojiClick} />
+              <EmojiPicker
+                onEmojiClick={handleEmojiClick}
+                width="100%"
+                height="350px"
+              />
             </div>
           </>
         )}
 
         <div className={styles.inputContainer}>
-          {/* EMOJI */}
+          {/* Emoji Button */}
           <button
             className={styles.iconButton}
-            onClick={() => setShowEmojiPicker((p) => !p)}
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
             type="button"
           >
             <FiSmile />
           </button>
 
-          {/* ATTACH */}
-          <div className={styles.attachWrapper}>
-            <button
-              className={styles.iconButton}
-              onClick={() => setShowAttachMenu((p) => !p)}
-              type="button"
-            >
-              <FiPaperclip />
-            </button>
-
-            {showAttachMenu && (
-              <>
-                <div
-                  className={styles.attachBackdrop}
-                  onClick={() => setShowAttachMenu(false)}
-                />
-                <div className={styles.attachMenu}>
-                  <button
-                    onClick={() => {
-                      imageInputRef.current?.click();
-                      setShowAttachMenu(false);
-                    }}
-                  >
-                    📷 Photos
-                  </button>
-                  <button
-                    onClick={() => {
-                      docInputRef.current?.click();
-                      setShowAttachMenu(false);
-                    }}
-                  >
-                    📄 Documents
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* HIDDEN INPUTS */}
+          {/* File Attachment Button */}
+          <button
+            className={styles.iconButton}
+            onClick={() => fileInputRef.current?.click()}
+            type="button"
+          >
+            <FiPaperclip />
+          </button>
           <input
-            ref={imageInputRef}
+            ref={fileInputRef}
             type="file"
-            accept="image/*"
-            hidden
-            onChange={(e) => handleFilePick(e, "image")}
-          />
-          <input
-            ref={docInputRef}
-            type="file"
-            accept=".pdf,.doc,.docx,.txt"
-            hidden
-            onChange={(e) => handleFilePick(e, "document")}
+            className={styles.fileInput}
+            onChange={handleFileSelect}
+            accept="image/*,.pdf,.doc,.docx,.txt"
           />
 
-          {/* TEXT */}
+          {/* Text Input */}
           <input
             type="text"
             className={styles.textInput}
@@ -266,11 +181,11 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
             onKeyDown={handleKeyDown}
           />
 
-          {/* SEND */}
+          {/* Send Button */}
           <button
             className={styles.sendButton}
             onClick={handleSend}
-            disabled={!message.trim() && !selectedFile}
+            disabled={!message.trim()}
             type="button"
           >
             <FiSend />
