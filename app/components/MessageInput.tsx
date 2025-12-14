@@ -86,22 +86,33 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
   // ───────────────────────────────────────────────
   // SEND MESSAGE
   // ───────────────────────────────────────────────
+ // MessageInput.tsx - INSIDE handleSend (FIXED logic)
   const handleSend = () => {
     if (!message.trim() && !linkPreview && !selectedFile) return;
 
     if (selectedFile) {
-      const fallbackContent =
+     
+      const displayContent =
         message.trim() ||
         (selectedFile.type === "image" ? "📷 Photo" : selectedFile.file.name);
 
-      onSendMessage(fallbackContent); // 🔥 SEND STRING ONLY
+      const fileData = {
+        name: selectedFile.file.name,
+      
+        url: selectedFile.previewUrl || "placeholder-url", 
+        image: selectedFile.type === "image" ? selectedFile.previewUrl : undefined,
+        description: message.trim() || selectedFile.file.name,
+      };
+
+     
+      onSendMessage(displayContent, selectedFile.type, fileData); 
 
       setSelectedFile(null);
       setMessage("");
       return;
     }
 
-    // 🔗 LINK SEND
+    // 🔗 LINK SEND (existing logic)
     if (linkPreview) {
       onSendMessage(message.trim(), "link", {
         name: linkPreview.title,

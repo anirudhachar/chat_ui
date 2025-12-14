@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, ReactNode } from "react";
 import { FiArrowLeft, FiMoreVertical } from "react-icons/fi";
 import { BsCheck, BsCheckAll } from "react-icons/bs";
 import Image from "next/image";
@@ -9,7 +9,7 @@ import { User, Message } from "./ChatInterface";
 import MessageInput from "./MessageInput";
 import styles from "./ChatPanel.module.scss";
 import MessageSkeleton from "./MessageSkeleton/MessageSkeleton";
-import { FiClock } from "react-icons/fi";
+import { FiClock, FiFile } from "react-icons/fi"; // Added FiFile for document icon
 
 interface ChatPanelProps {
   selectedUser: User | null;
@@ -39,9 +39,6 @@ export default function ChatPanel({
   hasMoreMessages,
   resetKey,
 }: ChatPanelProps) {
-
-
-  console.log(selectedUser,"selecteduser")
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
   const topMessageSentinelRef = useRef<HTMLDivElement>(null);
@@ -146,9 +143,87 @@ export default function ChatPanel({
     return <BsCheck className={styles.tickIcon} />;
   };
 
+  /* ---------- NEW: MESSAGE CONTENT RENDERER ---------- */
+  const renderMessageContent = (m: Message): ReactNode => {
+    // 📷 IMAGE MESSAGE
+    if (m.type === "image" && m.fileUrl) {
+      return (
+        <div className={styles.mediaContainer}>
+          <img
+            src={m.fileUrl}
+            alt={m.content}
+            className={styles.messageImage}
+          />
+          {m.content && m.content.trim() !== '📷 Photo' && (
+            <p className={styles.messageCaption}>{m.content}</p>
+          )}
+        </div>
+      );
+    }
+
+    // 📄 DOCUMENT MESSAGE
+    if (m.type === "document" && m.fileUrl) {
+      return (
+        <a
+          href={m.fileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.messageDocumentLink}
+        >
+          <div className={styles.documentIcon}>
+            <FiFile size={20} />
+          </div>
+          <div className={styles.documentInfo}>
+            <p className={styles.documentName}>{m.fileName || m.content || 'Document'}</p>
+            {m.content && m.content.trim() !== m.fileName?.trim() && (
+              <p className={styles.documentSize}>{m.content}</p>
+            )}
+          </div>
+        </a>
+      );
+    }
+
+    // 🔗 LINK MESSAGE (Preview)
+    if (m.type === "link" && m.linkUrl && m.linkTitle) {
+      return (
+        <>
+          <a
+            href={m.linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.messageLinkPreview}
+          >
+            {m.linkImage && (
+              <img
+                src={m.linkImage}
+                alt={m.linkTitle}
+                className={styles.linkImage}
+              />
+            )}
+            <div className={styles.linkContent}>
+              <p className={styles.linkSource}>{new URL(m.linkUrl).hostname}</p>
+              <p className={styles.linkTitle}>{m.linkTitle}</p>
+              {m.linkDescription && (
+                <p className={styles.linkDescription}>{m.linkDescription}</p>
+              )}
+            </div>
+          </a>
+          {/* Render user-typed text content if it exists */}
+          {m.content && m.content.trim() !== m.linkUrl.trim() && (
+            <p className={styles.messageText}>{m.content}</p>
+          )}
+        </>
+      );
+    }
+
+    // 💬 DEFAULT: TEXT MESSAGE
+    return <p className={styles.messageText}>{m.content}</p>;
+  };
+  /* ---------------------------------------------------- */
+
+
   /* ---------- EMPTY STATE ---------- */
   if (!selectedUser) {
-
     return (
       <div className={styles.emptyState}>
         <div className={styles.emptyContent}>
@@ -216,7 +291,9 @@ export default function ChatPanel({
               }`}
             >
               <div className={styles.messageBubble}>
-                <p className={styles.messageText}>{m.content}</p>
+                {/* 🚀 FIXED RENDERING */}
+                {renderMessageContent(m)}
+                
                 <div className={styles.messageMeta}>
                   <span className={styles.messageTime}>{m.timestamp}</span>
                   {m.sent && getStatusIcon(m.status)}

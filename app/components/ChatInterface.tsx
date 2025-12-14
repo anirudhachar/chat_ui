@@ -479,8 +479,20 @@ const handleUserSelect = async (user: User) => {
   // ───────────────────────────────────────────────
   // SEND MESSAGE HANDLER
   // ───────────────────────────────────────────────
+// ChatInterface.tsx
+
 const handleSendMessage = useCallback(
-  async (content: string) => {
+  async (
+    // A. CORRECTED SIGNATURE: Accept type and file data from MessageInput
+    content: string,
+    type: "text" | "image" | "document" | "link" = "text",
+    file?: {
+      name: string;
+      url: string;
+      image?: string;
+      description?: string;
+    }
+  ) => {
     if (!selectedUser || !parentToken) return;
 
     let cid = conversationId;
@@ -495,13 +507,22 @@ const handleSendMessage = useCallback(
       minute: "2-digit",
     });
 
+    // B. CORRECTED OPTIMISTIC MESSAGE: Use the received type and file data
     const optimistic: Message = {
       id: tempId,
       content,
       timestamp: timeString,
       sent: true,
-      type: "text",
+      type: type, // <--- NOW USES THE CORRECT TYPE
       status: "sending",
+
+      // Populate file/link metadata for rendering in ChatPanel
+      fileName: file?.name,
+      fileUrl: file?.url,
+      linkTitle: file?.name,
+      linkUrl: file?.url,
+      linkImage: file?.image,
+      linkDescription: file?.description,
     };
 
     // 📥 Add optimistic message
@@ -514,9 +535,11 @@ const handleSendMessage = useCallback(
 
     // 🔥 MOVE CONVERSATION TO TOP (SIDEBAR)
     setUsers((prev) => {
+      // Use the actual content (which might be "📷 Photo" or "📄 Doc name")
+      // for the sidebar preview, as determined by MessageInput.
       const updatedUser: User = {
         ...selectedUser,
-        lastMessage: content,
+        lastMessage: content, 
         lastMessageTime: timeString,
         unread: 0,
       };
@@ -534,8 +557,25 @@ const handleSendMessage = useCallback(
       return [updatedUser, ...prev];
     });
 
+    // ----------------------------------------------------------------------
+    // API CALL LOGIC
+    // ----------------------------------------------------------------------
+    
+    // Determine what to send to the backend API:
+    // 1. Text/Link: Send the full text content.
+    // 2. Image/Document: Send the file name or a specific indicator.
+    //    NOTE: A REAL APP would upload the file to a cloud service (e.g., S3) 
+    //    and then send the resulting permanent URL here instead of just 'content'.
+    const apiContent = 
+        type === "text" 
+        ? content
+        : (file?.url || file?.name || content); // Fallback logic for non-text types
+
     try {
-      const data = await sendMessageToApi(cid, content, parentToken);
+      // Send the standardized content to the backend
+      const data = await sendMessageToApi(cid, apiContent, parentToken);
+      
+      // ... (rest of the acknowledgement logic remains the same)
       const realId =
         data?.data?.messageId ?? data?.data?.message?.messageId;
       const realTime =
