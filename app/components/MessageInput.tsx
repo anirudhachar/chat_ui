@@ -89,20 +89,20 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
   const handleSend = () => {
     if (!message.trim() && !linkPreview && !selectedFile) return;
 
-    // 📎 FILE SEND
-    if (selectedFile) {
-      onSendMessage(
-        message.trim(),
-        selectedFile.type,
-        {
-          name: selectedFile.file.name,
-          url: selectedFile.previewUrl || "",
-        }
-      );
-      setSelectedFile(null);
-      setMessage("");
-      return;
-    }
+ if (selectedFile) {
+  const fallbackContent =
+    message.trim() ||
+    (selectedFile.type === "image"
+      ? "📷 Photo"
+      : selectedFile.file.name);
+
+  onSendMessage(fallbackContent); // 🔥 SEND STRING ONLY
+
+  setSelectedFile(null);
+  setMessage("");
+  return;
+}
+
 
     // 🔗 LINK SEND
     if (linkPreview) {
