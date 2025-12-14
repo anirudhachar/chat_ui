@@ -362,11 +362,11 @@
   border-radius: 8px;
   overflow: hidden;
   text-decoration: none;
-  background-color: #fff;
-  // margin-bottom: 5px;
+
+
   max-width: 300px;
   cursor: pointer;
-  
+    background-color: #fff;
   &:hover {
     filter: brightness(0.98);
   }
