@@ -190,7 +190,7 @@ export default function ChatPanel({
         <div className={styles.userInfo}>
           <h2 className={styles.userName}>{selectedUser.name}</h2>
           <p className={styles.userStatus}>
-            {selectedUser.online ? "Online" : "Offline"}
+           "Standford University"
           </p>
         </div>
 
