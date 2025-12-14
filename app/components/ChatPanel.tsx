@@ -9,7 +9,7 @@ import { User, Message } from "./ChatInterface";
 import MessageInput from "./MessageInput";
 import styles from "./ChatPanel.module.scss";
 import MessageSkeleton from "./MessageSkeleton/MessageSkeleton";
-
+import { FiClock } from "react-icons/fi";
 
 interface ChatPanelProps {
   selectedUser: User | null;
@@ -134,7 +134,7 @@ export default function ChatPanel({
   ) => {
     if (!status) return null;
     if (status === "sending")
-      return <span className={styles.sendingDot}>●</span>;
+      return <FiClock className={styles.sendingIcon} />;
     if (status === "failed") return <span>❌</span>;
     if (status === "read")
       return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
@@ -145,6 +145,7 @@ export default function ChatPanel({
 
   /* ---------- EMPTY STATE ---------- */
   if (!selectedUser) {
+    
     return (
       <div className={styles.emptyState}>
         <div className={styles.emptyContent}>

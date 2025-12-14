@@ -114,49 +114,55 @@ export default function UserSidebar({
         ) : users.length === 0 ? (
           <UserSidebarSkeleton count={6} />
         ) : (
-          users.map((user) => (
-            console.log(user,"usermania"),
-            <div
-              key={user.id}
-              className={`${styles.userCard} ${
-                selectedUser?.id === user.id ? styles.active : ""
-              }`}
-              onClick={() => onUserSelect(user)}
-            >
-              <div className={styles.avatarWrapper}>
-                {user.avatar ? (
-                  <img
-                    src={user.avatar}
-                    alt={user.name}
-                    className={styles.avatarImage}
-                  />
-                ) : (
-                  <div
-                    className={styles.avatar}
-                    style={{ backgroundColor: getAvatarColor(user.id) }}
-                  >
-                    {getInitials(user.name)}
+          users.map(
+            (user) => (
+              console.log(user, "usermania"),
+              (
+                <div
+                  key={user.id}
+                  className={`${styles.userCard} ${
+                    selectedUser?.id === user.id ? styles.active : ""
+                  }`}
+                  onClick={() => onUserSelect(user)}
+                >
+                  <div className={styles.avatarWrapper}>
+                    {user.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className={styles.avatarImage}
+                      />
+                    ) : (
+                      <div
+                        className={styles.avatar}
+                        style={{ backgroundColor: getAvatarColor(user.id) }}
+                      >
+                        {getInitials(user.name)}
+                      </div>
+                    )}
+                    {user.online && <div className={styles.onlineIndicator} />}
                   </div>
-                )}
-                {user.online && <div className={styles.onlineIndicator} />}
-              </div>
 
-              <div className={styles.userInfo}>
-                <div className={styles.userHeader}>
-                  <h3 className={styles.userName}>{user.name}</h3>
-                  <span className={styles.timestamp}>
-                    {user.lastMessageTime}
-                  </span>
+                  <div className={styles.userInfo}>
+                    <div className={styles.userHeader}>
+                      <h3 className={styles.userName}>{user.name}</h3>
+                      <span className={styles.timestamp}>
+                        {user.lastMessageTime}
+                      </span>
+                    </div>
+                    <div className={styles.lastMessageWrapper}>
+                      <p className={styles.lastMessage}>{user.lastMessage}</p>
+                      {Number(user.unread) > 0 && (
+                        <span className={styles.unreadBadge}>
+                          {user.unread}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className={styles.lastMessageWrapper}>
-                  <p className={styles.lastMessage}>{user.lastMessage}</p>
-                  {Number(user.unread) > 0 && (
-    <span className={styles.unreadBadge}>{user.unread}</span>
-  )}
-                </div>
-              </div>
-            </div>
-          ))
+              )
+            )
+          )
         )}
 
         {/* Infinite scroll skeleton */}
