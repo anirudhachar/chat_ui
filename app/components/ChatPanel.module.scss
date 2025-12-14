@@ -209,6 +209,10 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   position: relative;
+  
+  /* CRITICAL CHANGE: Allow flexible content stacking */
+  display: flex;
+  flex-direction: column;
 
   .sent & {
     background-color: #fff;
@@ -230,7 +234,8 @@
   color: var(--color-text-dark);
   line-height: 1.5;
   word-wrap: break-word;
-  margin-bottom: 4px;
+  /* Reduced margin to avoid double spacing with media */
+  margin-bottom: 0; 
 }
 
 .messageMeta {
@@ -241,6 +246,7 @@
   margin-top: 2px;
   float: right;
   margin-left: 8px;
+  flex-shrink: 0; /* Important: Prevents meta from being squished */
 }
 
 .messageTime {
@@ -249,112 +255,162 @@
 }
 
 .tickIcon {
-  font-size: 16px;            // smaller & cleaner
-  color: #9aa0a6;             // subtle grey
+  font-size: 16px;
+  color: #9aa0a6;
   margin-left: 2px;
   vertical-align: middle;
   transform: translateY(1px);
   transition: color 0.15s ease;
   
   &.read {
-    color: #53bdeb;           // Teams blue
+    color: #53bdeb;
   }
 }
 
-
-.messageImage {
-  img {
-    max-width: 100%;
-    border-radius: var(--radius-sm);
-    display: block;
-    margin-bottom: var(--spacing-xs);
-  }
-}
-
-.messageDocument {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
-  background-color: rgba(0, 0, 0, 0.05);
-  border-radius: var(--radius-sm);
-  margin-bottom: var(--spacing-xs);
-}
-
-.documentIcon {
-  font-size: 24px;
-}
-
-.documentInfo {
-  flex: 1;
-}
-
-.documentName {
-  font-size: 14px;
-  color: var(--color-text-dark);
-  font-weight: 500;
-}
-
-
-/* LINK PREVIEW BUBBLE */
-.linkPreviewCard {
-  display: flex;
-  flex-direction: column;
- 
-  
-  text-decoration: none;
-  background: #ffffff;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid #e4e4e4;
-  margin-bottom: 6px;
-  transition: background 0.2s ease;
-
-  &:hover {
-    background: #f5f5f5;
-  }
-}
-
-.linkPreviewImage {
-  width: 100%;
-  height: auto;
-  object-fit: cover;
-  border-bottom: 1px solid #ddd;
-}
-
-.linkPreviewContent {
-  padding: 8px 10px;
-}
-
-.linkPreviewTitle {
-  font-size: 14px;
-  font-weight: 600;
-  color: #222;
-  margin: 0 0 4px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.linkPreviewDescription {
-  font-size: 12px;
-  color: #555;
-  margin: 0 0 6px;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.linkPreviewUrl {
-  font-size: 12px;
-  color: #0077cc;
-  margin: 0;
-  overflow-wrap: break-word;
-}
 
 .sendingIcon {
   font-size: 13px;
-  color: #9aa0a6; // Teams-like grey
+  color: #9aa0a6;
+}
+
+/* ---------------------------------------------------- */
+/* NEW STYLES FOR MEDIA, DOCUMENT, AND LINK PREVIEWS    */
+/* ---------------------------------------------------- */
+
+/* 1. IMAGE & MEDIA CONTAINER */
+.mediaContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.messageImage {
+  max-width: 250px; 
+  height: auto;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  display: block; /* Ensures proper layout */
+}
+
+.messageCaption {
+  font-size: 14px;
+  color: var(--color-text-dark);
+  line-height: 1.5;
+  word-wrap: break-word;
+  margin-top: 5px;
+  margin-bottom: 0; /* Prevent double margin before metadata */
+}
+
+/* 2. DOCUMENT STYLES */
+.messageDocumentLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  max-width: 280px;
+  box-sizing: border-box;
+  
+  /* Use distinct background for the document card */
+  .sent & {
+    background-color: #f0f0f0;
+  }
+  .received & {
+    background-color: #fff; 
+  }
+}
+
+.documentIcon {
+  color: var(--color-primary, #4a6cf7);
+  background: var(--color-bg-white, #fff);
+  padding: 8px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.documentInfo {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.documentName {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--color-text-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.documentSize {
+  font-size: 12px;
+  color: var(--color-text-lighter);
+  margin: 0;
+}
+
+
+/* 3. LINK PREVIEW STYLES */
+.messageLinkPreview {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  text-decoration: none;
+  background-color: var(--color-bg-white);
+  margin-bottom: 5px;
+  max-width: 300px;
+  cursor: pointer;
+  
+  &:hover {
+    filter: brightness(0.98);
+  }
+}
+
+.linkImage {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.linkContent {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.linkSource {
+    font-size: 10px;
+    color: var(--color-text-lighter);
+    text-transform: uppercase;
+}
+
+.linkTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin: 0;
+  
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.linkDescription {
+  font-size: 12px;
+  color: var(--color-text-light);
+  margin: 0;
+  
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
