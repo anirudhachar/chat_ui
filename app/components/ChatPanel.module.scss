@@ -60,7 +60,6 @@
   }
 }
 
-
 .emptyIcon {
   font-size: 64px;
   margin-bottom: var(--spacing-md);
@@ -82,7 +81,7 @@
   display: flex;
   align-items: center;
   padding: var(--spacing-md) var(--spacing-md);
-  background-color: #8D8CFB;
+  background-color: #8d8cfb;
   border-bottom: 1px solid var(--color-border);
   gap: 7px;
 }
@@ -209,7 +208,7 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   position: relative;
-  
+
   /* CRITICAL CHANGE: Allow flexible content stacking */
   display: flex;
   flex-direction: column;
@@ -235,7 +234,7 @@
   line-height: 1.5;
   word-wrap: break-word;
   /* Reduced margin to avoid double spacing with media */
-  margin-bottom: 0; 
+  margin-bottom: 0;
 }
 
 .messageMeta {
@@ -261,12 +260,11 @@
   vertical-align: middle;
   transform: translateY(1px);
   transition: color 0.15s ease;
-  
+
   &.read {
     color: #53bdeb;
   }
 }
-
 
 .sendingIcon {
   font-size: 13px;
@@ -279,13 +277,13 @@
 
 /* 1. IMAGE & MEDIA CONTAINER */
 .mediaContainer {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .messageImage {
-  max-width: 250px; 
+  max-width: 250px;
   height: auto;
   border-radius: var(--radius-sm);
   object-fit: cover;
@@ -311,13 +309,13 @@
   border-radius: var(--radius-sm);
   max-width: 280px;
   box-sizing: border-box;
-  
+
   /* Use distinct background for the document card */
   .sent & {
     background-color: #f0f0f0;
   }
   .received & {
-    background-color: #fff; 
+    background-color: #fff;
   }
 }
 
@@ -353,8 +351,6 @@
   margin: 0;
 }
 
-
-
 /* 3. LINK PREVIEW STYLES */
 .messageLinkPreview {
   display: flex;
@@ -364,10 +360,9 @@
   overflow: hidden;
   text-decoration: none;
 
-
   max-width: 300px;
   cursor: pointer;
-    background-color: #fff;
+  background-color: #fff;
   &:hover {
     filter: brightness(0.98);
   }
@@ -388,9 +383,9 @@
 }
 
 .linkSource {
-    font-size: 10px;
-    color: var(--color-text-lighter);
-    text-transform: uppercase;
+  font-size: 10px;
+  color: var(--color-text-lighter);
+  text-transform: uppercase;
 }
 
 .linkTitle {
@@ -398,7 +393,7 @@
   font-weight: 600;
   color: var(--color-text-dark);
   margin: 0;
-  
+
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -409,7 +404,7 @@
   font-size: 12px;
   color: var(--color-text-light);
   margin: 0;
-  
+
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 3;

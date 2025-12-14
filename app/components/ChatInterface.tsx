@@ -80,7 +80,7 @@ export default function ChatInterface() {
 
       try {
         const url =
-          `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/conversations/list?limit=10` +
+          `${process.env.NEXT_PUBLIC_API_URL}/conversations/list?limit=10` +
           (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
 
         const res = await fetch(url, {
@@ -281,7 +281,7 @@ export default function ChatInterface() {
       setIsSearching(true); // 🔥 START skeleton
 
       try {
-        const url = `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/search/people?query=${encodeURIComponent(
+        const url = `${process.env.NEXT_PUBLIC_API_URL}/search/people?query=${encodeURIComponent(
           query
         )}`;
 
@@ -323,7 +323,7 @@ export default function ChatInterface() {
   const getConversationId = async (targetUserId: string, token: string) => {
     try {
       const res = await fetch(
-        `https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/conversations/create`,
+        `${process.env.NEXT_PUBLIC_API_URL}/conversations/create`,
         {
           method: "POST",
           headers: {
@@ -361,10 +361,10 @@ export default function ChatInterface() {
       try {
         // Use the provided local endpoint for testing if needed, otherwise use the live one
         const baseUrl =
-          "https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev";
+          `${process.env.NEXT_PUBLIC_API_URL}`;
 
         const url =
-          `${baseUrl}/chat/message/${cid}/list?limit=10` +
+          `${baseUrl}/message/${cid}/list?limit=10` +
           (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
 
         const res = await fetch(url, {
@@ -424,7 +424,7 @@ export default function ChatInterface() {
   ) => {
     try {
       const res = await fetch(
-        "https://0ly7d5434b.execute-api.us-east-1.amazonaws.com/dev/chat/message/send",
+        `${process.env.NEXT_PUBLIC_API_URL}/message/send`,
         {
           method: "POST",
           headers: {
