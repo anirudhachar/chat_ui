@@ -249,13 +249,18 @@
 }
 
 .tickIcon {
-  font-size: 16px;
-  color: var(--color-text-lighter);
+  font-size: 16px;            // smaller & cleaner
+  color: #9aa0a6;             // subtle grey
+  margin-left: 2px;
+  vertical-align: middle;
+  transform: translateY(1px);
+  transition: color 0.15s ease;
   
   &.read {
-    color: #53bdeb;
+    color: #53bdeb;           // Teams blue
   }
 }
+
 
 .messageImage {
   img {
