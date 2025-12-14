@@ -78,11 +78,13 @@
   border-bottom: 1px solid var(--color-border);
   
   &:hover {
-    background-color: var(--color-hover);
+   background: linear-gradient(90deg, rgba(235, 235, 255, 0.62) 0%, rgba(255, 237, 237, 0.62) 100%);
+
   }
   
   &.active {
-    background-color: var(--color-active);
+   background: linear-gradient(90deg, rgba(235, 235, 255, 0.62) 0%, rgba(255, 237, 237, 0.62) 100%);
+
   }
 }
 
