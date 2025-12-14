@@ -246,7 +246,7 @@ export default function ChatPanel({
         <div className={styles.avatarWrapper}>
           <div
             className={styles.avatar}
-            style={{ backgroundColor: getAvatarColor(selectedUser.id) }}
+            // style={{ backgroundColor: getAvatarColor(selectedUser.id) }}
           >
             {selectedUser.avatar ? (
               <img
