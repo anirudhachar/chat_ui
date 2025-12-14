@@ -253,7 +253,7 @@ export default function ChatPanel({
                 src={selectedUser.avatar}
                 alt={selectedUser.name}
                 className={styles.avatarImage}
-                style={{ width: "30px", height: "30px", borderRadius: "50%" }}
+                style={{ width: "36px", height: "36px", borderRadius: "50%" }}
               />
             ) : (
               getInitials(selectedUser.name)
