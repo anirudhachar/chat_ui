@@ -82,7 +82,7 @@
   display: flex;
   align-items: center;
   padding: var(--spacing-md) var(--spacing-md);
-  background-color: var(--color-bg-white);
+  background-color: #8D8CFB;
   border-bottom: 1px solid var(--color-border);
   gap: var(--spacing-md);
 }
@@ -147,7 +147,7 @@
 .userName {
   font-size: 16px;
   font-weight: 500;
-  color: var(--color-text-dark);
+  color: #fff;
   margin-bottom: 2px;
 }
 

@@ -39,6 +39,9 @@ export default function ChatPanel({
   hasMoreMessages,
   resetKey,
 }: ChatPanelProps) {
+
+
+  console.log(selectedUser,"selecteduser")
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
   const topMessageSentinelRef = useRef<HTMLDivElement>(null);
@@ -145,7 +148,7 @@ export default function ChatPanel({
 
   /* ---------- EMPTY STATE ---------- */
   if (!selectedUser) {
-    
+
     return (
       <div className={styles.emptyState}>
         <div className={styles.emptyContent}>
