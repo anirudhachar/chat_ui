@@ -226,24 +226,38 @@ export default function ChatPanel({
   if (!selectedUser) {
     return (
 <div className={styles.emptyState}>
-  <div className={styles.emptyContainer}>
-    <div className={styles.visual}>
+  <div className={styles.emptyCard}>
+    {/* Logo / Illustration */}
+    <div className={styles.imageWrapper}>
       <Image
         src="/Frame 238021 (1).svg"
-        alt="Secure chat"
-        width={80}
-        height={80}
+        alt="Chat illustration"
+        width={110}
+        height={110}
         priority
       />
     </div>
 
-    <h2 className={styles.heading}>Start a secure conversation</h2>
+    <h2 className={styles.title}>Let’s start chatting</h2>
 
-    <p className={styles.description}>
-      Your messages are private and protected. Select a chat from the sidebar to begin.
+    <p className={styles.subtitle}>
+      Search for a person from the left sidebar to start a conversation.
+      <br />
+      Connect with students, professors, and peers instantly.
     </p>
+
+    <ul className={styles.features}>
+      <li>✨ Real-time messaging</li>
+      <li>🔒 Secure conversations</li>
+      <li>📁 Easy file sharing</li>
+    </ul>
+
+    <div className={styles.hint}>
+      Search a user • Start typing
+    </div>
   </div>
 </div>
+
 
 
 
