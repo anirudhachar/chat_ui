@@ -150,10 +150,15 @@
 }
 
 .lastMessageWrapper {
+  // 🔥 MODIFIED: Change justify-content from space-between to align-items: center
+  // and add flex properties for the status icon.
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--spacing-sm);
+  align-items: center; // Align items vertically in the center
+  gap: 4px; // 🔥 NEW: Space between icon, message, and badge
+
+  // To properly handle the lastMessageWrapper when the icon is present, 
+  // we should let .lastMessage take up available space and remove the old justify-content: space-between
+  // The unreadBadge will naturally go to the right end if .lastMessage has flex: 1
 }
 
 .lastMessage {
@@ -165,6 +170,32 @@
   flex: 1;
 }
 
+// 🔥 NEW: Styles for the Status Icon container (single/double tick)
+.statusIcons {
+  display: flex;
+  position: relative;
+  width: 14px; /* Fixed width for the icon area */
+  height: 14px;
+  color: var(--color-icon-sent, #667781); // Default grey for Sent/Delivered
+
+  svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  // Second checkmark offset for the double tick (Delivered/Read)
+  .secondCheck {
+    left: 4px; 
+  }
+
+  // Read status: change color to blue
+  &.readStatus {
+    color: var(--color-primary-light, #4fc3f7); 
+  }
+  
+  flex-shrink: 0; // Prevents the icon from being squeezed
+}
 .unreadBadge {
   display: inline-flex;
   align-items: center;

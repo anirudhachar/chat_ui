@@ -16,6 +16,7 @@ export interface User {
   lastMessageTime: string;
   online: boolean;
   unread?: number;
+  lastMessageStatus?: "sent" | "delivered" | "read";
 }
 
 export interface Message {
@@ -71,8 +72,7 @@ export default function ChatInterface() {
   const selectedUserRef = useRef<User | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // ───────────────────────────────────────────────
   // FETCH USERS LIST
@@ -113,6 +113,7 @@ const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
             online: c.user?.online ?? false,
             unread: c.unreadCount ?? "",
+            lastMessageStatus: c.lastMessageStatus,
           })) || [];
 
         // If it's the initial fetch (cursor is null), replace the list. Otherwise, append.
@@ -284,9 +285,9 @@ const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
       setIsSearching(true); // 🔥 START skeleton
 
       try {
-        const url = `${process.env.NEXT_PUBLIC_API_URL}/search/people?query=${encodeURIComponent(
-          query
-        )}`;
+        const url = `${
+          process.env.NEXT_PUBLIC_API_URL
+        }/search/people?query=${encodeURIComponent(query)}`;
 
         const res = await fetch(url, {
           headers: {
@@ -363,8 +364,7 @@ const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
       try {
         // Use the provided local endpoint for testing if needed, otherwise use the live one
-        const baseUrl =
-          `${process.env.NEXT_PUBLIC_API_URL}`;
+        const baseUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 
         const url =
           `${baseUrl}/message/${cid}/list?limit=10` +
@@ -448,178 +448,165 @@ const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     }
   };
 
-const handleUserSelect = async (user: User) => {
-  if (!parentToken || !loggedInUserId) return;
+  const handleUserSelect = async (user: User) => {
+    if (!parentToken || !loggedInUserId) return;
 
-  setSelectedUser(user);
-  setMessages([]);
+    setSelectedUser(user);
+    setMessages([]);
 
-  // 🔁 Reset message pagination
-  setMessageCursor(null);
-  setHasMoreMessages(true);
+    // 🔁 Reset message pagination
+    setMessageCursor(null);
+    setHasMoreMessages(true);
 
-  // 🔕 Reset unread count in sidebar
-  setUsers((prev) =>
-    prev.map((u) =>
-      u.id === user.id ? { ...u, unread: 0 } : u
-    )
-  );
+    // 🔕 Reset unread count in sidebar
+    setUsers((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
+    );
 
-  const cid = await getConversationId(user.id, parentToken);
+    const cid = await getConversationId(user.id, parentToken);
 
-  // 📥 Initial message fetch
-  if (cid) {
-    fetchMessages(cid, parentToken, loggedInUserId, null);
-  }
+    // 📥 Initial message fetch
+    if (cid) {
+      fetchMessages(cid, parentToken, loggedInUserId, null);
+    }
 
-  // 📱 Mobile UX
-  if (window.innerWidth < 768) {
-    setShowSidebar(false);
-  }
-};
-
+    // 📱 Mobile UX
+    if (window.innerWidth < 768) {
+      setShowSidebar(false);
+    }
+  };
 
   // ───────────────────────────────────────────────
   // SEND MESSAGE HANDLER
   // ───────────────────────────────────────────────
-// ChatInterface.tsx
+  // ChatInterface.tsx
 
-const handleSendMessage = useCallback(
-  async (
-    // A. CORRECTED SIGNATURE: Accept type and file data from MessageInput
-    content: string,
-    type: "text" | "image" | "document" | "link" = "text",
-    file?: {
-      name: string;
-      url: string;
-      image?: string;
-      description?: string;
-    }
-  ) => {
-    if (!selectedUser || !parentToken) return;
+  const handleSendMessage = useCallback(
+    async (
+      // A. CORRECTED SIGNATURE: Accept type and file data from MessageInput
+      content: string,
+      type: "text" | "image" | "document" | "link" = "text",
+      file?: {
+        name: string;
+        url: string;
+        image?: string;
+        description?: string;
+      }
+    ) => {
+      if (!selectedUser || !parentToken) return;
 
-    let cid = conversationId;
-    if (!cid) {
-      cid = await getConversationId(selectedUser.id, parentToken);
-      if (!cid) return;
-    }
-
-    const tempId = `temp-${Date.now()}`;
-    const timeString = new Date().toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-
-    // B. CORRECTED OPTIMISTIC MESSAGE: Use the received type and file data
-    const optimistic: Message = {
-      id: tempId,
-      content,
-      timestamp: timeString,
-      sent: true,
-      type: type, // <--- NOW USES THE CORRECT TYPE
-      status: "sending",
-
-      // Populate file/link metadata for rendering in ChatPanel
-      fileName: file?.name,
-      fileUrl: file?.url,
-      linkTitle: file?.name,
-      linkUrl: file?.url,
-      linkImage: file?.image,
-      linkDescription: file?.description,
-    };
-
-    // 📥 Add optimistic message
-    setMessages((prev) => [...prev, optimistic]);
-
-    // 🔥 EXIT SEARCH MODE (ONLY ON SEND)
-    setSearchQuery("");
-    setSearchResults([]);
-    setIsSearching(false);
-
-    // 🔥 MOVE CONVERSATION TO TOP (SIDEBAR)
-    setUsers((prev) => {
-      // Use the actual content (which might be "📷 Photo" or "📄 Doc name")
-      // for the sidebar preview, as determined by MessageInput.
-      const updatedUser: User = {
-        ...selectedUser,
-        lastMessage: content, 
-        lastMessageTime: timeString,
-        unread: 0,
-      };
-
-      const exists = prev.find((u) => u.id === selectedUser.id);
-
-      if (exists) {
-        return [
-          updatedUser,
-          ...prev.filter((u) => u.id !== selectedUser.id),
-        ];
+      let cid = conversationId;
+      if (!cid) {
+        cid = await getConversationId(selectedUser.id, parentToken);
+        if (!cid) return;
       }
 
-      // 🆕 New conversation (from search)
-      return [updatedUser, ...prev];
-    });
+      const tempId = `temp-${Date.now()}`;
+      const timeString = new Date().toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
 
-    // ----------------------------------------------------------------------
-    // API CALL LOGIC
-    // ----------------------------------------------------------------------
-    
-    // Determine what to send to the backend API:
-    // 1. Text/Link: Send the full text content.
-    // 2. Image/Document: Send the file name or a specific indicator.
-    //    NOTE: A REAL APP would upload the file to a cloud service (e.g., S3) 
-    //    and then send the resulting permanent URL here instead of just 'content'.
-    const apiContent = 
-        type === "text" 
-        ? content
-        : (file?.url || file?.name || content); // Fallback logic for non-text types
+      // B. CORRECTED OPTIMISTIC MESSAGE: Use the received type and file data
+      const optimistic: Message = {
+        id: tempId,
+        content,
+        timestamp: timeString,
+        sent: true,
+        type: type, // <--- NOW USES THE CORRECT TYPE
+        status: "sending",
 
-    try {
-      // Send the standardized content to the backend
-      const data = await sendMessageToApi(cid, apiContent, parentToken);
-      
-      // ... (rest of the acknowledgement logic remains the same)
-      const realId =
-        data?.data?.messageId ?? data?.data?.message?.messageId;
-      const realTime =
-        data?.data?.createdAt ?? data?.data?.message?.createdAt;
+        // Populate file/link metadata for rendering in ChatPanel
+        fileName: file?.name,
+        fileUrl: file?.url,
+        linkTitle: file?.name,
+        linkUrl: file?.url,
+        linkImage: file?.image,
+        linkDescription: file?.description,
+      };
 
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === tempId
-            ? {
-                ...m,
-                id: realId ?? m.id,
-                status: "sent",
-                timestamp: realTime
-                  ? new Date(realTime).toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })
-                  : m.timestamp,
-              }
-            : m
-        )
-      );
-    } catch {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === tempId ? { ...m, status: "failed" } : m
-        )
-      );
-    }
-  },
-  [
-    selectedUser,
-    parentToken,
-    conversationId,
-    setSearchQuery,
-    setSearchResults,
-    setIsSearching,
-  ]
-);
+      // 📥 Add optimistic message
+      setMessages((prev) => [...prev, optimistic]);
 
+      // 🔥 EXIT SEARCH MODE (ONLY ON SEND)
+      setSearchQuery("");
+      setSearchResults([]);
+      setIsSearching(false);
 
+      // 🔥 MOVE CONVERSATION TO TOP (SIDEBAR)
+      setUsers((prev) => {
+        // Use the actual content (which might be "📷 Photo" or "📄 Doc name")
+        // for the sidebar preview, as determined by MessageInput.
+        const updatedUser: User = {
+          ...selectedUser,
+          lastMessage: content,
+          lastMessageTime: timeString,
+          unread: 0,
+        };
+
+        const exists = prev.find((u) => u.id === selectedUser.id);
+
+        if (exists) {
+          return [updatedUser, ...prev.filter((u) => u.id !== selectedUser.id)];
+        }
+
+        // 🆕 New conversation (from search)
+        return [updatedUser, ...prev];
+      });
+
+      // ----------------------------------------------------------------------
+      // API CALL LOGIC
+      // ----------------------------------------------------------------------
+
+      // Determine what to send to the backend API:
+      // 1. Text/Link: Send the full text content.
+      // 2. Image/Document: Send the file name or a specific indicator.
+      //    NOTE: A REAL APP would upload the file to a cloud service (e.g., S3)
+      //    and then send the resulting permanent URL here instead of just 'content'.
+      const apiContent =
+        type === "text" ? content : file?.url || file?.name || content; // Fallback logic for non-text types
+
+      try {
+        // Send the standardized content to the backend
+        const data = await sendMessageToApi(cid, apiContent, parentToken);
+
+        // ... (rest of the acknowledgement logic remains the same)
+        const realId = data?.data?.messageId ?? data?.data?.message?.messageId;
+        const realTime =
+          data?.data?.createdAt ?? data?.data?.message?.createdAt;
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tempId
+              ? {
+                  ...m,
+                  id: realId ?? m.id,
+                  status: "sent",
+                  timestamp: realTime
+                    ? new Date(realTime).toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })
+                    : m.timestamp,
+                }
+              : m
+          )
+        );
+      } catch {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
+        );
+      }
+    },
+    [
+      selectedUser,
+      parentToken,
+      conversationId,
+      setSearchQuery,
+      setSearchResults,
+      setIsSearching,
+    ]
+  );
 
   // ───────────────────────────────────────────────
   // PARENT WINDOW EVENTS
@@ -660,7 +647,7 @@ const handleSendMessage = useCallback(
           setHasMoreMessages(true);
 
           const cid = await getConversationId(user.id, token);
-          if (cid && uid) fetchMessages(cid, token, uid, null); // Initial fetch
+          if (cid && uid) fetchMessages(cid, token, uid, null); 
 
           setShowSidebar(false);
         }
@@ -720,7 +707,6 @@ const handleSendMessage = useCallback(
           onLoadMoreMessages={loadMoreMessages}
           hasMoreMessages={hasMoreMessages}
           resetKey={selectedUser?.id}
-          
         />
       </div>
     </div>
