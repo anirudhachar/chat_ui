@@ -70,12 +70,8 @@ export default function ChatInterface() {
   const loggedInUserIdRef = useRef<string | null>(null);
   const selectedUserRef = useRef<User | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-
-  // ───────────────────────────────────────────────
-  // NEW: TYPING STATE
-  // ───────────────────────────────────────────────
   const [isTyping, setIsTyping] = useState(false);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 
   // ───────────────────────────────────────────────
@@ -224,23 +220,6 @@ export default function ChatInterface() {
                   : u
               )
             );
-            break;
-          }
-          
-          // ─────────────────────────────
-          // NEW: TYPING SIGNAL
-          // ─────────────────────────────
-          case "userStartedTyping": {
-            // Check if the signal is from the currently selected user
-            if (data.senderId === selectedUserRef.current?.id) {
-              setIsTyping(true);
-            }
-            break;
-          }
-          case "userStoppedTyping": {
-            if (data.senderId === selectedUserRef.current?.id) {
-              setIsTyping(false);
-            }
             break;
           }
 
@@ -468,47 +447,12 @@ export default function ChatInterface() {
       throw err;
     }
   };
-  
-  // ───────────────────────────────────────────────
-  // NEW: SEND TYPING SIGNAL
-  // ───────────────────────────────────────────────
-  const sendTypingSignal = useCallback(
-    async (isTyping: boolean) => {
-      if (!parentToken || !selectedUser) return;
-      
-      try {
-        // This endpoint must be implemented on the backend to handle the signal 
-        // and broadcast the appropriate WebSocket event (userStartedTyping/userStoppedTyping) 
-        // to the recipient (selectedUser.id).
-        const action = isTyping ? "start_typing" : "stop_typing";
-        
-        await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/typing/signal`, 
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${parentToken}`,
-            },
-            body: JSON.stringify({
-              targetUserId: selectedUser.id,
-              action: action, 
-            }),
-          }
-        );
-      } catch (err) {
-        console.error("❌ Failed to send typing signal:", err);
-      }
-    },
-    [parentToken, selectedUser]
-  );
 
 const handleUserSelect = async (user: User) => {
   if (!parentToken || !loggedInUserId) return;
 
   setSelectedUser(user);
   setMessages([]);
-  setIsTyping(false); // Reset typing status when changing user
 
   // 🔁 Reset message pagination
   setMessageCursor(null);
@@ -538,6 +482,8 @@ const handleUserSelect = async (user: User) => {
   // ───────────────────────────────────────────────
   // SEND MESSAGE HANDLER
   // ───────────────────────────────────────────────
+// ChatInterface.tsx
+
 const handleSendMessage = useCallback(
   async (
     // A. CORRECTED SIGNATURE: Accept type and file data from MessageInput
@@ -619,6 +565,10 @@ const handleSendMessage = useCallback(
     // ----------------------------------------------------------------------
     
     // Determine what to send to the backend API:
+    // 1. Text/Link: Send the full text content.
+    // 2. Image/Document: Send the file name or a specific indicator.
+    //    NOTE: A REAL APP would upload the file to a cloud service (e.g., S3) 
+    //    and then send the resulting permanent URL here instead of just 'content'.
     const apiContent = 
         type === "text" 
         ? content
@@ -670,6 +620,7 @@ const handleSendMessage = useCallback(
 );
 
 
+
   // ───────────────────────────────────────────────
   // PARENT WINDOW EVENTS
   // ───────────────────────────────────────────────
@@ -703,7 +654,6 @@ const handleSendMessage = useCallback(
 
           setSelectedUser(user);
           setMessages([]);
-          setIsTyping(false); // Reset typing status
 
           // Reset message pagination state
           setMessageCursor(null);
@@ -770,8 +720,7 @@ const handleSendMessage = useCallback(
           onLoadMoreMessages={loadMoreMessages}
           hasMoreMessages={hasMoreMessages}
           resetKey={selectedUser?.id}
-          isTyping={isTyping} // <--- NEW PROP
-          sendTypingSignal={sendTypingSignal} // <--- NEW PROP
+          
         />
       </div>
     </div>

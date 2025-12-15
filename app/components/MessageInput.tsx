@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, ChangeEvent, useEffect, useCallback } from "react";
+import { useState, useRef, ChangeEvent, useEffect } from "react";
 import { FiSmile, FiPaperclip, FiSend, FiX } from "react-icons/fi";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import styles from "./MessageInput.module.scss";
@@ -11,9 +11,6 @@ interface MessageInputProps {
     type?: "text" | "image" | "document" | "link",
     file?: { name: string; url: string; image?: string; description?: string }
   ) => void;
-  // --- NEW TYPING PROP ---
-  sendTypingSignal: (isTyping: boolean) => void;
-  // -----------------------
 }
 
 const extractURL = (text: string) => {
@@ -22,10 +19,7 @@ const extractURL = (text: string) => {
   return match ? match[0] : null;
 };
 
-export default function MessageInput({ 
-  onSendMessage, 
-  sendTypingSignal // <--- ACCEPT NEW PROP
-}: MessageInputProps) {
+export default function MessageInput({ onSendMessage }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -39,11 +33,6 @@ export default function MessageInput({
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
-
-  // --- NEW TYPING STATE REFS ---
-  const isTypingRef = useRef(false);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // -----------------------------
 
   // ───────────────────────────────────────────────
   // LINK PREVIEW (DEBOUNCED)
@@ -95,56 +84,11 @@ export default function MessageInput({
   };
 
   // ───────────────────────────────────────────────
-  // TYPING HANDLER (New Logic)
-  // ───────────────────────────────────────────────
-  const handleTextChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const newContent = e.target.value;
-    setMessage(newContent);
-
-    // 1. START TYPING SIGNAL (If started typing and content > 0)
-    if (!isTypingRef.current && newContent.length > 0) {
-      isTypingRef.current = true;
-      sendTypingSignal(true);
-    }
-    
-    // 2. CLEAR PREVIOUS TIMEOUT
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    // 3. SET NEW TIMEOUT (Stop typing after 1 second of inactivity)
-    typingTimeoutRef.current = setTimeout(() => {
-      if (isTypingRef.current) {
-        isTypingRef.current = false;
-        sendTypingSignal(false);
-      }
-    }, 1000);
-    
-    // 4. STOP TYPING IMMEDIATELY IF FIELD IS CLEARED
-    if (newContent.length === 0 && isTypingRef.current) {
-        isTypingRef.current = false;
-        sendTypingSignal(false);
-        if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current);
-        }
-    }
-  }, [sendTypingSignal]);
-
-  // ───────────────────────────────────────────────
   // SEND MESSAGE
   // ───────────────────────────────────────────────
+ // MessageInput.tsx - INSIDE handleSend (FIXED logic)
   const handleSend = () => {
     if (!message.trim() && !linkPreview && !selectedFile) return;
-
-    // 5. STOP TYPING ON SEND (New Logic)
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-    if (isTypingRef.current) {
-      isTypingRef.current = false;
-      sendTypingSignal(false);
-    }
-    // ------------------------------------
 
     if (selectedFile) {
      
@@ -324,7 +268,7 @@ export default function MessageInput({
             className={styles.textInput}
             placeholder="Type a message"
             value={message}
-            onChange={handleTextChange} // <--- UPDATED HANDLER
+            onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
           />
 

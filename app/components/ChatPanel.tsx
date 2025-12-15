@@ -28,10 +28,6 @@ interface ChatPanelProps {
   onLoadMoreMessages: () => void;
   hasMoreMessages: boolean;
   resetKey?: string;
-  // --- NEW TYPING PROPS ---
-  isTyping: boolean;
-  sendTypingSignal: (isTyping: boolean) => void;
-  // ------------------------
 }
 
 export default function ChatPanel({
@@ -42,10 +38,6 @@ export default function ChatPanel({
   onLoadMoreMessages,
   hasMoreMessages,
   resetKey,
-  // --- NEW TYPING PROPS ---
-  isTyping,
-  sendTypingSignal,
-  // ------------------------
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
@@ -150,7 +142,7 @@ export default function ChatPanel({
     return <BsCheck className={styles.tickIcon} />;
   };
 
-  /* ---------- MESSAGE CONTENT RENDERER ---------- */
+  /* ---------- NEW: MESSAGE CONTENT RENDERER ---------- */
   const renderMessageContent = (m: Message): ReactNode => {
     // 📷 IMAGE MESSAGE
     if (m.type === "image" && m.fileUrl) {
@@ -277,6 +269,10 @@ export default function ChatPanel({
     </div>
   </div>
 </div>
+
+
+
+
     );
   }
 
@@ -309,19 +305,7 @@ export default function ChatPanel({
 
         <div className={styles.userInfo}>
           <h2 className={styles.userName}>{selectedUser.name}</h2>
-          <p className={styles.userStatus}>
-            {/* 🚀 NEW: RENDER TYPING INDICATOR OR STATIC STATUS */}
-            {isTyping ? (
-              <span className={styles.typingIndicator}>
-                Typing<span className={styles.dot1}>.</span>
-                <span className={styles.dot2}>.</span>
-                <span className={styles.dot3}>.</span>
-              </span>
-            ) : (
-              "Standford University"
-            )}
-            {/* ------------------------------------------------ */}
-          </p>
+          <p className={styles.userStatus}>Standford University</p>
         </div>
 
         <button className={styles.moreButton}>
@@ -386,10 +370,7 @@ export default function ChatPanel({
       </div>
 
       {/* INPUT */}
-      <MessageInput 
-        onSendMessage={onSendMessage} 
-        sendTypingSignal={sendTypingSignal} // <--- PASS DOWN NEW PROP
-      />
+      <MessageInput onSendMessage={onSendMessage} />
     </div>
   );
 }
