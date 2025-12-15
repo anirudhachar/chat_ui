@@ -79,6 +79,35 @@ export default function ChatInterface() {
     return match ? match[0] : null;
   };
 
+  const fetchLinkPreview = async (messageId: string, url: string) => {
+  try {
+    const res = await fetch("/api/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+
+    const preview = await res.json();
+    if (preview?.error) return;
+
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId
+          ? {
+              ...m,
+              linkTitle: preview.title,
+              linkDescription: preview.description,
+              linkImage: preview.image,
+            }
+          : m
+      )
+    );
+  } catch {
+    // non-blocking
+  }
+};
+
+
   const fetchUsers = useCallback(
     async (currentCursor: string | null, isInitialFetch: boolean) => {
       if (!parentToken) return;
@@ -178,28 +207,34 @@ export default function ChatInterface() {
           // ─────────────────────────────
           // NEW MESSAGE (RIGHT CHAT)
           // ─────────────────────────────
-          case "newMessage": {
-            if (data.conversationId === conversationIdRef.current) {
-              setMessages((prev) => [
-                ...prev,
-                {
-                  id: data.messageId,
-                  content: data.content,
-                  timestamp: new Date(data.createdAt).toLocaleTimeString(
-                    "en-US",
-                    {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    }
-                  ),
-                  sent: data.senderUserId === loggedInUserIdRef.current,
-                  type: "text",
-                  status: "delivered",
-                },
-              ]);
-            }
-            break;
-          }
+         case "newMessage": {
+  if (data.conversationId === conversationIdRef.current) {
+    const detectedUrl = extractUrl(data.content);
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: data.messageId,
+        content: data.content,
+        timestamp: new Date(data.createdAt).toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+        }),
+        sent: data.senderUserId === loggedInUserIdRef.current,
+        type: detectedUrl ? "link" : "text",
+        linkUrl: detectedUrl ?? undefined,
+        status: "delivered",
+      },
+    ]);
+
+    // 🔥 fetch preview AFTER message is shown
+    if (detectedUrl) {
+      fetchLinkPreview(data.messageId, detectedUrl);
+    }
+  }
+  break;
+}
+
 
           // ─────────────────────────────
           // SIDEBAR UPDATE
@@ -383,18 +418,24 @@ export default function ChatInterface() {
         const data = await res.json();
         console.log("📥 Messages:", data);
 
-        const mappedMessages: Message[] =
-          data?.data?.messages?.map((msg: any) => ({
-            id: msg.messageId,
-            content: msg.content,
-            timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-            }),
-            sent: msg.senderUserId === myUserId,
-            type: "text",
-            status: msg.senderUserId === myUserId ? "sent" : undefined,
-          })) || [];
+      const mappedMessages: Message[] =
+  data?.data?.messages?.map((msg: any) => {
+    const detectedUrl = extractUrl(msg.content);
+
+    return {
+      id: msg.messageId,
+      content: msg.content,
+      timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      }),
+      sent: msg.senderUserId === myUserId,
+      type: detectedUrl ? "link" : "text",
+      linkUrl: detectedUrl ?? undefined,
+      status: msg.senderUserId === myUserId ? "sent" : undefined,
+    };
+  }) || [];
+
 
         // If fetching with a cursor, prepend (load older messages).
         // If cursor is null (initial fetch), replace and reverse (show newest at bottom).
