@@ -272,7 +272,7 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
             onKeyDown={handleKeyDown}
           />
 
-          {/* SEND */}
+        
           <button
             className={styles.sendButton}
             onClick={handleSend}

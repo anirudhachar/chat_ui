@@ -537,3 +537,85 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
+
+
+/* EMPTY CONVERSATION */
+.emptyConversation {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+  padding: 24px;
+  color: #374151;
+}
+
+/* Profile glow ring */
+.profileRing {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  padding: 3px;
+
+  background: linear-gradient(
+    135deg,
+    #8f8dfc,
+    #5cc8ff,
+    #5ce1c3
+  );
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 16px;
+}
+
+.emptyAvatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #fff;
+}
+
+.emptyInitials {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-weight: 700;
+  font-size: 22px;
+  color: #4f46e5;
+}
+
+.emptyTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 6px;
+
+  span {
+    color: #4f46e5;
+  }
+}
+
+.emptySubtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 14px;
+}
+
+.typingHint {
+  font-size: 13px;
+  color: #4b5563;
+  background: rgba(79, 70, 229, 0.08);
+  padding: 6px 14px;
+  border-radius: 999px;
+}

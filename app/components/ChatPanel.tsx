@@ -315,6 +315,30 @@ export default function ChatPanel({
 
       {/* MESSAGES */}
       <div className={styles.messagesArea} ref={messagesAreaRef}>
+         {messages.length === 0 && (
+            <div className={styles.emptyConversation}>
+              <div className={styles.profileRing}>
+                {selectedUser.avatar ? (
+                  <img
+                    src={selectedUser.avatar}
+                    className={styles.emptyAvatar}
+                  />
+                ) : (
+                  <div className={styles.emptyInitials}>
+                    {getInitials(selectedUser.name)}
+                  </div>
+                )}
+              </div>
+
+              <h3>
+                You’re connected with <span>{selectedUser.name}</span>
+              </h3>
+              <p>Type a message below to start chatting</p>
+              <div className={styles.typingHint}>
+                💬 Start typing…
+              </div>
+            </div>
+          )}
         <div className={styles.messagesContainer}>
           {hasMoreMessages && (
             <div ref={topMessageSentinelRef}>
