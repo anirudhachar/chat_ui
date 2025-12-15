@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, ReactNode } from "react";
+import { useEffect, useRef, ReactNode, useState } from "react";
 import { FiArrowLeft, FiMoreVertical } from "react-icons/fi";
 import { BsCheck, BsCheckAll } from "react-icons/bs";
 import Image from "next/image";
@@ -42,6 +42,8 @@ export default function ChatPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
   const topMessageSentinelRef = useRef<HTMLDivElement>(null);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+
 
   const isFirstLoadRef = useRef(true);
   const isLoadingOlderRef = useRef(false);
@@ -75,6 +77,29 @@ export default function ChatPanel({
     // 3️⃣ New outgoing/incoming message → smooth scroll
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
+
+  /* 🔽 SCROLL TO BOTTOM VISIBILITY */
+useEffect(() => {
+  const container = messagesAreaRef.current;
+  if (!container) return;
+
+  const handleScroll = () => {
+    const isNearBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight <
+      120; // px threshold
+
+    setShowScrollToBottom(!isNearBottom);
+  };
+
+  container.addEventListener("scroll", handleScroll);
+  return () => container.removeEventListener("scroll", handleScroll);
+}, []);
+
+
+const scrollToBottom = () => {
+  messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+};
+
 
   /* 🔁 INFINITE SCROLL (OLDER MESSAGES) */
   useEffect(() => {
@@ -369,7 +394,16 @@ export default function ChatPanel({
         </div>
       </div>
 
-      {/* INPUT */}
+            {showScrollToBottom && (
+        <button
+          className={styles.scrollToBottom}
+          onClick={scrollToBottom}
+          aria-label="Scroll to bottom"
+        >
+          ⬇️
+        </button>
+      )}
+
       <MessageInput onSendMessage={onSendMessage} />
     </div>
   );

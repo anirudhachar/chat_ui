@@ -23,9 +23,8 @@ interface UserSidebarProps {
 // STATUS ICON COMPONENT
 // ───────────────────────────────────────────────
 const StatusIcon = ({ status }: { status?: User["lastMessageStatus"] }) => {
-  if (!status) return null; // No status, don't show an icon
+  if (!status) return null;
 
-  // Logic to determine the icon style (colors are handled via SCSS variables/class or inline style)
   const isRead = status === "read";
 
   // Renders the tick icons for sent messages (sent, delivered, read)
