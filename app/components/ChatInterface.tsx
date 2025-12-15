@@ -16,7 +16,7 @@ export interface User {
   lastMessageTime: string;
   online: boolean;
   unread?: number;
- lastMessageStatus?: "sent" | "delivered" | "read";
+  lastMessageStatus?: "sent" | "delivered" | "read";
 }
 
 export interface Message {
@@ -74,12 +74,10 @@ export default function ChatInterface() {
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-const extractUrl = (text: string) => {
-  const match = text.match(
-    /(https?:\/\/(?:www\.)?[^\s/$.?#].[^\s]*)/i
-  );
-  return match ? match[0] : null;
-};
+  const extractUrl = (text: string) => {
+    const match = text.match(/(https?:\/\/(?:www\.)?[^\s/$.?#].[^\s]*)/i);
+    return match ? match[0] : null;
+  };
 
   const fetchUsers = useCallback(
     async (currentCursor: string | null, isInitialFetch: boolean) => {
@@ -118,8 +116,8 @@ const extractUrl = (text: string) => {
             online: c.user?.online ?? false,
             unread: c.unreadCount ?? "",
             lastMessageStatus: c.lastMessageDeliveryStatus
-                ? c.lastMessageDeliveryStatus.toLowerCase() as User['lastMessageStatus'] 
-                : undefined,
+              ? (c.lastMessageDeliveryStatus.toLowerCase() as User["lastMessageStatus"])
+              : undefined,
           })) || [];
 
         // If it's the initial fetch (cursor is null), replace the list. Otherwise, append.
@@ -487,154 +485,153 @@ const extractUrl = (text: string) => {
   // ───────────────────────────────────────────────
   // ChatInterface.tsx
 
-const handleSendMessage = useCallback(
-  async (
-    content: string,
-    type: "text" | "image" | "document" | "link" = "text",
-    file?: {
-      name: string;
-      url: string;
-      image?: string;
-      description?: string;
-    }
-  ) => {
-    if (!selectedUser || !parentToken) return;
+  const handleSendMessage = useCallback(
+    async (
+      content: string,
+      type: "text" | "image" | "document" | "link" = "text",
+      file?: {
+        name: string;
+        url: string;
+        image?: string;
+        description?: string;
+      }
+    ) => {
+      if (!selectedUser || !parentToken) return;
 
-    const detectedUrl = extractUrl(content);
+      const detectedUrl = extractUrl(content);
 
-    let cid = conversationId;
-    if (!cid) {
-      cid = await getConversationId(selectedUser.id, parentToken);
-      if (!cid) return;
-    }
+      let cid = conversationId;
+      if (!cid) {
+        cid = await getConversationId(selectedUser.id, parentToken);
+        if (!cid) return;
+      }
 
-    const tempId = `temp-${Date.now()}`;
-    const timeString = new Date().toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
+      const tempId = `temp-${Date.now()}`;
+      const timeString = new Date().toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
 
-    // ─────────────────────────────────────────────
-    // OPTIMISTIC MESSAGE
-    // ─────────────────────────────────────────────
-    const optimistic: Message = {
-      id: tempId,
-      content,
-      timestamp: timeString,
-      sent: true,
-      type: detectedUrl ? "link" : type,
-      status: "sending",
+      // ─────────────────────────────────────────────
+      // OPTIMISTIC MESSAGE
+      // ─────────────────────────────────────────────
+      const optimistic: Message = {
+        id: tempId,
+        content,
+        timestamp: timeString,
+        sent: true,
+        type: detectedUrl ? "link" : type,
+        status: "sending",
 
-      fileName: file?.name,
-      fileUrl: file?.url,
+        fileName: file?.name,
+        fileUrl: file?.url,
 
-      linkUrl: detectedUrl || file?.url,
-    };
-
-    setMessages((prev) => [...prev, optimistic]);
-
-    // 🔥 EXIT SEARCH MODE
-    setSearchQuery("");
-    setSearchResults([]);
-    setIsSearching(false);
-
-    // 🔥 MOVE CONVERSATION TO TOP
-    setUsers((prev) => {
-      const updatedUser: User = {
-        ...selectedUser,
-        lastMessage: content,
-        lastMessageTime: timeString,
-        unread: 0,
+        linkUrl: file?.url,
+        linkTitle: file?.name,
+        linkDescription: file?.description,
+        linkImage: file?.image,
       };
 
-      const exists = prev.find((u) => u.id === selectedUser.id);
-      return exists
-        ? [updatedUser, ...prev.filter((u) => u.id !== selectedUser.id)]
-        : [updatedUser, ...prev];
-    });
+      setMessages((prev) => [...prev, optimistic]);
 
-    // ─────────────────────────────────────────────
-    // SEND TO API
-    // ─────────────────────────────────────────────
-    const apiContent =
-      type === "text" ? content : file?.url || file?.name || content;
+      // 🔥 EXIT SEARCH MODE
+      setSearchQuery("");
+      setSearchResults([]);
+      setIsSearching(false);
 
-    try {
-      const data = await sendMessageToApi(cid, apiContent, parentToken);
+      // 🔥 MOVE CONVERSATION TO TOP
+      setUsers((prev) => {
+        const updatedUser: User = {
+          ...selectedUser,
+          lastMessage: content,
+          lastMessageTime: timeString,
+          unread: 0,
+        };
 
-      const realId =
-        data?.data?.messageId ?? data?.data?.message?.messageId;
-      const realTime =
-        data?.data?.createdAt ?? data?.data?.message?.createdAt;
-
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === tempId
-            ? {
-                ...m,
-                id: realId ?? m.id,
-                status: "sent",
-                timestamp: realTime
-                  ? new Date(realTime).toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })
-                  : m.timestamp,
-              }
-            : m
-        )
-      );
+        const exists = prev.find((u) => u.id === selectedUser.id);
+        return exists
+          ? [updatedUser, ...prev.filter((u) => u.id !== selectedUser.id)]
+          : [updatedUser, ...prev];
+      });
 
       // ─────────────────────────────────────────────
-      // 🔗 FETCH LINK PREVIEW (AFTER SEND)
+      // SEND TO API
       // ─────────────────────────────────────────────
-      if (detectedUrl && type === "text") {
-        try {
-          const res = await fetch("/api/preview", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url: detectedUrl }),
-          });
+      const apiContent =
+        type === "text" ? content : file?.url || file?.name || content;
 
-          const preview = await res.json();
+      try {
+        const data = await sendMessageToApi(cid, apiContent, parentToken);
 
-          if (!preview?.error) {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === tempId || m.id === realId
-                  ? {
-                      ...m,
-                      linkTitle: preview.title,
-                      linkDescription: preview.description,
-                      linkImage: preview.image,
-                      linkUrl: detectedUrl,
-                    }
-                  : m
-              )
-            );
+        const realId = data?.data?.messageId ?? data?.data?.message?.messageId;
+        const realTime =
+          data?.data?.createdAt ?? data?.data?.message?.createdAt;
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tempId
+              ? {
+                  ...m,
+                  id: realId ?? m.id,
+                  status: "sent",
+                  timestamp: realTime
+                    ? new Date(realTime).toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })
+                    : m.timestamp,
+                }
+              : m
+          )
+        );
+
+        // ─────────────────────────────────────────────
+        // 🔗 FETCH LINK PREVIEW (AFTER SEND)
+        // ─────────────────────────────────────────────
+        if (detectedUrl && type === "text") {
+          try {
+            const res = await fetch("/api/preview", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url: detectedUrl }),
+            });
+
+            const preview = await res.json();
+
+            if (!preview?.error) {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === tempId || m.id === realId
+                    ? {
+                        ...m,
+                        linkTitle: preview.title,
+                        linkDescription: preview.description,
+                        linkImage: preview.image,
+                        linkUrl: detectedUrl,
+                      }
+                    : m
+                )
+              );
+            }
+          } catch {
+            // preview failure is non-blocking
           }
-        } catch {
-          // preview failure is non-blocking
         }
+      } catch {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
+        );
       }
-    } catch {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === tempId ? { ...m, status: "failed" } : m
-        )
-      );
-    }
-  },
-  [
-    selectedUser,
-    parentToken,
-    conversationId,
-    setSearchQuery,
-    setSearchResults,
-    setIsSearching,
-  ]
-);
-
+    },
+    [
+      selectedUser,
+      parentToken,
+      conversationId,
+      setSearchQuery,
+      setSearchResults,
+      setIsSearching,
+    ]
+  );
 
   // ───────────────────────────────────────────────
   // PARENT WINDOW EVENTS
@@ -675,7 +672,7 @@ const handleSendMessage = useCallback(
           setHasMoreMessages(true);
 
           const cid = await getConversationId(user.id, token);
-          if (cid && uid) fetchMessages(cid, token, uid, null); 
+          if (cid && uid) fetchMessages(cid, token, uid, null);
 
           setShowSidebar(false);
         }
