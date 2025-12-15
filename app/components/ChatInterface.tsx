@@ -16,7 +16,7 @@ export interface User {
   lastMessageTime: string;
   online: boolean;
   unread?: number;
-  lastMessageStatus?: "sent" | "delivered" | "read";
+ lastMessageStatus?: "sent" | "delivered" | "read";
 }
 
 export interface Message {
@@ -113,7 +113,9 @@ export default function ChatInterface() {
 
             online: c.user?.online ?? false,
             unread: c.unreadCount ?? "",
-            lastMessageStatus: c.lastMessageStatus,
+            lastMessageStatus: c.lastMessageDeliveryStatus
+                ? c.lastMessageDeliveryStatus.toLowerCase() as User['lastMessageStatus'] 
+                : undefined,
           })) || [];
 
         // If it's the initial fetch (cursor is null), replace the list. Otherwise, append.

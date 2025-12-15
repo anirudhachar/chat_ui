@@ -22,30 +22,30 @@ interface UserSidebarProps {
 // ───────────────────────────────────────────────
 // STATUS ICON COMPONENT
 // ───────────────────────────────────────────────
-const StatusIcon = ({ status }: { status?: User['lastMessageStatus'] }) => {
-    if (!status) return null; // No status, don't show an icon
+const StatusIcon = ({ status }: { status?: User["lastMessageStatus"] }) => {
+  if (!status) return null; // No status, don't show an icon
 
-    // Logic to determine the icon style (colors are handled via SCSS variables/class or inline style)
-    const isRead = status === 'read';
+  // Logic to determine the icon style (colors are handled via SCSS variables/class or inline style)
+  const isRead = status === "read";
 
-    // Renders the tick icons for sent messages (sent, delivered, read)
-    return (
-        <div 
-            className={`${styles.statusIcons} ${isRead ? styles.readStatus : ''}`}
-            // Note: In a real app, 'delivered' and 'sent' might have different icon logic/color.
-            // Here, we use single/double tick pattern:
-            // - Sent: Single check
-            // - Delivered/Read: Double check
-        >
-            {/* Base/First checkmark */}
-            <FiCheck size={14} className={styles.firstCheck} />
-            
-            {/* Second checkmark for delivered/read */}
-            {['delivered', 'read'].includes(status) && (
-                <FiCheck size={14} className={styles.secondCheck} />
-            )}
-        </div>
-    );
+  // Renders the tick icons for sent messages (sent, delivered, read)
+  return (
+    <div
+      className={`${styles.statusIcons} ${isRead ? styles.readStatus : ""}`}
+      // Note: In a real app, 'delivered' and 'sent' might have different icon logic/color.
+      // Here, we use single/double tick pattern:
+      // - Sent: Single check
+      // - Delivered/Read: Double check
+    >
+      {/* Base/First checkmark */}
+      <FiCheck size={14} className={styles.firstCheck} />
+
+      {/* Second checkmark for delivered/read */}
+      {["delivered", "read"].includes(status) && (
+        <FiCheck size={14} className={styles.secondCheck} />
+      )}
+    </div>
+  );
 };
 // ───────────────────────────────────────────────
 // USER SIDEBAR COMPONENT
@@ -186,8 +186,10 @@ export default function UserSidebar({
                     </div>
                     <div className={styles.lastMessageWrapper}>
                       {/* 🔥 NEW: Render Status Icon */}
-                      {user.lastMessageStatus && <StatusIcon status={user.lastMessageStatus} />}
-                      
+                      {user.lastMessageStatus && (
+                        <StatusIcon status={user.lastMessageStatus} />
+                      )}
+
                       <p className={styles.lastMessage}>{user.lastMessage}</p>
                       {Number(user.unread) > 0 && (
                         <span className={styles.unreadBadge}>
