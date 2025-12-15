@@ -133,8 +133,7 @@ export default function ChatPanel({
     status?: "sending" | "sent" | "delivered" | "read" | "failed"
   ) => {
     if (!status) return null;
-    if (status === "sending")
-      return <FiClock className={styles.sendingIcon} />;
+    if (status === "sending") return <FiClock className={styles.sendingIcon} />;
     if (status === "failed") return <span>❌</span>;
     if (status === "read")
       return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
@@ -154,7 +153,7 @@ export default function ChatPanel({
             alt={m.content}
             className={styles.messageImage}
           />
-          {m.content && m.content.trim() !== '📷 Photo' && (
+          {m.content && m.content.trim() !== "📷 Photo" && (
             <p className={styles.messageCaption}>{m.content}</p>
           )}
         </div>
@@ -174,7 +173,9 @@ export default function ChatPanel({
             <FiFile size={20} />
           </div>
           <div className={styles.documentInfo}>
-            <p className={styles.documentName}>{m.fileName || m.content || 'Document'}</p>
+            <p className={styles.documentName}>
+              {m.fileName || m.content || "Document"}
+            </p>
             {m.content && m.content.trim() !== m.fileName?.trim() && (
               <p className={styles.documentSize}>{m.content}</p>
             )}
@@ -221,17 +222,34 @@ export default function ChatPanel({
   };
   /* ---------------------------------------------------- */
 
-
   /* ---------- EMPTY STATE ---------- */
   if (!selectedUser) {
     return (
-      <div className={styles.emptyState}>
-        <div className={styles.emptyContent}>
-          <Image src="Frame 238021 (1).svg" alt="" width={100} height={100} />
-          <h2>Start a conversation</h2>
-          <p>Select a chat from the sidebar</p>
-        </div>
-      </div>
+ <div className={styles.emptyState}>
+  <div className={styles.emptyCard}>
+    <div className={styles.iconHalo}>
+      <Image
+        src="/Frame 238021 (1).svg"
+        alt="Start conversation"
+        width={88}
+        height={88}
+      />
+    </div>
+
+    <h2 className={styles.title}>No conversation selected</h2>
+    <p className={styles.subtitle}>
+      Choose a chat from the sidebar to start messaging
+    </p>
+
+    <div className={styles.divider} />
+
+    <span className={styles.helper}>
+      Conversations stay private and synced in real time
+    </span>
+  </div>
+</div>
+
+
     );
   }
 
@@ -264,9 +282,7 @@ export default function ChatPanel({
 
         <div className={styles.userInfo}>
           <h2 className={styles.userName}>{selectedUser.name}</h2>
-          <p className={styles.userStatus}>
-           Standford University
-          </p>
+          <p className={styles.userStatus}>Standford University</p>
         </div>
 
         <button className={styles.moreButton}>
@@ -293,7 +309,7 @@ export default function ChatPanel({
               <div className={styles.messageBubble}>
                 {/* 🚀 FIXED RENDERING */}
                 {renderMessageContent(m)}
-                
+
                 <div className={styles.messageMeta}>
                   <span className={styles.messageTime}>{m.timestamp}</span>
                   {m.sent && getStatusIcon(m.status)}
