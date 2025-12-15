@@ -74,9 +74,13 @@ export default function ChatInterface() {
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // ───────────────────────────────────────────────
-  // FETCH USERS LIST
-  // ───────────────────────────────────────────────
+const extractUrl = (text: string) => {
+  const match = text.match(
+    /(https?:\/\/(?:www\.)?[^\s/$.?#].[^\s]*)/i
+  );
+  return match ? match[0] : null;
+};
+
   const fetchUsers = useCallback(
     async (currentCursor: string | null, isInitialFetch: boolean) => {
       if (!parentToken) return;
@@ -483,132 +487,154 @@ export default function ChatInterface() {
   // ───────────────────────────────────────────────
   // ChatInterface.tsx
 
-  const handleSendMessage = useCallback(
-    async (
-      // A. CORRECTED SIGNATURE: Accept type and file data from MessageInput
-      content: string,
-      type: "text" | "image" | "document" | "link" = "text",
-      file?: {
-        name: string;
-        url: string;
-        image?: string;
-        description?: string;
-      }
-    ) => {
-      if (!selectedUser || !parentToken) return;
+const handleSendMessage = useCallback(
+  async (
+    content: string,
+    type: "text" | "image" | "document" | "link" = "text",
+    file?: {
+      name: string;
+      url: string;
+      image?: string;
+      description?: string;
+    }
+  ) => {
+    if (!selectedUser || !parentToken) return;
 
-      let cid = conversationId;
-      if (!cid) {
-        cid = await getConversationId(selectedUser.id, parentToken);
-        if (!cid) return;
-      }
+    const detectedUrl = extractUrl(content);
 
-      const tempId = `temp-${Date.now()}`;
-      const timeString = new Date().toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      });
+    let cid = conversationId;
+    if (!cid) {
+      cid = await getConversationId(selectedUser.id, parentToken);
+      if (!cid) return;
+    }
 
-      // B. CORRECTED OPTIMISTIC MESSAGE: Use the received type and file data
-      const optimistic: Message = {
-        id: tempId,
-        content,
-        timestamp: timeString,
-        sent: true,
-        type: type, // <--- NOW USES THE CORRECT TYPE
-        status: "sending",
+    const tempId = `temp-${Date.now()}`;
+    const timeString = new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
 
-        // Populate file/link metadata for rendering in ChatPanel
-        fileName: file?.name,
-        fileUrl: file?.url,
-        linkTitle: file?.name,
-        linkUrl: file?.url,
-        linkImage: file?.image,
-        linkDescription: file?.description,
+    // ─────────────────────────────────────────────
+    // OPTIMISTIC MESSAGE
+    // ─────────────────────────────────────────────
+    const optimistic: Message = {
+      id: tempId,
+      content,
+      timestamp: timeString,
+      sent: true,
+      type: detectedUrl ? "link" : type,
+      status: "sending",
+
+      fileName: file?.name,
+      fileUrl: file?.url,
+
+      linkUrl: detectedUrl || file?.url,
+    };
+
+    setMessages((prev) => [...prev, optimistic]);
+
+    // 🔥 EXIT SEARCH MODE
+    setSearchQuery("");
+    setSearchResults([]);
+    setIsSearching(false);
+
+    // 🔥 MOVE CONVERSATION TO TOP
+    setUsers((prev) => {
+      const updatedUser: User = {
+        ...selectedUser,
+        lastMessage: content,
+        lastMessageTime: timeString,
+        unread: 0,
       };
 
-      // 📥 Add optimistic message
-      setMessages((prev) => [...prev, optimistic]);
+      const exists = prev.find((u) => u.id === selectedUser.id);
+      return exists
+        ? [updatedUser, ...prev.filter((u) => u.id !== selectedUser.id)]
+        : [updatedUser, ...prev];
+    });
 
-      // 🔥 EXIT SEARCH MODE (ONLY ON SEND)
-      setSearchQuery("");
-      setSearchResults([]);
-      setIsSearching(false);
+    // ─────────────────────────────────────────────
+    // SEND TO API
+    // ─────────────────────────────────────────────
+    const apiContent =
+      type === "text" ? content : file?.url || file?.name || content;
 
-      // 🔥 MOVE CONVERSATION TO TOP (SIDEBAR)
-      setUsers((prev) => {
-        // Use the actual content (which might be "📷 Photo" or "📄 Doc name")
-        // for the sidebar preview, as determined by MessageInput.
-        const updatedUser: User = {
-          ...selectedUser,
-          lastMessage: content,
-          lastMessageTime: timeString,
-          unread: 0,
-        };
+    try {
+      const data = await sendMessageToApi(cid, apiContent, parentToken);
 
-        const exists = prev.find((u) => u.id === selectedUser.id);
+      const realId =
+        data?.data?.messageId ?? data?.data?.message?.messageId;
+      const realTime =
+        data?.data?.createdAt ?? data?.data?.message?.createdAt;
 
-        if (exists) {
-          return [updatedUser, ...prev.filter((u) => u.id !== selectedUser.id)];
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId
+            ? {
+                ...m,
+                id: realId ?? m.id,
+                status: "sent",
+                timestamp: realTime
+                  ? new Date(realTime).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })
+                  : m.timestamp,
+              }
+            : m
+        )
+      );
+
+      // ─────────────────────────────────────────────
+      // 🔗 FETCH LINK PREVIEW (AFTER SEND)
+      // ─────────────────────────────────────────────
+      if (detectedUrl && type === "text") {
+        try {
+          const res = await fetch("/api/preview", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: detectedUrl }),
+          });
+
+          const preview = await res.json();
+
+          if (!preview?.error) {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === tempId || m.id === realId
+                  ? {
+                      ...m,
+                      linkTitle: preview.title,
+                      linkDescription: preview.description,
+                      linkImage: preview.image,
+                      linkUrl: detectedUrl,
+                    }
+                  : m
+              )
+            );
+          }
+        } catch {
+          // preview failure is non-blocking
         }
-
-        // 🆕 New conversation (from search)
-        return [updatedUser, ...prev];
-      });
-
-      // ----------------------------------------------------------------------
-      // API CALL LOGIC
-      // ----------------------------------------------------------------------
-
-      // Determine what to send to the backend API:
-      // 1. Text/Link: Send the full text content.
-      // 2. Image/Document: Send the file name or a specific indicator.
-      //    NOTE: A REAL APP would upload the file to a cloud service (e.g., S3)
-      //    and then send the resulting permanent URL here instead of just 'content'.
-      const apiContent =
-        type === "text" ? content : file?.url || file?.name || content; // Fallback logic for non-text types
-
-      try {
-        // Send the standardized content to the backend
-        const data = await sendMessageToApi(cid, apiContent, parentToken);
-
-        // ... (rest of the acknowledgement logic remains the same)
-        const realId = data?.data?.messageId ?? data?.data?.message?.messageId;
-        const realTime =
-          data?.data?.createdAt ?? data?.data?.message?.createdAt;
-
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === tempId
-              ? {
-                  ...m,
-                  id: realId ?? m.id,
-                  status: "sent",
-                  timestamp: realTime
-                    ? new Date(realTime).toLocaleTimeString("en-US", {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })
-                    : m.timestamp,
-                }
-              : m
-          )
-        );
-      } catch {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
-        );
       }
-    },
-    [
-      selectedUser,
-      parentToken,
-      conversationId,
-      setSearchQuery,
-      setSearchResults,
-      setIsSearching,
-    ]
-  );
+    } catch {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId ? { ...m, status: "failed" } : m
+        )
+      );
+    }
+  },
+  [
+    selectedUser,
+    parentToken,
+    conversationId,
+    setSearchQuery,
+    setSearchResults,
+    setIsSearching,
+  ]
+);
+
 
   // ───────────────────────────────────────────────
   // PARENT WINDOW EVENTS
