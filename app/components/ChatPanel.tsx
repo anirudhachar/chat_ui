@@ -318,11 +318,19 @@ export default function ChatPanel({
               )}
             </div>
 
-            <h3>
-              You’re connected with <span>{selectedUser.name}</span>
+            <h3 className={styles.emptyTitle}>
+              You’re now connected with
+              <br />
+              <span>{selectedUser.name}</span>
             </h3>
-            <p>Type a message below to start chatting</p>
-            <div className={styles.typingHint}>💬 Start typing…</div>
+
+            <p className={styles.emptySubtitle}>
+              Say hello 👋 and start your conversation.
+            </p>
+
+            <div className={styles.emptyCta}>
+              💬 Type your first message below
+            </div>
           </div>
         )}
         <div className={styles.messagesContainer}>
