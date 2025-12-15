@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, ReactNode, useState } from "react";
+import { useEffect, useRef, ReactNode } from "react";
 import { FiArrowLeft, FiMoreVertical } from "react-icons/fi";
 import { BsCheck, BsCheckAll } from "react-icons/bs";
 import Image from "next/image";
@@ -42,8 +42,7 @@ export default function ChatPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
   const topMessageSentinelRef = useRef<HTMLDivElement>(null);
-  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-
+  
 
   const isFirstLoadRef = useRef(true);
   const isLoadingOlderRef = useRef(false);
@@ -77,30 +76,6 @@ export default function ChatPanel({
     // 3️⃣ New outgoing/incoming message → smooth scroll
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
-
-useEffect(() => {
-  const container = messagesAreaRef.current;
-  if (!container) return;
-
-  const handleScroll = () => {
-    const distanceFromBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight;
-
-    setShowScrollToBottom(distanceFromBottom > 200);
-  };
-
-  container.addEventListener("scroll", handleScroll);
-  handleScroll(); // 👈 run once on mount
-
-  return () => container.removeEventListener("scroll", handleScroll);
-}, []);
-
-
-
-const scrollToBottom = () => {
-  messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-};
-
 
   /* 🔁 INFINITE SCROLL (OLDER MESSAGES) */
   useEffect(() => {
@@ -331,7 +306,7 @@ const scrollToBottom = () => {
 
         <div className={styles.userInfo}>
           <h2 className={styles.userName}>{selectedUser.name}</h2>
-          <p className={styles.userStatus}>Standford Universityy</p>
+          <p className={styles.userStatus}>Standford University</p>
         </div>
 
         <button className={styles.moreButton}>
@@ -393,20 +368,9 @@ const scrollToBottom = () => {
 
           <div ref={messagesEndRef} />
         </div>
-
-
-            {showScrollToBottom && (
-        <button
-          className={styles.scrollToBottom}
-          onClick={scrollToBottom}
-          aria-label="Scroll to bottom"
-        >
-          ⬇️
-        </button>
-      )}
       </div>
 
-
+      {/* INPUT */}
       <MessageInput onSendMessage={onSendMessage} />
     </div>
   );
