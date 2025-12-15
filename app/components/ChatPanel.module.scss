@@ -6,99 +6,62 @@
 }
 
 .emptyState {
-  position: relative;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-
-  background:
-    radial-gradient(
-      600px circle at top,
-      rgba(59, 130, 246, 0.08),
-      transparent 60%
-    ),
-    linear-gradient(
-      180deg,
-      var(--color-bg),
-      var(--color-chat-bg)
-    );
+  background-color: var(--color-chat-bg);
 }
 
-/* Glass Card */
-.emptyCard {
-  position: relative;
-  width: 440px;
-  padding: 48px 40px;
-  border-radius: 20px;
-
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-
-  box-shadow:
-    0 30px 60px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-
+.emptyContainer {
+  max-width: 380px;
+  padding: 36px 28px;
   text-align: center;
-  animation: scaleIn 0.45s ease;
+  animation: fadeIn 0.3s ease-out;
 }
 
-/* Icon Halo */
-.iconHalo {
-  width: 132px;
-  height: 132px;
-  margin: 0 auto 28px;
-
+.visual {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 22px;
   display: flex;
   align-items: center;
   justify-content: center;
 
-  border-radius: 50%;
-  background:
-    radial-gradient(
-      circle at top,
-      rgba(59, 130, 246, 0.25),
-      rgba(59, 130, 246, 0.08)
-    );
+  border-radius: 22px;
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.14),
+    rgba(37, 99, 235, 0.05)
+  );
 
   box-shadow:
-    0 12px 28px rgba(59, 130, 246, 0.25);
-
-  animation: float 3.5s ease-in-out infinite;
+    0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
-/* Text */
-.title {
-  font-size: 22px;
+.heading {
+  font-size: 19px;
   font-weight: 600;
-  letter-spacing: -0.01em;
   color: #111827;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
-.subtitle {
-  font-size: 15px;
-  line-height: 1.6;
+.description {
+  font-size: 14px;
+  line-height: 1.55;
   color: #6b7280;
-  margin-bottom: 24px;
 }
 
-/* Divider */
-.divider {
-  width: 48px;
-  height: 3px;
-  border-radius: 999px;
-  margin: 0 auto 16px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    #3b82f6,
-    transparent
-  );
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-
-/* Hel*
 
 .emptyIconAnimated {
   width: 80px;

@@ -225,29 +225,26 @@ export default function ChatPanel({
   /* ---------- EMPTY STATE ---------- */
   if (!selectedUser) {
     return (
- <div className={styles.emptyState}>
-  <div className={styles.emptyCard}>
-    <div className={styles.iconHalo}>
+<div className={styles.emptyState}>
+  <div className={styles.emptyContainer}>
+    <div className={styles.visual}>
       <Image
         src="/Frame 238021 (1).svg"
-        alt="Start conversation"
-        width={88}
-        height={88}
+        alt="Secure chat"
+        width={80}
+        height={80}
+        priority
       />
     </div>
 
-    <h2 className={styles.title}>No conversation selected</h2>
-    <p className={styles.subtitle}>
-      Choose a chat from the sidebar to start messaging
+    <h2 className={styles.heading}>Start a secure conversation</h2>
+
+    <p className={styles.description}>
+      Your messages are private and protected. Select a chat from the sidebar to begin.
     </p>
-
-    <div className={styles.divider} />
-
-    <span className={styles.helper}>
-      Conversations stay private and synced in real time
-    </span>
   </div>
 </div>
+
 
 
     );
