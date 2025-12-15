@@ -246,16 +246,18 @@ export default function ChatPanel({
       Connect with students, professors, and peers instantly.
     </p>
 
-   <ul className={styles.features}>
-  <li>
+  <ul className={styles.features}>
+  <li className={styles.realtime}>
     <span className={styles.icon}>✨</span>
     <span>Real-time messaging</span>
   </li>
-  <li>
+
+  <li className={styles.secure}>
     <span className={styles.icon}>🔒</span>
     <span>Secure conversations</span>
   </li>
-  <li>
+
+  <li className={styles.files}>
     <span className={styles.icon}>📁</span>
     <span>Easy file sharing</span>
   </li>

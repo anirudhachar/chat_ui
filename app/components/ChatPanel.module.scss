@@ -63,39 +63,66 @@
   flex-wrap: wrap;
 }
 
+/* Base chip style */
 .features li {
   display: flex;
   align-items: center;
   gap: 8px;
 
-  padding: 10px 14px;
+  padding: 10px 16px;
   border-radius: 999px;
 
   font-size: 13.5px;
   font-weight: 500;
-  color: #374151;
 
-  background: linear-gradient(
-    135deg,
-    rgba(59, 130, 246, 0.12),
-    rgba(59, 130, 246, 0.04)
-  );
+  background: #ffffff;
 
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    0 6px 14px rgba(0, 0, 0, 0.08);
+    0 6px 16px rgba(0, 0, 0, 0.08);
 
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .features li:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 10px 22px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
 }
 
 .icon {
   font-size: 16px;
+}
+
+/* 🎨 Individual colors */
+
+/* Real-time */
+.realtime {
+  color: #2563eb; /* blue */
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.15),
+    rgba(37, 99, 235, 0.05)
+  );
+}
+
+/* Secure */
+.secure {
+  color: #047857; /* green */
+  background: linear-gradient(
+    135deg,
+    rgba(4, 120, 87, 0.18),
+    rgba(4, 120, 87, 0.06)
+  );
+}
+
+/* File sharing */
+.files {
+  color: #92400e; /* amber */
+  background: linear-gradient(
+    135deg,
+    rgba(251, 191, 36, 0.25),
+    rgba(251, 191, 36, 0.08)
+  );
 }
 
 /* Hint */
