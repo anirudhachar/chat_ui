@@ -331,7 +331,7 @@ const scrollToBottom = () => {
 
         <div className={styles.userInfo}>
           <h2 className={styles.userName}>{selectedUser.name}</h2>
-          <p className={styles.userStatus}>Standford University</p>
+          <p className={styles.userStatus}>Standford Universityy</p>
         </div>
 
         <button className={styles.moreButton}>
