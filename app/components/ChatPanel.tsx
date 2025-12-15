@@ -182,38 +182,58 @@ export default function ChatPanel({
       );
     }
 
-    // 🔗 LINK MESSAGE (Preview)
-    if (m.type === "link" && m.linkUrl && m.linkTitle) {
-      return (
-        <>
-          <a
-            href={m.linkUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.messageLinkPreview}
-          >
-            {m.linkImage && (
-              <img
-                src={m.linkImage}
-                alt={m.linkTitle}
-                className={styles.linkImage}
-              />
-            )}
-            <div className={styles.linkContent}>
-              <p className={styles.linkSource}>{new URL(m.linkUrl).hostname}</p>
-              <p className={styles.linkTitle}>{m.linkTitle}</p>
-              {m.linkDescription && (
-                <p className={styles.linkDescription}>{m.linkDescription}</p>
-              )}
-            </div>
-          </a>
-          {/* Render user-typed text content if it exists */}
-          {m.content && m.content.trim() !== m.linkUrl.trim() && (
-            <p className={styles.messageText}>{m.content}</p>
+   // 🔗 LINK MESSAGE
+if (m.type === "link" && m.linkUrl) {
+  // ✅ PREVIEW AVAILABLE
+  if (m.linkTitle) {
+    return (
+      <>
+        <a
+          href={m.linkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.messageLinkPreview}
+        >
+          {m.linkImage && (
+            <img
+              src={m.linkImage}
+              alt={m.linkTitle}
+              className={styles.linkImage}
+            />
           )}
-        </>
-      );
-    }
+          <div className={styles.linkContent}>
+            <p className={styles.linkSource}>
+              {new URL(m.linkUrl).hostname}
+            </p>
+            <p className={styles.linkTitle}>{m.linkTitle}</p>
+            {m.linkDescription && (
+              <p className={styles.linkDescription}>
+                {m.linkDescription}
+              </p>
+            )}
+          </div>
+        </a>
+
+        {m.content && m.content.trim() !== m.linkUrl.trim() && (
+          <p className={styles.messageText}>{m.content}</p>
+        )}
+      </>
+    );
+  }
+
+  // ⏳ PREVIEW NOT READY → SHOW URL
+  return (
+    <a
+      href={m.linkUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={styles.messageText}
+    >
+      {m.content || m.linkUrl}
+    </a>
+  );
+}
+
 
     // 💬 DEFAULT: TEXT MESSAGE
     return <p className={styles.messageText}>{m.content}</p>;
