@@ -232,8 +232,8 @@ export default function ChatPanel({
       <Image
         src="/Frame 238021 (1).svg"
         alt="Chat illustration"
-        width={110}
-        height={110}
+        width={90}
+        height={90}
         priority
       />
     </div>

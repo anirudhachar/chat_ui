@@ -36,24 +36,6 @@
 }
 
 /* Image / Logo */
-.imageWrapper {
-  width: 132px;
-  height: 132px;
-  margin: 0 auto 26px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at top,
-    rgba(37, 99, 235, 0.22),
-    rgba(37, 99, 235, 0.08)
-  );
-
-  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.25);
-}
 
 /* Text */
 .title {
