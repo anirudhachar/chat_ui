@@ -42,7 +42,6 @@ export default function ChatPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
   const topMessageSentinelRef = useRef<HTMLDivElement>(null);
-  
 
   const isFirstLoadRef = useRef(true);
   const isLoadingOlderRef = useRef(false);
@@ -53,7 +52,6 @@ export default function ChatPanel({
     isFirstLoadRef.current = true;
   }, [resetKey]);
 
-  /* ✅ SMART SCROLL HANDLING */
   useEffect(() => {
     const container = messagesAreaRef.current;
     if (!container || messages.length === 0) return;
@@ -77,7 +75,6 @@ export default function ChatPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
-  /* 🔁 INFINITE SCROLL (OLDER MESSAGES) */
   useEffect(() => {
     if (!hasMoreMessages || messages.length === 0) return;
 
@@ -226,54 +223,47 @@ export default function ChatPanel({
   /* ---------- EMPTY STATE ---------- */
   if (!selectedUser) {
     return (
-<div className={styles.emptyState}>
-  <div className={styles.emptyCard}>
-    {/* Logo / Illustration */}
-    <div className={styles.imageWrapper}>
-      <Image
-        src="/Frame 238021 (1).svg"
-        alt="Chat illustration"
-        width={90}
-        height={90}
-        priority
-      />
-    </div>
+      <div className={styles.emptyState}>
+        <div className={styles.emptyCard}>
+          {/* Logo / Illustration */}
+          <div className={styles.imageWrapper}>
+            <Image
+              src="/Frame 238021 (1).svg"
+              alt="Chat illustration"
+              width={90}
+              height={90}
+              priority
+            />
+          </div>
 
-    <h2 className={styles.title}>Let’s start chatting</h2>
+          <h2 className={styles.title}>Let’s start chatting</h2>
 
-    <p className={styles.subtitle}>
-      Search for a person from the left sidebar to start a conversation.
-      <br />
-      Connect with students, professors, and peers instantly.
-    </p>
+          <p className={styles.subtitle}>
+            Search for a person from the left sidebar to start a conversation.
+            <br />
+            Connect with students, professors, and peers instantly.
+          </p>
 
-  <ul className={styles.features}>
-  <li className={styles.realtime}>
-    <span className={styles.icon}>✨</span>
-    <span>Real-time messaging</span>
-  </li>
+          <ul className={styles.features}>
+            <li className={styles.realtime}>
+              <span className={styles.icon}>✨</span>
+              <span>Real-time messaging</span>
+            </li>
 
-  <li className={styles.secure}>
-    <span className={styles.icon}>🔒</span>
-    <span>Secure conversations</span>
-  </li>
+            <li className={styles.secure}>
+              <span className={styles.icon}>🔒</span>
+              <span>Secure conversations</span>
+            </li>
 
-  <li className={styles.files}>
-    <span className={styles.icon}>📁</span>
-    <span>Easy file sharing</span>
-  </li>
-</ul>
+            <li className={styles.files}>
+              <span className={styles.icon}>📁</span>
+              <span>Easy file sharing</span>
+            </li>
+          </ul>
 
-
-    <div className={styles.hint}>
-      Search a user • Start typing
-    </div>
-  </div>
-</div>
-
-
-
-
+          <div className={styles.hint}>Search a user • Start typing</div>
+        </div>
+      </div>
     );
   }
 
@@ -316,30 +306,25 @@ export default function ChatPanel({
 
       {/* MESSAGES */}
       <div className={styles.messagesArea} ref={messagesAreaRef}>
-         {messages.length === 0 && (
-            <div className={styles.emptyConversation}>
-              <div className={styles.profileRing}>
-                {selectedUser.avatar ? (
-                  <img
-                    src={selectedUser.avatar}
-                    className={styles.emptyAvatar}
-                  />
-                ) : (
-                  <div className={styles.emptyInitials}>
-                    {getInitials(selectedUser.name)}
-                  </div>
-                )}
-              </div>
-
-              <h3>
-                You’re connected with <span>{selectedUser.name}</span>
-              </h3>
-              <p>Type a message below to start chatting</p>
-              <div className={styles.typingHint}>
-                💬 Start typing…
-              </div>
+        {messages.length === 0 && (
+          <div className={styles.emptyConversation}>
+            <div className={styles.profileRing}>
+              {selectedUser.avatar ? (
+                <img src={selectedUser.avatar} className={styles.emptyAvatar} />
+              ) : (
+                <div className={styles.emptyInitials}>
+                  {getInitials(selectedUser.name)}
+                </div>
+              )}
             </div>
-          )}
+
+            <h3>
+              You’re connected with <span>{selectedUser.name}</span>
+            </h3>
+            <p>Type a message below to start chatting</p>
+            <div className={styles.typingHint}>💬 Start typing…</div>
+          </div>
+        )}
         <div className={styles.messagesContainer}>
           {hasMoreMessages && (
             <div ref={topMessageSentinelRef}>
