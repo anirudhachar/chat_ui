@@ -303,6 +303,7 @@
 }
 
 .messagesArea {
+  position: relative;
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -660,8 +661,8 @@
 
 .scrollToBottom {
   position: absolute;
-  bottom: 90px; // above input
-  right: 20px;
+  bottom: 16px;
+  right: 16px;
   width: 42px;
   height: 42px;
   border-radius: 50%;
@@ -671,8 +672,7 @@
   font-size: 18px;
   cursor: pointer;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-  z-index: 20;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  z-index: 30;
 
   &:hover {
     transform: scale(1.08);

@@ -78,22 +78,23 @@ export default function ChatPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
-  /* 🔽 SCROLL TO BOTTOM VISIBILITY */
 useEffect(() => {
   const container = messagesAreaRef.current;
   if (!container) return;
 
   const handleScroll = () => {
-    const isNearBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight <
-      120; // px threshold
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
 
-    setShowScrollToBottom(!isNearBottom);
+    setShowScrollToBottom(distanceFromBottom > 200);
   };
 
   container.addEventListener("scroll", handleScroll);
+  handleScroll(); // 👈 run once on mount
+
   return () => container.removeEventListener("scroll", handleScroll);
 }, []);
+
 
 
 const scrollToBottom = () => {
@@ -392,7 +393,7 @@ const scrollToBottom = () => {
 
           <div ref={messagesEndRef} />
         </div>
-      </div>
+
 
             {showScrollToBottom && (
         <button
@@ -403,6 +404,8 @@ const scrollToBottom = () => {
           ⬇️
         </button>
       )}
+      </div>
+
 
       <MessageInput onSendMessage={onSendMessage} />
     </div>
