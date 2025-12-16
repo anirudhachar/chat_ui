@@ -202,6 +202,7 @@ export default function ChatPanel({
 const handleCopy = (msg: Message) => {
   console.log(msg,"messagecopied")
   const text = getCopyText(msg);
+  console.log(text,"textcopiedboi")
   if (!text) return;
 
   navigator.clipboard.writeText(text);
