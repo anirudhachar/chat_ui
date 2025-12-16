@@ -146,67 +146,62 @@ export default function ChatPanel({
 
     // 📦 OFFER MESSAGE
     console.log(m, "messagemarket");
-   if (m.type === "offer" && m.offer) {
-  return (
-    <div
-      className={`${styles.offerCard} ${
-        m.sent ? styles.sent : styles.received
-      }`}
-    >
-      {/* Header */}
-      <div className={styles.offerHeader}>
-        <span className={styles.offerBadge}>📦 Offer</span>
-        <span className={styles.offerType}>
-          {m.offer.offerType === "PRICE" ? "Price Offer" : "Trade Offer"}
-        </span>
-      </div>
-
-      {/* Image */}
-      {m.offer.imageUrl && (
-        <div className={styles.offerImageWrapper}>
-          <img
-            src={m.offer.imageUrl}
-            alt="Listing"
-            className={styles.offerImage}
-          />
-        </div>
-      )}
-
-      {/* Offer Details */}
-      <div className={styles.offerDetails}>
-        {m.offer.offerType === "PRICE" && (
-          <div className={styles.offerRow}>
-            <span>Offered Price</span>
-            <strong>
-              {m.offer.currency} {m.offer.amount}
-            </strong>
+    if (m.type === "offer" && m.offer) {
+      return (
+        <div
+          className={`${styles.offerCard} ${
+            m.sent ? styles.sent : styles.received
+          }`}
+        >
+          {/* Header */}
+          <div className={styles.offerHeader}>
+            <span className={styles.offerBadge}>📦 Offer</span>
+            <span className={styles.offerType}>
+              {m.offer.offerType === "PRICE" ? "Price Offer" : "Trade Offer"}
+            </span>
           </div>
-        )}
 
-        {m.offer.offerType === "TRADE" && (
-          <div className={styles.offerRow}>
-            <span>Trade Item</span>
-            <strong>{m.offer.tradeDescription}</strong>
+          {/* Image */}
+          {m.offer.imageUrl && (
+            <div className={styles.offerImageWrapper}>
+              <img
+                src={m.offer.imageUrl}
+                alt="Listing"
+                className={styles.offerImage}
+              />
+            </div>
+          )}
+
+          {/* Offer Details */}
+          <div className={styles.offerDetails}>
+            {m.offer.offerType === "PRICE" && (
+              <div className={styles.offerRow}>
+                <span>Offered Price</span>
+                <strong>
+                  {m.offer.currency} {m.offer.amount}
+                </strong>
+              </div>
+            )}
+
+            {m.offer.offerType === "TRADE" && (
+              <div className={styles.offerRow}>
+                <span>Trade Item</span>
+                <strong>{m.offer.tradeDescription}</strong>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Message */}
-      {m.content && (
-        <p className={styles.offerMessage}>
-          {m.content}
-        </p>
-      )}
+          {/* Message */}
+          {m.content && <p className={styles.offerMessage}>{m.content}</p>}
 
-      {/* Future actions */}
-      {/* <div className={styles.offerActions}>
+          {/* Future actions */}
+          {/* <div className={styles.offerActions}>
         <button>Accept</button>
         <button>Reject</button>
       </div> */}
-    </div>
-  );
-}
-
+        </div>
+      );
+    }
 
     if (m.type === "image" && m.fileUrl) {
       return (
