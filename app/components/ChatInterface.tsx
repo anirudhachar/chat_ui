@@ -573,7 +573,7 @@ export default function ChatInterface() {
   // ───────────────────────────────────────────────
   // ChatInterface.tsx
 
-  const handleSendMessage = useCallback(
+ const handleSendMessage = useCallback(
     async (
       content: string,
       type: "text" | "image" | "document" | "link" = "text",
@@ -582,7 +582,8 @@ export default function ChatInterface() {
         url: string;
         image?: string;
         description?: string;
-      }
+      },
+      replyTo?: Message // 👈 ADDED: 4th argument to accept the reply object
     ) => {
       if (!selectedUser || !parentToken) return;
 
@@ -618,6 +619,8 @@ export default function ChatInterface() {
         linkTitle: file?.name,
         linkDescription: file?.description,
         linkImage: file?.image,
+
+        replyTo: replyTo, // 👈 ADDED: Pass replyTo to state so UI renders it immediately
       };
 
       setMessages((prev) => [...prev, optimistic]);
