@@ -6,10 +6,11 @@ import {
   FiMoreVertical,
   FiClock,
   FiFile,
-  // ✨ Added these icons for the menu
   FiChevronDown,
   FiCopy,
   FiCornerUpLeft,
+  FiX,
+  FiImage,
 } from "react-icons/fi";
 import { BsCheck, BsCheckAll } from "react-icons/bs";
 import Image from "next/image";
@@ -22,6 +23,7 @@ import MessageSkeleton from "./MessageSkeleton/MessageSkeleton";
 interface ChatPanelProps {
   selectedUser: User | null;
   messages: Message[];
+  // Updated onSendMessage to accept replyTo
   onSendMessage: (
     content: string,
     type?: "text" | "image" | "document" | "link",
@@ -30,13 +32,13 @@ interface ChatPanelProps {
       url: string;
       image?: string;
       description?: string;
-    }
+    },
+    replyTo?: Message // ✨ New Prop
   ) => void;
   onBack: () => void;
   onLoadMoreMessages: () => void;
   hasMoreMessages: boolean;
   resetKey?: string;
-  // ✨ Added onReply prop
   onReply?: (message: Message) => void;
 }
 
@@ -58,19 +60,20 @@ export default function ChatPanel({
   const isLoadingOlderRef = useRef(false);
   const prevScrollHeightRef = useRef(0);
 
-  // ✨ STATE: Tracks which message dropdown is open
+  // ✨ STATE: Tracks dropdown & Reply
   const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
 
   /* 🔁 reset on chat switch */
   useEffect(() => {
     isFirstLoadRef.current = true;
-    setActiveMessageId(null); // Close menus on switch
+    setActiveMessageId(null);
+    setReplyingTo(null);
   }, [resetKey]);
 
-  /* ✨ EFFECT: Close dropdown when clicking outside */
+  /* ✨ Click Outside to Close Dropdown */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // If clicking outside the options menu, close it
       if (
         activeMessageId &&
         !(event.target as Element).closest(`.${styles.messageOptions}`)
@@ -82,18 +85,17 @@ export default function ChatPanel({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [activeMessageId]);
 
+  /* ---------------- SCROLL LOGIC ---------------- */
   useEffect(() => {
     const container = messagesAreaRef.current;
     if (!container || messages.length === 0) return;
 
-    // 1️⃣ Initial chat open → jump instantly
     if (isFirstLoadRef.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
       isFirstLoadRef.current = false;
       return;
     }
 
-    // 2️⃣ Loading older messages → preserve scroll
     if (isLoadingOlderRef.current) {
       const newScrollHeight = container.scrollHeight;
       container.scrollTop = newScrollHeight - prevScrollHeightRef.current;
@@ -101,7 +103,6 @@ export default function ChatPanel({
       return;
     }
 
-    // 3️⃣ New outgoing/incoming message → smooth scroll
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
@@ -120,10 +121,7 @@ export default function ChatPanel({
           onLoadMoreMessages();
         }
       },
-      {
-        root: messagesAreaRef.current,
-        threshold: 0.1,
-      }
+      { root: messagesAreaRef.current, threshold: 0.1 }
     );
 
     const el = topMessageSentinelRef.current;
@@ -134,19 +132,11 @@ export default function ChatPanel({
     };
   }, [hasMoreMessages, onLoadMoreMessages, messages.length]);
 
-  /* ---------- HELPERS ---------- */
-
-  // ✨ Restored this function
+  /* ---------------- HELPERS ---------------- */
   const getAvatarColor = (id: string) => {
     const colors = [
-      "#00a884",
-      "#667781",
-      "#0088cc",
-      "#e9a944",
-      "#9b72cb",
-      "#00897b",
-      "#ff6b6b",
-      "#4fb3d4",
+      "#00a884", "#667781", "#0088cc", "#e9a944",
+      "#9b72cb", "#00897b", "#ff6b6b", "#4fb3d4",
     ];
     return colors[parseInt(id.replace(/\D/g, "") || "0", 10) % colors.length];
   };
@@ -176,88 +166,75 @@ export default function ChatPanel({
     switch (m.type) {
       case "text":
         return m.content || "";
-
       case "image":
         return m.content || m.fileUrl || "";
-
       case "document":
         return `${m.fileName || "Document"}\n${m.fileUrl || ""}`;
-
       case "link":
         return m.linkUrl || m.content || "";
-
       case "offer":
         if (!m.offer) return "";
         if (m.offer.offerType === "PRICE") {
-          return `Offer: ${m.offer.currency} ${m.offer.amount}\n${
-            m.content || ""
-          }`;
+          return `Offer: ${m.offer.currency} ${m.offer.amount}\n${m.content || ""}`;
         }
         return `Trade Offer: ${m.offer.tradeDescription}\n${m.content || ""}`;
-
       default:
         return m.content || "";
     }
   };
 
+  /* ---------------- HANDLERS ---------------- */
   const handleCopy = (msg: Message) => {
-    console.log(msg, "messagecopied");
     const text = getCopyText(msg);
-    console.log(text, "textcopiedboi");
     if (!text) return;
-
     navigator.clipboard.writeText(text);
     setActiveMessageId(null);
   };
 
   const handleReply = (msg: Message) => {
+    setReplyingTo(msg);
     if (onReply) onReply(msg);
     setActiveMessageId(null);
   };
 
-  /* ---------- NEW: MESSAGE CONTENT RENDERER ---------- */
-  const renderMessageContent = (m: Message): ReactNode => {
-    // 📷 IMAGE MESSAGE
+  const cancelReply = () => {
+    setReplyingTo(null);
+  };
 
+  // Wrapper to inject replyTo state into sending mechanism
+  const handleInternalSendMessage = (
+    content: string,
+    type?: "text" | "image" | "document" | "link",
+    file?: any
+  ) => {
+    onSendMessage(content, type, file, replyingTo || undefined);
+    setReplyingTo(null); // Clear after sending
+  };
+
+  /* ---------------- RENDERERS ---------------- */
+  const renderMessageContent = (m: Message): ReactNode => {
     // 📦 OFFER MESSAGE
-    console.log(m, "messagemarket"); // ✨ Restored your log
     if (m.type === "offer" && m.offer) {
       return (
-        <div
-          className={`${styles.offerCard} ${
-            m.sent ? styles.sent : styles.received
-          }`}
-        >
-          {/* Header */}
+        <div className={`${styles.offerCard} ${m.sent ? styles.sent : styles.received}`}>
           <div className={styles.offerHeader}>
             <span className={styles.offerBadge}>📦 Offer</span>
             <span className={styles.offerType}>
               {m.offer.offerType === "PRICE" ? "Price Offer" : "Trade Offer"}
             </span>
           </div>
-
-          {/* Image */}
           {m.offer.imageUrl && (
             <div className={styles.offerImageWrapper}>
-              <img
-                src={m.offer.imageUrl}
-                alt="Listing"
-                className={styles.offerImage}
-              />
+              <img src={m.offer.imageUrl} alt="Listing" className={styles.offerImage} />
             </div>
           )}
-
-          {/* Offer Details */}
           <div className={styles.offerDetails}>
             {m.offer.offerType === "PRICE" && (
               <div className={styles.offerRow}>
                 <span>Offered Price</span>
-                <strong>
-                  {m.offer.currency} {m.offer.amount}
-                </strong>
+                <strong>{m.offer.currency} {m.offer.amount}</strong>
               </div>
             )}
-
             {m.offer.offerType === "TRADE" && (
               <div className={styles.offerRow}>
                 <span>Trade Item</span>
@@ -265,21 +242,16 @@ export default function ChatPanel({
               </div>
             )}
           </div>
-
-          {/* Message */}
           {m.content && <p className={styles.offerMessage}>{m.content}</p>}
         </div>
       );
     }
 
+    // 📷 IMAGE MESSAGE
     if (m.type === "image" && m.fileUrl) {
       return (
         <div className={styles.mediaContainer}>
-          <img
-            src={m.fileUrl}
-            alt={m.content}
-            className={styles.messageImage}
-          />
+          <img src={m.fileUrl} alt={m.content} className={styles.messageImage} />
           {m.content && m.content.trim() !== "📷 Photo" && (
             <p className={styles.messageCaption}>{m.content}</p>
           )}
@@ -290,19 +262,10 @@ export default function ChatPanel({
     // 📄 DOCUMENT MESSAGE
     if (m.type === "document" && m.fileUrl) {
       return (
-        <a
-          href={m.fileUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={styles.messageDocumentLink}
-        >
-          <div className={styles.documentIcon}>
-            <FiFile size={20} />
-          </div>
+        <a href={m.fileUrl} target="_blank" rel="noopener noreferrer" className={styles.messageDocumentLink}>
+          <div className={styles.documentIcon}><FiFile size={20} /></div>
           <div className={styles.documentInfo}>
-            <p className={styles.documentName}>
-              {m.fileName || m.content || "Document"}
-            </p>
+            <p className={styles.documentName}>{m.fileName || m.content || "Document"}</p>
             {m.content && m.content.trim() !== m.fileName?.trim() && (
               <p className={styles.documentSize}>{m.content}</p>
             )}
@@ -313,49 +276,25 @@ export default function ChatPanel({
 
     // 🔗 LINK MESSAGE
     if (m.type === "link" && m.linkUrl) {
-      // ✅ PREVIEW AVAILABLE
       if (m.linkTitle) {
         return (
           <>
-            <a
-              href={m.linkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.messageLinkPreview}
-            >
-              {m.linkImage && (
-                <img
-                  src={m.linkImage}
-                  alt={m.linkTitle}
-                  className={styles.linkImage}
-                />
-              )}
+            <a href={m.linkUrl} target="_blank" rel="noopener noreferrer" className={styles.messageLinkPreview}>
+              {m.linkImage && <img src={m.linkImage} alt={m.linkTitle} className={styles.linkImage} />}
               <div className={styles.linkContent}>
-                <p className={styles.linkSource}>
-                  {new URL(m.linkUrl).hostname}
-                </p>
+                <p className={styles.linkSource}>{new URL(m.linkUrl).hostname}</p>
                 <p className={styles.linkTitle}>{m.linkTitle}</p>
-                {m.linkDescription && (
-                  <p className={styles.linkDescription}>{m.linkDescription}</p>
-                )}
+                {m.linkDescription && <p className={styles.linkDescription}>{m.linkDescription}</p>}
               </div>
             </a>
-
             {m.content && m.content.trim() !== m.linkUrl.trim() && (
               <p className={styles.messageText}>{m.content}</p>
             )}
           </>
         );
       }
-
-      // ⏳ PREVIEW NOT READY → SHOW URL
       return (
-        <a
-          href={m.linkUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={styles.messageText}
-        >
+        <a href={m.linkUrl} target="_blank" rel="noopener noreferrer" className={styles.messageText}>
           {m.content || m.linkUrl}
         </a>
       );
@@ -364,49 +303,19 @@ export default function ChatPanel({
     // 💬 DEFAULT: TEXT MESSAGE
     return <p className={styles.messageText}>{m.content}</p>;
   };
-  /* ---------------------------------------------------- */
 
   /* ---------- EMPTY STATE ---------- */
   if (!selectedUser) {
     return (
       <div className={styles.emptyState}>
         <div className={styles.emptyCard}>
-          {/* Logo / Illustration */}
           <div className={styles.imageWrapper}>
-            <Image
-              src="/Frame 238021 (1).svg"
-              alt="Chat illustration"
-              width={90}
-              height={90}
-              priority
-            />
+            <Image src="/Frame 238021 (1).svg" alt="Chat illustration" width={90} height={90} priority />
           </div>
-
           <h2 className={styles.title}>Let’s start chatting</h2>
-
           <p className={styles.subtitle}>
             Search for a person from the left sidebar to start a conversation.
-            <br />
-            Connect with students, professors, and peers instantly.
           </p>
-
-          <ul className={styles.features}>
-            <li className={styles.realtime}>
-              <span className={styles.icon}>✨</span>
-              <span>Real-time messaging</span>
-            </li>
-
-            <li className={styles.secure}>
-              <span className={styles.icon}>🔒</span>
-              <span>Secure conversations</span>
-            </li>
-
-            <li className={styles.files}>
-              <span className={styles.icon}>📁</span>
-              <span>Easy file sharing</span>
-            </li>
-          </ul>
-
           <div className={styles.hint}>Search a user • Start typing</div>
         </div>
       </div>
@@ -422,11 +331,7 @@ export default function ChatPanel({
         </button>
 
         <div className={styles.avatarWrapper}>
-          <div
-            className={styles.avatar}
-            // ✨ Restored your commented out style
-            // style={{ backgroundColor: getAvatarColor(selectedUser.id) }}
-          >
+          <div className={styles.avatar}>
             {selectedUser.avatar ? (
               <img
                 src={selectedUser.avatar}
@@ -443,7 +348,7 @@ export default function ChatPanel({
 
         <div className={styles.userInfo}>
           <h2 className={styles.userName}>{selectedUser.name}</h2>
-          <p className={styles.userStatus}>Standford University</p>
+          <p className={styles.userStatus}>Stanford University</p>
         </div>
 
         <button className={styles.moreButton}>
@@ -459,27 +364,16 @@ export default function ChatPanel({
               {selectedUser.avatar ? (
                 <img src={selectedUser.avatar} className={styles.emptyAvatar} />
               ) : (
-                <div className={styles.emptyInitials}>
-                  {getInitials(selectedUser.name)}
-                </div>
+                <div className={styles.emptyInitials}>{getInitials(selectedUser.name)}</div>
               )}
             </div>
-
             <h3 className={styles.emptyTitle}>
-              You’re now connected with
-              <br />
-              <span>{selectedUser.name}</span>
+              You’re now connected with <span>{selectedUser.name}</span>
             </h3>
-
-            <p className={styles.emptySubtitle}>
-              Say hello 👋 and start your conversation.
-            </p>
-
-            <div className={styles.emptyCta}>
-              💬 Type your first message below
-            </div>
+            <p className={styles.emptySubtitle}>Say hello 👋 and start your conversation.</p>
           </div>
         )}
+
         <div className={styles.messagesContainer}>
           {hasMoreMessages && (
             <div ref={topMessageSentinelRef}>
@@ -488,7 +382,6 @@ export default function ChatPanel({
           )}
 
           {messages.map((m) => {
-            // ✨ Check if this specific message is active
             const isDropdownOpen = activeMessageId === m.id;
 
             return (
@@ -499,13 +392,13 @@ export default function ChatPanel({
                 }`}
               >
                 <div className={styles.messageBubble}>
-                  {/* ✨ 1. DROPDOWN TRIGGER (Visible on Hover) */}
+                  {/* ✨ DROPDOWN TRIGGER */}
                   <button
                     className={`${styles.optionsTrigger} ${
                       isDropdownOpen ? styles.active : ""
                     }`}
                     onClick={(e) => {
-                      e.stopPropagation(); // Stop bubble click
+                      e.stopPropagation();
                       setActiveMessageId(isDropdownOpen ? null : m.id);
                     }}
                     aria-label="Message options"
@@ -513,7 +406,7 @@ export default function ChatPanel({
                     <FiChevronDown />
                   </button>
 
-                  {/* ✨ 2. DROPDOWN MENU */}
+                  {/* ✨ DROPDOWN MENU */}
                   {isDropdownOpen && (
                     <div className={styles.messageOptions}>
                       <button
@@ -536,9 +429,10 @@ export default function ChatPanel({
                     </div>
                   )}
 
-                
+                  {/* CONTENT */}
                   {renderMessageContent(m)}
 
+                  {/* META */}
                   <div className={styles.messageMeta}>
                     <span className={styles.messageTime}>{m.timestamp}</span>
                     {m.sent && getStatusIcon(m.status)}
@@ -547,13 +441,41 @@ export default function ChatPanel({
               </div>
             );
           })}
-
           <div ref={messagesEndRef} />
         </div>
       </div>
 
+      {/* ✨ REPLY PREVIEW PANEL (WhatsApp Style) */}
+      {replyingTo && (
+        <div className={styles.replyPreview}>
+          <div className={styles.replyContainer}>
+            <div className={styles.replyDecor} /> 
+            <div className={styles.replyContent}>
+              <span className={styles.replyAuthor}>
+                {replyingTo.sent ? "You" : selectedUser.name}
+              </span>
+              <p className={styles.replyText}>
+                {replyingTo.type === "image" ? (
+                  <span className={styles.flexCenter}><FiImage /> Photo</span>
+                ) : (
+                  getCopyText(replyingTo)
+                )}
+              </p>
+            </div>
+            
+            {replyingTo.type === "image" && replyingTo.fileUrl && (
+               <img src={replyingTo.fileUrl} alt="" className={styles.replyThumb} />
+            )}
+
+            <button onClick={cancelReply} className={styles.closeReply}>
+              <FiX />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* INPUT */}
-      <MessageInput onSendMessage={onSendMessage} />
+      <MessageInput onSendMessage={handleInternalSendMessage} />
     </div>
   );
 }

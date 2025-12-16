@@ -877,3 +877,105 @@
     }
   }
 }
+
+
+/* ---------------------------------------------------- */
+/* ✨ ADD THIS SECTION AT THE BOTTOM OF YOUR FILE       */
+/* ---------------------------------------------------- */
+
+.replyPreview {
+  padding: 8px 10px;
+  background-color: #f0f2f5; 
+  border-top: 1px solid #e1e4e8;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.2s ease-out;
+  z-index: 5;
+}
+
+.replyContainer {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* The colored vertical line on the left */
+.replyDecor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background-color: #8d8cfb; /* Matches your Chat Header color */
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+.replyContent {
+  flex: 1;
+  margin-left: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.replyAuthor {
+  font-size: 13px;
+  font-weight: 600;
+  color: #8d8cfb; /* Matches your theme */
+  margin-bottom: 2px;
+}
+
+.replyText {
+  font-size: 13px;
+  color: #667781;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.flexCenter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.replyThumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 8px;
+  margin-left: 8px;
+}
+
+.closeReply {
+  background: transparent;
+  border: none;
+  color: #54656f;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+
+  &:hover {
+    background-color: #e9edef;
+  }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
