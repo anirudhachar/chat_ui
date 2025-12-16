@@ -172,43 +172,43 @@ export default function ChatPanel({
     return <BsCheck className={styles.tickIcon} />;
   };
 
-
   const getCopyText = (m: Message): string => {
-  switch (m.type) {
-    case "text":
-      return m.content || "";
+    switch (m.type) {
+      case "text":
+        return m.content || "";
 
-    case "image":
-      return m.content || m.fileUrl || "";
+      case "image":
+        return m.content || m.fileUrl || "";
 
-    case "document":
-      return `${m.fileName || "Document"}\n${m.fileUrl || ""}`;
+      case "document":
+        return `${m.fileName || "Document"}\n${m.fileUrl || ""}`;
 
-    case "link":
-      return m.linkUrl || m.content || "";
+      case "link":
+        return m.linkUrl || m.content || "";
 
-    case "offer":
-      if (!m.offer) return "";
-      if (m.offer.offerType === "PRICE") {
-        return `Offer: ${m.offer.currency} ${m.offer.amount}\n${m.content || ""}`;
-      }
-      return `Trade Offer: ${m.offer.tradeDescription}\n${m.content || ""}`;
+      case "offer":
+        if (!m.offer) return "";
+        if (m.offer.offerType === "PRICE") {
+          return `Offer: ${m.offer.currency} ${m.offer.amount}\n${
+            m.content || ""
+          }`;
+        }
+        return `Trade Offer: ${m.offer.tradeDescription}\n${m.content || ""}`;
 
-    default:
-      return m.content || "";
-  }
-};
+      default:
+        return m.content || "";
+    }
+  };
 
-const handleCopy = (msg: Message) => {
-  console.log(msg,"messagecopied")
-  const text = getCopyText(msg);
-  console.log(text,"textcopiedboi")
-  if (!text) return;
+  const handleCopy = (msg: Message) => {
+    console.log(msg, "messagecopied");
+    const text = getCopyText(msg);
+    console.log(text, "textcopiedboi");
+    if (!text) return;
 
-  navigator.clipboard.writeText(text);
-  setActiveMessageId(null);
-};
-
+    navigator.clipboard.writeText(text);
+    setActiveMessageId(null);
+  };
 
   const handleReply = (msg: Message) => {
     if (onReply) onReply(msg);
@@ -528,7 +528,7 @@ const handleCopy = (msg: Message) => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                         handleCopy(m);
+                          handleCopy(m);
                         }}
                       >
                         <FiCopy /> Copy
@@ -536,7 +536,7 @@ const handleCopy = (msg: Message) => {
                     </div>
                   )}
 
-                  {/* 🚀 FIXED RENDERING */}
+                
                   {renderMessageContent(m)}
 
                   <div className={styles.messageMeta}>
