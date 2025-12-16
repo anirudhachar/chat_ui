@@ -219,9 +219,8 @@ export default function ChatPanel({
     setReplyingTo(null);
   };
 
- 
   const renderMessageContent = (m: Message): ReactNode => {
-    console.log(m,"messgeincoming")
+    console.log(m, "messgeincoming");
     // ✨ Helper: Wraps the main content with the "Reply Quote" if it exists
     const wrapWithReply = (content: ReactNode) => {
       if (!m.replyTo) return content;
@@ -265,51 +264,61 @@ export default function ChatPanel({
       );
     };
 
-   // 📦 OFFER MESSAGE
-if (m.type === "offer" && m.offer) {
-  return wrapWithReply(
-    <div
-      className={`${styles.offerCard} ${
-        m.sent ? styles.sent : styles.received
-      }`}
-    >
-      {/* PRODUCT HEADER */}
-      <div className={styles.productRow}>
-        {m.offer.imageUrl && (
-          <img
-            src={m.offer.imageUrl}
-            alt="Listing"
-            className={styles.productImage}
-          />
-        )}
-
-        <div className={styles.productInfo}>
-          <p className={styles.productTitle}>
-            MacBook Pro 13&quot; 2021
-          </p>
-          <p className={styles.productPrice}>
-            $967.00
-          </p>
+    if (m.type === "audio" && m.fileUrl) {
+      return wrapWithReply(
+        <div className={styles.audioMessageContainer}>
+          <div className={styles.audioHeader}>
+            {/* Optional: Microphone Icon */}
+            <span style={{ fontSize: "1.2rem", marginRight: "8px" }}>🎤</span>
+            <span>Voice Message</span>
+          </div>
+          <audio controls src={m.fileUrl} className={styles.audioPlayer} />
+          {/* Show duration or caption if it exists and isn't the default text */}
+          {m.content && m.content !== "🎤 Voice Message" && (
+            <p className={styles.messageCaption}>{m.content}</p>
+          )}
         </div>
-      </div>
+      );
+    }
+    // 📦 OFFER MESSAGE
+    if (m.type === "offer" && m.offer) {
+      return wrapWithReply(
+        <div
+          className={`${styles.offerCard} ${
+            m.sent ? styles.sent : styles.received
+          }`}
+        >
+          {/* PRODUCT HEADER */}
+          <div className={styles.productRow}>
+            {m.offer.imageUrl && (
+              <img
+                src={m.offer.imageUrl}
+                alt="Listing"
+                className={styles.productImage}
+              />
+            )}
 
-      {/* OFFER AMOUNT */}
-      <div className={styles.offerAmount}>
-        Offer Amount{" "}
-        <strong>
-          {m.offer.currency} {m.offer.amount}
-        </strong>
-      </div>
+            <div className={styles.productInfo}>
+              <p className={styles.productTitle}>MacBook Pro 13&quot; 2021</p>
+              <p className={styles.productPrice}>$967.00</p>
+            </div>
+          </div>
 
-      {/* MESSAGE */}
-      {m.content && (
-        <p className={styles.offerMessage}>{m.content}</p>
-      )}
+          {/* OFFER AMOUNT */}
+          <div className={styles.offerAmount}>
+            Offer Amount{" "}
+            <strong>
+              {m.offer.currency} {m.offer.amount}
+            </strong>
+          </div>
 
-      {/* TIME (already from message meta outside) */}
-    </div>
-  );
-}
+          {/* MESSAGE */}
+          {m.content && <p className={styles.offerMessage}>{m.content}</p>}
+
+          {/* TIME (already from message meta outside) */}
+        </div>
+      );
+    }
 
     // 📷 IMAGE MESSAGE
     if (m.type === "image" && m.fileUrl) {
