@@ -798,8 +798,8 @@
 }
 
 .productImage {
-  width: 70px;
-  height: 52px;
+  width: 102px;
+  height: 59px;
   border-radius: 10px;
   object-fit: cover;
 }
@@ -811,32 +811,38 @@
 }
 
 .productTitle {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  color: #37374B;
 }
 
 .productPrice {
-  font-size: 14px;
-  font-weight: 600;
-  color: #a855f7;
+  font-size: 18px;
+  font-weight: 700;
   margin-top: 2px;
+
+  background: linear-gradient(180deg, #A38FEA 0%, #E697B0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text; // fallback
 }
+
 
 /* OFFER AMOUNT */
 .offerAmount {
   margin-top: 10px;
-  font-size: 14px;
-  color: #7c3aed;
-  font-weight: 500;
+  font-size: 16px;
+  color: #8F8DFC;
+  font-weight: 600;
 }
 
 /* MESSAGE */
 .offerMessage {
   margin-top: 6px;
-  font-size: 13px;
+  font-size: 15px;
   color: #374151;
   line-height: 1.45;
+  font-weight: 400;
 }
 
 
