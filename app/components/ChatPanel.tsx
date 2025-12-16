@@ -219,8 +219,7 @@ export default function ChatPanel({
     setReplyingTo(null);
   };
 
-  /* ---------------- RENDERERS ---------------- */
-  /* ---------- UPDATED RENDERER WITH REPLY SUPPORT ---------- */
+ 
   const renderMessageContent = (m: Message): ReactNode => {
     console.log(m,"messgeincoming")
     // ✨ Helper: Wraps the main content with the "Reply Quote" if it exists

@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useRef, ChangeEvent, useEffect } from "react";
-import { 
-  FiSmile, 
-  FiPaperclip, 
-  FiSend, 
-  FiX, 
-  FiMic, 
-  FiTrash2, 
-  FiCheck 
+import {
+  FiSmile,
+  FiPaperclip,
+  FiSend,
+  FiX,
+  FiMic,
+  FiTrash2,
+  FiCheck,
 } from "react-icons/fi";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import styles from "./MessageInput.module.scss";
@@ -17,7 +17,7 @@ interface MessageInputProps {
   onSendMessage: (
     content: string,
     // Added "audio" to the type definition
-    type?: "text" | "image" | "document" | "link" | "audio", 
+    type?: "text" | "image" | "document" | "link" | "audio",
     file?: { name: string; url: string; image?: string; description?: string }
   ) => void;
 }
@@ -109,13 +109,12 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
 
       mediaRecorder.start();
       setIsRecording(true);
-      
+
       // Start Timer
       setRecordingDuration(0);
       timerRef.current = setInterval(() => {
         setRecordingDuration((prev) => prev + 1);
       }, 1000);
-
     } catch (error) {
       console.error("Error accessing microphone:", error);
       alert("Could not access microphone. Please allow permissions.");
@@ -126,8 +125,12 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
     if (!mediaRecorderRef.current) return;
 
     mediaRecorderRef.current.onstop = () => {
-      const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-      const audioFile = new File([audioBlob], "voice_message.webm", { type: "audio/webm" });
+      const audioBlob = new Blob(audioChunksRef.current, {
+        type: "audio/webm",
+      });
+      const audioFile = new File([audioBlob], "voice_message.webm", {
+        type: "audio/webm",
+      });
       const audioUrl = URL.createObjectURL(audioBlob);
 
       // Send as a file
@@ -136,7 +139,7 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
         url: audioUrl,
         description: formatTime(recordingDuration), // Pass duration as description or handle in Parent
       });
-      
+
       cleanupRecording();
     };
 
@@ -144,7 +147,10 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
   };
 
   const cancelRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
       mediaRecorderRef.current.stop();
     }
     cleanupRecording();
@@ -187,7 +193,8 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
       const fileData = {
         name: selectedFile.file.name,
         url: selectedFile.previewUrl || "placeholder-url",
-        image: selectedFile.type === "image" ? selectedFile.previewUrl : undefined,
+        image:
+          selectedFile.type === "image" ? selectedFile.previewUrl : undefined,
         description: message.trim() || selectedFile.file.name,
       };
 
@@ -225,7 +232,8 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
   };
 
   // Logic to switch between Mic and Send button
-  const showSendButton = message.trim().length > 0 || selectedFile || linkPreview;
+  const showSendButton =
+    message.trim().length > 0 || selectedFile || linkPreview;
 
   return (
     <div className={styles.messageInputWrapper}>
@@ -233,11 +241,18 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
       {selectedFile && (
         <div className={styles.filePreview}>
           {selectedFile.type === "image" ? (
-            <img src={selectedFile.previewUrl} className={styles.imagePreview} alt="preview" />
+            <img
+              src={selectedFile.previewUrl}
+              className={styles.imagePreview}
+              alt="preview"
+            />
           ) : (
             <div className={styles.docPreview}>📄 {selectedFile.file.name}</div>
           )}
-          <button className={styles.removePreview} onClick={() => setSelectedFile(null)}>
+          <button
+            className={styles.removePreview}
+            onClick={() => setSelectedFile(null)}
+          >
             <FiX />
           </button>
         </div>
@@ -247,11 +262,17 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
       {linkPreview && (
         <div className={styles.linkPreview}>
           {linkPreview.image && (
-            <img src={linkPreview.image} alt={linkPreview.title} className={styles.previewImage} />
+            <img
+              src={linkPreview.image}
+              alt={linkPreview.title}
+              className={styles.previewImage}
+            />
           )}
           <div className={styles.previewContent}>
             <p className={styles.previewTitle}>{linkPreview.title}</p>
-            <p className={styles.previewDescription}>{linkPreview.description}</p>
+            <p className={styles.previewDescription}>
+              {linkPreview.description}
+            </p>
             <p className={styles.previewUrl}>{linkPreview.url}</p>
           </div>
         </div>
@@ -261,7 +282,10 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
         {/* EMOJI PICKER */}
         {showEmojiPicker && (
           <>
-            <div className={styles.emojiPickerBackdrop} onClick={() => setShowEmojiPicker(false)} />
+            <div
+              className={styles.emojiPickerBackdrop}
+              onClick={() => setShowEmojiPicker(false)}
+            />
             <div className={styles.emojiPickerWrapper}>
               <EmojiPicker onEmojiClick={handleEmojiClick} />
             </div>
@@ -269,19 +293,23 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
         )}
 
         <div className={styles.inputContainer}>
-          
           {/* 🎤 RECORDING STATE UI */}
           {isRecording ? (
             <div className={styles.recordingContainer}>
               <div className={styles.recordingIndicator}>
                 <div className={styles.redDot} />
-                <span className={styles.timer}>{formatTime(recordingDuration)}</span>
+                <span className={styles.timer}>
+                  {formatTime(recordingDuration)}
+                </span>
               </div>
               <div className={styles.recordingActions}>
-                 <button className={styles.cancelRecordButton} onClick={cancelRecording}>
-                   Cancel
-                 </button>
-                 {/* Invisible spacer to push send button to right if needed, or just flex gap */}
+                <button
+                  className={styles.cancelRecordButton}
+                  onClick={cancelRecording}
+                >
+                  Cancel
+                </button>
+                {/* Invisible spacer to push send button to right if needed, or just flex gap */}
               </div>
             </div>
           ) : (
@@ -306,12 +334,25 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
 
                 {showAttachMenu && (
                   <>
-                    <div className={styles.attachBackdrop} onClick={() => setShowAttachMenu(false)} />
+                    <div
+                      className={styles.attachBackdrop}
+                      onClick={() => setShowAttachMenu(false)}
+                    />
                     <div className={styles.attachMenu}>
-                      <button onClick={() => { imageInputRef.current?.click(); setShowAttachMenu(false); }}>
+                      <button
+                        onClick={() => {
+                          imageInputRef.current?.click();
+                          setShowAttachMenu(false);
+                        }}
+                      >
                         📷 Photos
                       </button>
-                      <button onClick={() => { docInputRef.current?.click(); setShowAttachMenu(false); }}>
+                      <button
+                        onClick={() => {
+                          docInputRef.current?.click();
+                          setShowAttachMenu(false);
+                        }}
+                      >
                         📄 Documents
                       </button>
                     </div>
@@ -349,14 +390,16 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
 
           {/* RIGHT ACTION BUTTON (Mic vs Send) */}
           {isRecording ? (
-             <button className={styles.sendButton} onClick={stopRecordingAndSend}>
-               <FiCheck />
-             </button>
+            <button
+              className={styles.sendButton}
+              onClick={stopRecordingAndSend}
+            >
+              <FiCheck />
+            </button>
           ) : (
-             <button
+            <button
               className={styles.sendButton}
               onClick={showSendButton ? handleSend : startRecording}
-              disabled={!showSendButton && !isRecording} // Technically never disabled now, as it becomes Mic
             >
               {showSendButton ? <FiSend /> : <FiMic />}
             </button>
