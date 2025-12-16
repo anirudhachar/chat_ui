@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, ReactNode } from "react";
-import { 
-  FiArrowLeft, 
-  FiMoreVertical, 
-  FiClock, 
-  FiFile, 
+import {
+  FiArrowLeft,
+  FiMoreVertical,
+  FiClock,
+  FiFile,
   // ✨ Added these icons for the menu
-  FiChevronDown, 
-  FiCopy, 
-  FiCornerUpLeft 
+  FiChevronDown,
+  FiCopy,
+  FiCornerUpLeft,
 } from "react-icons/fi";
 import { BsCheck, BsCheckAll } from "react-icons/bs";
 import Image from "next/image";
@@ -71,7 +71,10 @@ export default function ChatPanel({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       // If clicking outside the options menu, close it
-      if (activeMessageId && !(event.target as Element).closest(`.${styles.messageOptions}`)) {
+      if (
+        activeMessageId &&
+        !(event.target as Element).closest(`.${styles.messageOptions}`)
+      ) {
         setActiveMessageId(null);
       }
     };
@@ -132,12 +135,18 @@ export default function ChatPanel({
   }, [hasMoreMessages, onLoadMoreMessages, messages.length]);
 
   /* ---------- HELPERS ---------- */
-  
-  // ✨ Restored this function 
+
+  // ✨ Restored this function
   const getAvatarColor = (id: string) => {
     const colors = [
-      "#00a884", "#667781", "#0088cc", "#e9a944",
-      "#9b72cb", "#00897b", "#ff6b6b", "#4fb3d4",
+      "#00a884",
+      "#667781",
+      "#0088cc",
+      "#e9a944",
+      "#9b72cb",
+      "#00897b",
+      "#ff6b6b",
+      "#4fb3d4",
     ];
     return colors[parseInt(id.replace(/\D/g, "") || "0", 10) % colors.length];
   };
@@ -163,12 +172,41 @@ export default function ChatPanel({
     return <BsCheck className={styles.tickIcon} />;
   };
 
-  /* ✨ HANDLERS for Copy/Reply */
-  const handleCopy = (text: string) => {
-    if (!text) return;
-    navigator.clipboard.writeText(text);
-    setActiveMessageId(null);
-  };
+
+  const getCopyText = (m: Message): string => {
+  switch (m.type) {
+    case "text":
+      return m.content || "";
+
+    case "image":
+      return m.content || m.fileUrl || "";
+
+    case "document":
+      return `${m.fileName || "Document"}\n${m.fileUrl || ""}`;
+
+    case "link":
+      return m.linkUrl || m.content || "";
+
+    case "offer":
+      if (!m.offer) return "";
+      if (m.offer.offerType === "PRICE") {
+        return `Offer: ${m.offer.currency} ${m.offer.amount}\n${m.content || ""}`;
+      }
+      return `Trade Offer: ${m.offer.tradeDescription}\n${m.content || ""}`;
+
+    default:
+      return m.content || "";
+  }
+};
+
+const handleCopy = (msg: Message) => {
+  const text = getCopyText(msg);
+  if (!text) return;
+
+  navigator.clipboard.writeText(text);
+  setActiveMessageId(null);
+};
+
 
   const handleReply = (msg: Message) => {
     if (onReply) onReply(msg);
@@ -385,7 +423,7 @@ export default function ChatPanel({
           <div
             className={styles.avatar}
             // ✨ Restored your commented out style
-            // style={{ backgroundColor: getAvatarColor(selectedUser.id) }} 
+            // style={{ backgroundColor: getAvatarColor(selectedUser.id) }}
           >
             {selectedUser.avatar ? (
               <img
@@ -448,10 +486,10 @@ export default function ChatPanel({
           )}
 
           {messages.map((m) => {
-             // ✨ Check if this specific message is active
-             const isDropdownOpen = activeMessageId === m.id;
+            // ✨ Check if this specific message is active
+            const isDropdownOpen = activeMessageId === m.id;
 
-             return (
+            return (
               <div
                 key={m.id}
                 className={`${styles.messageWrapper} ${
@@ -459,10 +497,11 @@ export default function ChatPanel({
                 }`}
               >
                 <div className={styles.messageBubble}>
-                  
                   {/* ✨ 1. DROPDOWN TRIGGER (Visible on Hover) */}
-                  <button 
-                    className={`${styles.optionsTrigger} ${isDropdownOpen ? styles.active : ''}`}
+                  <button
+                    className={`${styles.optionsTrigger} ${
+                      isDropdownOpen ? styles.active : ""
+                    }`}
                     onClick={(e) => {
                       e.stopPropagation(); // Stop bubble click
                       setActiveMessageId(isDropdownOpen ? null : m.id);
@@ -475,17 +514,21 @@ export default function ChatPanel({
                   {/* ✨ 2. DROPDOWN MENU */}
                   {isDropdownOpen && (
                     <div className={styles.messageOptions}>
-                      <button onClick={(e) => { 
-                        e.stopPropagation(); 
-                        handleReply(m); 
-                      }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReply(m);
+                        }}
+                      >
                         <FiCornerUpLeft /> Reply
                       </button>
-                      
-                      <button onClick={(e) => { 
-                        e.stopPropagation(); 
-                        handleCopy(m.content || ""); 
-                      }}>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                         handleCopy(m);
+                        }}
+                      >
                         <FiCopy /> Copy
                       </button>
                     </div>
@@ -500,7 +543,7 @@ export default function ChatPanel({
                   </div>
                 </div>
               </div>
-             );
+            );
           })}
 
           <div ref={messagesEndRef} />
