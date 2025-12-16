@@ -135,8 +135,14 @@ export default function ChatPanel({
   /* ---------------- HELPERS ---------------- */
   const getAvatarColor = (id: string) => {
     const colors = [
-      "#00a884", "#667781", "#0088cc", "#e9a944",
-      "#9b72cb", "#00897b", "#ff6b6b", "#4fb3d4",
+      "#00a884",
+      "#667781",
+      "#0088cc",
+      "#e9a944",
+      "#9b72cb",
+      "#00897b",
+      "#ff6b6b",
+      "#4fb3d4",
     ];
     return colors[parseInt(id.replace(/\D/g, "") || "0", 10) % colors.length];
   };
@@ -175,7 +181,9 @@ export default function ChatPanel({
       case "offer":
         if (!m.offer) return "";
         if (m.offer.offerType === "PRICE") {
-          return `Offer: ${m.offer.currency} ${m.offer.amount}\n${m.content || ""}`;
+          return `Offer: ${m.offer.currency} ${m.offer.amount}\n${
+            m.content || ""
+          }`;
         }
         return `Trade Offer: ${m.offer.tradeDescription}\n${m.content || ""}`;
       default:
@@ -208,17 +216,16 @@ export default function ChatPanel({
     file?: any
   ) => {
     onSendMessage(content, type, file, replyingTo || undefined);
-    setReplyingTo(null); 
+    setReplyingTo(null);
   };
 
   /* ---------------- RENDERERS ---------------- */
- /* ---------- UPDATED RENDERER WITH REPLY SUPPORT ---------- */
+  /* ---------- UPDATED RENDERER WITH REPLY SUPPORT ---------- */
   const renderMessageContent = (m: Message): ReactNode => {
-    
     // ✨ Helper: Wraps the main content with the "Reply Quote" if it exists
     const wrapWithReply = (content: ReactNode) => {
       if (!m.replyTo) return content;
-      console.log(content,"contentreply")
+      console.log(content, "contentreply");
 
       return (
         <div className={styles.contentWithReply}>
@@ -230,7 +237,13 @@ export default function ChatPanel({
               </span>
               <p className={styles.replyQuoteText}>
                 {m.replyTo.type === "image" ? (
-                  <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
                     <FiImage /> Photo
                   </span>
                 ) : (
@@ -240,7 +253,11 @@ export default function ChatPanel({
             </div>
             {/* Optional: Show mini thumbnail if replying to image */}
             {m.replyTo.type === "image" && m.replyTo.fileUrl && (
-              <img src={m.replyTo.fileUrl} alt="" className={styles.replyQuoteThumb} />
+              <img
+                src={m.replyTo.fileUrl}
+                alt=""
+                className={styles.replyQuoteThumb}
+              />
             )}
           </div>
           {content}
@@ -251,7 +268,11 @@ export default function ChatPanel({
     // 📦 OFFER MESSAGE
     if (m.type === "offer" && m.offer) {
       return wrapWithReply(
-        <div className={`${styles.offerCard} ${m.sent ? styles.sent : styles.received}`}>
+        <div
+          className={`${styles.offerCard} ${
+            m.sent ? styles.sent : styles.received
+          }`}
+        >
           <div className={styles.offerHeader}>
             <span className={styles.offerBadge}>📦 Offer</span>
             <span className={styles.offerType}>
@@ -260,14 +281,20 @@ export default function ChatPanel({
           </div>
           {m.offer.imageUrl && (
             <div className={styles.offerImageWrapper}>
-              <img src={m.offer.imageUrl} alt="Listing" className={styles.offerImage} />
+              <img
+                src={m.offer.imageUrl}
+                alt="Listing"
+                className={styles.offerImage}
+              />
             </div>
           )}
           <div className={styles.offerDetails}>
             {m.offer.offerType === "PRICE" && (
               <div className={styles.offerRow}>
                 <span>Offered Price</span>
-                <strong>{m.offer.currency} {m.offer.amount}</strong>
+                <strong>
+                  {m.offer.currency} {m.offer.amount}
+                </strong>
               </div>
             )}
             {m.offer.offerType === "TRADE" && (
@@ -286,7 +313,11 @@ export default function ChatPanel({
     if (m.type === "image" && m.fileUrl) {
       return wrapWithReply(
         <div className={styles.mediaContainer}>
-          <img src={m.fileUrl} alt={m.content} className={styles.messageImage} />
+          <img
+            src={m.fileUrl}
+            alt={m.content}
+            className={styles.messageImage}
+          />
           {m.content && m.content.trim() !== "📷 Photo" && (
             <p className={styles.messageCaption}>{m.content}</p>
           )}
@@ -297,10 +328,19 @@ export default function ChatPanel({
     // 📄 DOCUMENT MESSAGE
     if (m.type === "document" && m.fileUrl) {
       return wrapWithReply(
-        <a href={m.fileUrl} target="_blank" rel="noopener noreferrer" className={styles.messageDocumentLink}>
-          <div className={styles.documentIcon}><FiFile size={20} /></div>
+        <a
+          href={m.fileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.messageDocumentLink}
+        >
+          <div className={styles.documentIcon}>
+            <FiFile size={20} />
+          </div>
           <div className={styles.documentInfo}>
-            <p className={styles.documentName}>{m.fileName || m.content || "Document"}</p>
+            <p className={styles.documentName}>
+              {m.fileName || m.content || "Document"}
+            </p>
             {m.content && m.content.trim() !== m.fileName?.trim() && (
               <p className={styles.documentSize}>{m.content}</p>
             )}
@@ -314,12 +354,27 @@ export default function ChatPanel({
       if (m.linkTitle) {
         return wrapWithReply(
           <>
-            <a href={m.linkUrl} target="_blank" rel="noopener noreferrer" className={styles.messageLinkPreview}>
-              {m.linkImage && <img src={m.linkImage} alt={m.linkTitle} className={styles.linkImage} />}
+            <a
+              href={m.linkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.messageLinkPreview}
+            >
+              {m.linkImage && (
+                <img
+                  src={m.linkImage}
+                  alt={m.linkTitle}
+                  className={styles.linkImage}
+                />
+              )}
               <div className={styles.linkContent}>
-                <p className={styles.linkSource}>{new URL(m.linkUrl).hostname}</p>
+                <p className={styles.linkSource}>
+                  {new URL(m.linkUrl).hostname}
+                </p>
                 <p className={styles.linkTitle}>{m.linkTitle}</p>
-                {m.linkDescription && <p className={styles.linkDescription}>{m.linkDescription}</p>}
+                {m.linkDescription && (
+                  <p className={styles.linkDescription}>{m.linkDescription}</p>
+                )}
               </div>
             </a>
             {m.content && m.content.trim() !== m.linkUrl.trim() && (
@@ -329,7 +384,12 @@ export default function ChatPanel({
         );
       }
       return wrapWithReply(
-        <a href={m.linkUrl} target="_blank" rel="noopener noreferrer" className={styles.messageText}>
+        <a
+          href={m.linkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.messageText}
+        >
           {m.content || m.linkUrl}
         </a>
       );
@@ -345,7 +405,13 @@ export default function ChatPanel({
       <div className={styles.emptyState}>
         <div className={styles.emptyCard}>
           <div className={styles.imageWrapper}>
-            <Image src="/Frame 238021 (1).svg" alt="Chat illustration" width={90} height={90} priority />
+            <Image
+              src="/Frame 238021 (1).svg"
+              alt="Chat illustration"
+              width={90}
+              height={90}
+              priority
+            />
           </div>
           <h2 className={styles.title}>Let’s start chatting</h2>
           <p className={styles.subtitle}>
@@ -399,13 +465,17 @@ export default function ChatPanel({
               {selectedUser.avatar ? (
                 <img src={selectedUser.avatar} className={styles.emptyAvatar} />
               ) : (
-                <div className={styles.emptyInitials}>{getInitials(selectedUser.name)}</div>
+                <div className={styles.emptyInitials}>
+                  {getInitials(selectedUser.name)}
+                </div>
               )}
             </div>
             <h3 className={styles.emptyTitle}>
               You’re now connected with <span>{selectedUser.name}</span>
             </h3>
-            <p className={styles.emptySubtitle}>Say hello 👋 and start your conversation.</p>
+            <p className={styles.emptySubtitle}>
+              Say hello 👋 and start your conversation.
+            </p>
           </div>
         )}
 
@@ -480,26 +550,31 @@ export default function ChatPanel({
         </div>
       </div>
 
-     
       {replyingTo && (
         <div className={styles.replyPreview}>
           <div className={styles.replyContainer}>
-            <div className={styles.replyDecor} /> 
+            <div className={styles.replyDecor} />
             <div className={styles.replyContent}>
               <span className={styles.replyAuthor}>
                 {replyingTo.sent ? "You" : selectedUser.name}
               </span>
               <p className={styles.replyText}>
                 {replyingTo.type === "image" ? (
-                  <span className={styles.flexCenter}><FiImage /> Photo</span>
+                  <span className={styles.flexCenter}>
+                    <FiImage /> Photo
+                  </span>
                 ) : (
                   getCopyText(replyingTo)
                 )}
               </p>
             </div>
-            
+
             {replyingTo.type === "image" && replyingTo.fileUrl && (
-               <img src={replyingTo.fileUrl} alt="" className={styles.replyThumb} />
+              <img
+                src={replyingTo.fileUrl}
+                alt=""
+                className={styles.replyThumb}
+              />
             )}
 
             <button onClick={cancelReply} className={styles.closeReply}>
