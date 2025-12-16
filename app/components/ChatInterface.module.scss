@@ -5,7 +5,8 @@
   width: 100%;
   overflow: hidden;
   background-color: var(--color-bg);
-  border-radius: 26px;
+  border-top-left-radius: 26px;
+   border-bottom-left-radius: 26px;
 }
 
 .sidebarWrapper,
