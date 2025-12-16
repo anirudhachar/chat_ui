@@ -266,49 +266,51 @@ export default function ChatPanel({
       );
     };
 
-    // 📦 OFFER MESSAGE
-    if (m.type === "offer" && m.offer) {
-      return wrapWithReply(
-        <div
-          className={`${styles.offerCard} ${
-            m.sent ? styles.sent : styles.received
-          }`}
-        >
-          <div className={styles.offerHeader}>
-            <span className={styles.offerBadge}>📦 Offer</span>
-            <span className={styles.offerType}>
-              {m.offer.offerType === "PRICE" ? "Price Offer" : "Trade Offer"}
-            </span>
-          </div>
-          {m.offer.imageUrl && (
-            <div className={styles.offerImageWrapper}>
-              <img
-                src={m.offer.imageUrl}
-                alt="Listing"
-                className={styles.offerImage}
-              />
-            </div>
-          )}
-          <div className={styles.offerDetails}>
-            {m.offer.offerType === "PRICE" && (
-              <div className={styles.offerRow}>
-                <span>Offered Price</span>
-                <strong>
-                  {m.offer.currency} {m.offer.amount}
-                </strong>
-              </div>
-            )}
-            {m.offer.offerType === "TRADE" && (
-              <div className={styles.offerRow}>
-                <span>Trade Item</span>
-                <strong>{m.offer.tradeDescription}</strong>
-              </div>
-            )}
-          </div>
-          {m.content && <p className={styles.offerMessage}>{m.content}</p>}
+   // 📦 OFFER MESSAGE
+if (m.type === "offer" && m.offer) {
+  return wrapWithReply(
+    <div
+      className={`${styles.offerCard} ${
+        m.sent ? styles.sent : styles.received
+      }`}
+    >
+      {/* PRODUCT HEADER */}
+      <div className={styles.productRow}>
+        {m.offer.imageUrl && (
+          <img
+            src={m.offer.imageUrl}
+            alt="Listing"
+            className={styles.productImage}
+          />
+        )}
+
+        <div className={styles.productInfo}>
+          <p className={styles.productTitle}>
+            MacBook Pro 13&quot; 2021
+          </p>
+          <p className={styles.productPrice}>
+            $967.00
+          </p>
         </div>
-      );
-    }
+      </div>
+
+      {/* OFFER AMOUNT */}
+      <div className={styles.offerAmount}>
+        Offer Amount{" "}
+        <strong>
+          {m.offer.currency} {m.offer.amount}
+        </strong>
+      </div>
+
+      {/* MESSAGE */}
+      {m.content && (
+        <p className={styles.offerMessage}>{m.content}</p>
+      )}
+
+      {/* TIME (already from message meta outside) */}
+    </div>
+  );
+}
 
     // 📷 IMAGE MESSAGE
     if (m.type === "image" && m.fileUrl) {
