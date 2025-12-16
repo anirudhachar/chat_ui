@@ -212,10 +212,44 @@ export default function ChatPanel({
   };
 
   /* ---------------- RENDERERS ---------------- */
+ /* ---------- UPDATED RENDERER WITH REPLY SUPPORT ---------- */
   const renderMessageContent = (m: Message): ReactNode => {
+    
+    // ✨ Helper: Wraps the main content with the "Reply Quote" if it exists
+    const wrapWithReply = (content: ReactNode) => {
+      if (!m.replyTo) return content;
+
+      return (
+        <div className={styles.contentWithReply}>
+          <div className={styles.replyQuote}>
+            <div className={styles.replyQuoteBar} />
+            <div className={styles.replyQuoteContent}>
+              <span className={styles.replyQuoteUser}>
+                {m.replyTo.sent ? "You" : selectedUser?.name || "User"}
+              </span>
+              <p className={styles.replyQuoteText}>
+                {m.replyTo.type === "image" ? (
+                  <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    <FiImage /> Photo
+                  </span>
+                ) : (
+                  getCopyText(m.replyTo)
+                )}
+              </p>
+            </div>
+            {/* Optional: Show mini thumbnail if replying to image */}
+            {m.replyTo.type === "image" && m.replyTo.fileUrl && (
+              <img src={m.replyTo.fileUrl} alt="" className={styles.replyQuoteThumb} />
+            )}
+          </div>
+          {content}
+        </div>
+      );
+    };
+
     // 📦 OFFER MESSAGE
     if (m.type === "offer" && m.offer) {
-      return (
+      return wrapWithReply(
         <div className={`${styles.offerCard} ${m.sent ? styles.sent : styles.received}`}>
           <div className={styles.offerHeader}>
             <span className={styles.offerBadge}>📦 Offer</span>
@@ -249,7 +283,7 @@ export default function ChatPanel({
 
     // 📷 IMAGE MESSAGE
     if (m.type === "image" && m.fileUrl) {
-      return (
+      return wrapWithReply(
         <div className={styles.mediaContainer}>
           <img src={m.fileUrl} alt={m.content} className={styles.messageImage} />
           {m.content && m.content.trim() !== "📷 Photo" && (
@@ -261,7 +295,7 @@ export default function ChatPanel({
 
     // 📄 DOCUMENT MESSAGE
     if (m.type === "document" && m.fileUrl) {
-      return (
+      return wrapWithReply(
         <a href={m.fileUrl} target="_blank" rel="noopener noreferrer" className={styles.messageDocumentLink}>
           <div className={styles.documentIcon}><FiFile size={20} /></div>
           <div className={styles.documentInfo}>
@@ -277,7 +311,7 @@ export default function ChatPanel({
     // 🔗 LINK MESSAGE
     if (m.type === "link" && m.linkUrl) {
       if (m.linkTitle) {
-        return (
+        return wrapWithReply(
           <>
             <a href={m.linkUrl} target="_blank" rel="noopener noreferrer" className={styles.messageLinkPreview}>
               {m.linkImage && <img src={m.linkImage} alt={m.linkTitle} className={styles.linkImage} />}
@@ -293,7 +327,7 @@ export default function ChatPanel({
           </>
         );
       }
-      return (
+      return wrapWithReply(
         <a href={m.linkUrl} target="_blank" rel="noopener noreferrer" className={styles.messageText}>
           {m.content || m.linkUrl}
         </a>
@@ -301,7 +335,7 @@ export default function ChatPanel({
     }
 
     // 💬 DEFAULT: TEXT MESSAGE
-    return <p className={styles.messageText}>{m.content}</p>;
+    return wrapWithReply(<p className={styles.messageText}>{m.content}</p>);
   };
 
   /* ---------- EMPTY STATE ---------- */

@@ -43,6 +43,7 @@ export interface Message {
     tradeDescription?: string;
     imageUrl?: string;
   };
+  replyTo?: Message;
 }
 
 // ───────────────────────────────────────────────
