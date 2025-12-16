@@ -26,7 +26,7 @@ interface ChatPanelProps {
   // Updated onSendMessage to accept replyTo
   onSendMessage: (
     content: string,
-    type?: "text" | "image" | "document" | "link",
+    type?: "text" | "image" | "document" | "link" | "audio",
     file?: {
       name: string;
       url: string;
@@ -212,7 +212,7 @@ export default function ChatPanel({
   // Wrapper to inject replyTo state into sending mechanism
   const handleInternalSendMessage = (
     content: string,
-    type?: "text" | "image" | "document" | "link",
+    type?: "text" | "image" | "document" | "link" | "audio",
     file?: any
   ) => {
     onSendMessage(content, type, file, replyingTo || undefined);

@@ -24,7 +24,7 @@ export interface Message {
   content: string;
   timestamp: string;
   sent: boolean;
-  type: "text" | "image" | "document" | "link" | "offer";
+  type: "text" | "image" | "document" | "link" | "offer" | "audio";
   status?: "sending" | "sent" | "delivered" | "read" | "failed";
   fileName?: string;
   fileUrl?: string;
@@ -576,7 +576,7 @@ export default function ChatInterface() {
   const handleSendMessage = useCallback(
     async (
       content: string,
-      type: "text" | "image" | "document" | "link" = "text",
+     type: "text" | "image" | "document" | "link" | "audio" = "text",
       file?: {
         name: string;
         url: string;

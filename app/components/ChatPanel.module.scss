@@ -813,7 +813,7 @@
 .productTitle {
   font-size: 18px;
   font-weight: 600;
-  color: #37374B;
+  color: #37374b;
 }
 
 .productPrice {
@@ -821,18 +821,17 @@
   font-weight: 700;
   margin-top: 2px;
 
-  background: linear-gradient(180deg, #A38FEA 0%, #E697B0 100%);
+  background: linear-gradient(180deg, #a38fea 0%, #e697b0 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text; // fallback
 }
 
-
 /* OFFER AMOUNT */
 .offerAmount {
   margin-top: 10px;
   font-size: 16px;
-  color: #8F8DFC;
+  color: #8f8dfc;
   font-weight: 600;
 }
 
@@ -844,7 +843,6 @@
   line-height: 1.45;
   font-weight: 400;
 }
-
 
 .menuOverlay {
   position: fixed;
@@ -902,7 +900,7 @@
   position: relative;
   overflow: hidden;
   cursor: pointer;
-  
+
   /* The colored bar on the left */
   &::before {
     content: "";
@@ -918,7 +916,7 @@
 
   /* Specific tweak for SENT messages (Green background needs different contrast) */
   .sent & {
-    background-color: rgba(0, 0, 0, 0.06); 
+    background-color: rgba(0, 0, 0, 0.06);
     &::before {
       background-color: #005c4b; /* Darker green or theme accent */
     }
@@ -970,7 +968,7 @@
   display: flex;
   flex-direction: column;
   animation: slideUp 0.2s ease-out;
- flex-shrink: 0; 
+  flex-shrink: 0;
   z-index: 10;
 }
 
