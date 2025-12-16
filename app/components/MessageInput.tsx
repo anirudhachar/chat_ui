@@ -20,6 +20,9 @@ const extractURL = (text: string) => {
 };
 
 export default function MessageInput({ onSendMessage }: MessageInputProps) {
+
+  console.log(onSendMessage,"onSendMessage")
+
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);

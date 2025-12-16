@@ -208,7 +208,7 @@ export default function ChatPanel({
     file?: any
   ) => {
     onSendMessage(content, type, file, replyingTo || undefined);
-    setReplyingTo(null); // Clear after sending
+    setReplyingTo(null); 
   };
 
   /* ---------------- RENDERERS ---------------- */
@@ -479,7 +479,7 @@ export default function ChatPanel({
         </div>
       </div>
 
-      {/* ✨ REPLY PREVIEW PANEL (WhatsApp Style) */}
+     
       {replyingTo && (
         <div className={styles.replyPreview}>
           <div className={styles.replyContainer}>
