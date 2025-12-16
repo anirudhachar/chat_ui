@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, ReactNode } from "react";
+import { useEffect, useRef, ReactNode, useState } from "react";
 import { FiArrowLeft, FiMoreVertical } from "react-icons/fi";
 import { BsCheck, BsCheckAll } from "react-icons/bs";
 import Image from "next/image";
@@ -42,10 +42,48 @@ export default function ChatPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
   const topMessageSentinelRef = useRef<HTMLDivElement>(null);
+  const [menuMessage, setMenuMessage] = useState<Message | null>(null);
+const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
+
 
   const isFirstLoadRef = useRef(true);
   const isLoadingOlderRef = useRef(false);
   const prevScrollHeightRef = useRef(0);
+
+
+  const openMenu = (
+  e: React.MouseEvent | React.TouchEvent,
+  message: Message
+) => {
+  e.preventDefault();
+
+  const touch =
+    "touches" in e ? e.touches[0] : (e as React.MouseEvent);
+
+  setMenuMessage(message);
+  setMenuPosition({
+    x: touch.clientX,
+    y: touch.clientY,
+  });
+};
+
+const closeMenu = () => {
+  setMenuMessage(null);
+  setMenuPosition(null);
+};
+
+const handleCopy = () => {
+  if (!menuMessage) return;
+  navigator.clipboard.writeText(menuMessage.content || "");
+  closeMenu();
+};
+
+const handleReply = () => {
+  if (!menuMessage) return;
+  console.log("Reply to:", menuMessage);
+  // later → set reply preview in MessageInput
+  closeMenu();
+};
 
   /* 🔁 reset on chat switch */
   useEffect(() => {
@@ -424,7 +462,17 @@ export default function ChatPanel({
                 m.sent ? styles.sent : styles.received
               }`}
             >
-              <div className={styles.messageBubble}>
+             <div
+  className={styles.messageBubble}
+  onContextMenu={(e) => openMenu(e, m)} // 🖱 right-click
+  onTouchStart={(e) => {
+    const timeout = setTimeout(() => openMenu(e, m), 500);
+    const clear = () => clearTimeout(timeout);
+    window.addEventListener("touchend", clear, { once: true });
+    window.addEventListener("touchmove", clear, { once: true });
+  }}
+>
+
                 {/* 🚀 FIXED RENDERING */}
                 {renderMessageContent(m)}
 
@@ -442,6 +490,26 @@ export default function ChatPanel({
 
       {/* INPUT */}
       <MessageInput onSendMessage={onSendMessage} />
+
+      {menuMessage && menuPosition && (
+  <>
+    <div className={styles.menuOverlay} onClick={closeMenu} />
+
+    <div
+      className={styles.messageMenu}
+      style={{
+        top: menuPosition.y,
+        left: menuPosition.x,
+      }}
+    >
+      <button onClick={handleCopy}>📋 Copy</button>
+      <button onClick={handleReply}>↩ Reply</button>
+      <button disabled>⭐ Star</button>
+      <button disabled>🗑 Delete</button>
+    </div>
+  </>
+)}
+
     </div>
   );
 }
