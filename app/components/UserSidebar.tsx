@@ -149,7 +149,7 @@ export default function UserSidebar({
         ) : (
           users.map(
             (user) => (
-              console.log(user, "usermania"),
+              
               (
                 <div
                   key={user.id}
