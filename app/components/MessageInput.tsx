@@ -20,9 +20,6 @@ const extractURL = (text: string) => {
 };
 
 export default function MessageInput({ onSendMessage }: MessageInputProps) {
-
-  console.log(onSendMessage,"onSendMessage")
-
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -89,26 +86,25 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
   // ───────────────────────────────────────────────
   // SEND MESSAGE
   // ───────────────────────────────────────────────
- // MessageInput.tsx - INSIDE handleSend (FIXED logic)
+  // MessageInput.tsx - INSIDE handleSend (FIXED logic)
   const handleSend = () => {
     if (!message.trim() && !linkPreview && !selectedFile) return;
 
     if (selectedFile) {
-     
       const displayContent =
         message.trim() ||
         (selectedFile.type === "image" ? "📷 Photo" : selectedFile.file.name);
 
       const fileData = {
         name: selectedFile.file.name,
-      
-        url: selectedFile.previewUrl || "placeholder-url", 
-        image: selectedFile.type === "image" ? selectedFile.previewUrl : undefined,
+
+        url: selectedFile.previewUrl || "placeholder-url",
+        image:
+          selectedFile.type === "image" ? selectedFile.previewUrl : undefined,
         description: message.trim() || selectedFile.file.name,
       };
 
-     
-      onSendMessage(displayContent, selectedFile.type, fileData); 
+      onSendMessage(displayContent, selectedFile.type, fileData);
 
       setSelectedFile(null);
       setMessage("");
@@ -275,7 +271,6 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
             onKeyDown={handleKeyDown}
           />
 
-        
           <button
             className={styles.sendButton}
             onClick={handleSend}

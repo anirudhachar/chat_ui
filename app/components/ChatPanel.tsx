@@ -218,6 +218,7 @@ export default function ChatPanel({
     // ✨ Helper: Wraps the main content with the "Reply Quote" if it exists
     const wrapWithReply = (content: ReactNode) => {
       if (!m.replyTo) return content;
+      console.log(content,"contentreply")
 
       return (
         <div className={styles.contentWithReply}>
