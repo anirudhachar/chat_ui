@@ -700,3 +700,28 @@
     transform: scale(1.08);
   }
 }
+
+
+.offerCard {
+  background: #f6f8fa;
+  border-radius: 12px;
+  padding: 12px;
+  min-width: 220px;
+}
+
+.offerHeader {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.offerRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.offerMessage {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #555;
+}

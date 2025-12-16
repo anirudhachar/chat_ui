@@ -24,7 +24,7 @@ export interface Message {
   content: string;
   timestamp: string;
   sent: boolean;
-  type: "text" | "image" | "document" | "link";
+  type: "text" | "image" | "document" | "link" | "offer";
   status?: "sending" | "sent" | "delivered" | "read" | "failed";
   fileName?: string;
   fileUrl?: string;
@@ -33,6 +33,15 @@ export interface Message {
   linkUrl?: string;
   linkImage?: string;
   linkDescription?: string;
+
+  offer?: {
+    offerId: string;
+    listingId: string;
+    offerType: "PRICE" | "TRADE";
+    amount?: number;
+    currency?: string;
+    tradeDescription?: string;
+  };
 }
 
 // ───────────────────────────────────────────────
@@ -80,33 +89,32 @@ export default function ChatInterface() {
   };
 
   const fetchLinkPreview = async (messageId: string, url: string) => {
-  try {
-    const res = await fetch("/api/preview", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    });
+    try {
+      const res = await fetch("/api/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
 
-    const preview = await res.json();
-    if (preview?.error) return;
+      const preview = await res.json();
+      if (preview?.error) return;
 
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.id === messageId
-          ? {
-              ...m,
-              linkTitle: preview.title,
-              linkDescription: preview.description,
-              linkImage: preview.image,
-            }
-          : m
-      )
-    );
-  } catch {
-    // non-blocking
-  }
-};
-
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? {
+                ...m,
+                linkTitle: preview.title,
+                linkDescription: preview.description,
+                linkImage: preview.image,
+              }
+            : m
+        )
+      );
+    } catch {
+      // non-blocking
+    }
+  };
 
   const fetchUsers = useCallback(
     async (currentCursor: string | null, isInitialFetch: boolean) => {
@@ -207,34 +215,53 @@ export default function ChatInterface() {
           // ─────────────────────────────
           // NEW MESSAGE (RIGHT CHAT)
           // ─────────────────────────────
-         case "newMessage": {
-  if (data.conversationId === conversationIdRef.current) {
-    const detectedUrl = extractUrl(data.content);
+          case "newMessage": {
+            if (data.conversationId !== conversationIdRef.current) break;
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: data.messageId,
-        content: data.content,
-        timestamp: new Date(data.createdAt).toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-        }),
-        sent: data.senderUserId === loggedInUserIdRef.current,
-        type: detectedUrl ? "link" : "text",
-        linkUrl: detectedUrl ?? undefined,
-        status: "delivered",
-      },
-    ]);
+            let parsedOffer = null;
 
-    // 🔥 fetch preview AFTER message is shown
-    if (detectedUrl) {
-      fetchLinkPreview(data.messageId, detectedUrl);
-    }
-  }
-  break;
-}
+            try {
+              const parsed = JSON.parse(data.content);
+              if (parsed.type === "OFFER") parsedOffer = parsed;
+            } catch {}
 
+            const detectedUrl = !parsedOffer ? extractUrl(data.content) : null;
+
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: data.messageId,
+                content: parsedOffer?.text || data.content,
+                timestamp: new Date(data.createdAt).toLocaleTimeString(
+                  "en-US",
+                  {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  }
+                ),
+                sent: data.senderUserId === loggedInUserIdRef.current,
+                type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
+                offer: parsedOffer
+                  ? {
+                      offerId: parsedOffer.offerId,
+                      listingId: parsedOffer.listingId,
+                      offerType: parsedOffer.offerType,
+                      amount: parsedOffer.amount,
+                      currency: parsedOffer.currency,
+                      tradeDescription: parsedOffer.tradeDescription,
+                    }
+                  : undefined,
+                linkUrl: detectedUrl ?? undefined,
+                status: "delivered",
+              },
+            ]);
+
+            if (detectedUrl) {
+              fetchLinkPreview(data.messageId, detectedUrl);
+            }
+
+            break;
+          }
 
           // ─────────────────────────────
           // SIDEBAR UPDATE
@@ -418,24 +445,40 @@ export default function ChatInterface() {
         const data = await res.json();
         console.log("📥 Messages:", data);
 
-      const mappedMessages: Message[] =
-  data?.data?.messages?.map((msg: any) => {
-    const detectedUrl = extractUrl(msg.content);
+        const mappedMessages: Message[] =
+          data?.data?.messages?.map((msg: any) => {
+            let parsedOffer = null;
 
-    return {
-      id: msg.messageId,
-      content: msg.content,
-      timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-      sent: msg.senderUserId === myUserId,
-      type: detectedUrl ? "link" : "text",
-      linkUrl: detectedUrl ?? undefined,
-      status: msg.senderUserId === myUserId ? "sent" : undefined,
-    };
-  }) || [];
+            try {
+              const parsed = JSON.parse(msg.content);
+              if (parsed.type === "OFFER") parsedOffer = parsed;
+            } catch {}
 
+            const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
+
+            return {
+              id: msg.messageId,
+              content: parsedOffer?.text || msg.content,
+              timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+              }),
+              sent: msg.senderUserId === myUserId,
+              type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
+              offer: parsedOffer
+                ? {
+                    offerId: parsedOffer.offerId,
+                    listingId: parsedOffer.listingId,
+                    offerType: parsedOffer.offerType,
+                    amount: parsedOffer.amount,
+                    currency: parsedOffer.currency,
+                    tradeDescription: parsedOffer.tradeDescription,
+                  }
+                : undefined,
+              linkUrl: detectedUrl ?? undefined,
+              status: msg.senderUserId === myUserId ? "sent" : undefined,
+            };
+          }) || [];
 
         // If fetching with a cursor, prepend (load older messages).
         // If cursor is null (initial fetch), replace and reverse (show newest at bottom).
@@ -720,9 +763,73 @@ export default function ChatInterface() {
       }
 
       if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
-        if (selectedUser && parentToken) {
-          handleSendMessage(event.data.payload.message);
+        if (!selectedUser || !parentToken) return;
+
+        const payload = event.data.payload;
+
+        // 🆕 OFFER MESSAGE
+        if (payload.type === "OFFER") {
+          const timeString = new Date().toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          });
+
+          const optimisticOffer: Message = {
+            id: `offer-${payload.offerId}`,
+            content: payload.text || "Sent an offer",
+            timestamp: timeString,
+            sent: true,
+            type: "offer",
+            status: "sending",
+            offer: {
+              offerId: payload.offerId,
+              listingId: payload.listingId,
+              offerType: payload.offerType,
+              amount: payload.amount,
+              currency: payload.currency,
+              tradeDescription: payload.tradeDescription,
+            },
+          };
+
+          setMessages((prev) => [...prev, optimisticOffer]);
+
+          // 🔥 store offer as text/json in backend
+          const apiContent = JSON.stringify({
+            type: "OFFER",
+            ...payload,
+          });
+
+          let cid = conversationId;
+          if (!cid) {
+            cid = await getConversationId(selectedUser.id, parentToken);
+            if (!cid) return;
+          }
+
+          try {
+            const data = await sendMessageToApi(cid, apiContent, parentToken);
+
+            const realId = data?.data?.messageId;
+
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === optimisticOffer.id
+                  ? { ...m, id: realId, status: "sent" }
+                  : m
+              )
+            );
+          } catch {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === optimisticOffer.id ? { ...m, status: "failed" } : m
+              )
+            );
+          }
+
+          return;
         }
+
+        // 🟢 NORMAL TEXT MESSAGE
+        handleSendMessage(payload.message);
       }
     };
 

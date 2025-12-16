@@ -143,6 +143,40 @@ export default function ChatPanel({
   /* ---------- NEW: MESSAGE CONTENT RENDERER ---------- */
   const renderMessageContent = (m: Message): ReactNode => {
     // 📷 IMAGE MESSAGE
+
+    // 📦 OFFER MESSAGE
+if (m.type === "offer" && m.offer) {
+  return (
+    <div className={styles.offerCard}>
+      <div className={styles.offerHeader}>
+        📦 Offer Sent
+      </div>
+
+      {m.offer.offerType === "PRICE" && (
+        <div className={styles.offerRow}>
+          <span>Price</span>
+          <strong>
+            {m.offer.currency} {m.offer.amount}
+          </strong>
+        </div>
+      )}
+
+      {m.offer.offerType === "TRADE" && (
+        <div className={styles.offerRow}>
+          <span>Trade</span>
+          <strong>{m.offer.tradeDescription}</strong>
+        </div>
+      )}
+
+      {m.content && (
+        <p className={styles.offerMessage}>{m.content}</p>
+      )}
+
+      {/* future: accept / reject buttons */}
+    </div>
+  );
+}
+
     if (m.type === "image" && m.fileUrl) {
       return (
         <div className={styles.mediaContainer}>
@@ -181,6 +215,8 @@ export default function ChatPanel({
         </a>
       );
     }
+
+    
 
    // 🔗 LINK MESSAGE
 if (m.type === "link" && m.linkUrl) {
