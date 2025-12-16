@@ -145,6 +145,7 @@ export default function ChatPanel({
     // 📷 IMAGE MESSAGE
 
     // 📦 OFFER MESSAGE
+    console.log(m,"messagemarket")
 if (m.type === "offer" && m.offer) {
   return (
     <div className={styles.offerCard}>
