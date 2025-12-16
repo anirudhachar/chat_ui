@@ -1065,7 +1065,6 @@
   }
 }
 
-
 .audioMessageContainer {
   min-width: 250px;
   display: flex;
@@ -1086,8 +1085,8 @@
   height: 40px;
   border-radius: 20px;
   outline: none;
-  
-  /* This ensures it looks decent on dark/light backgrounds */
+
+
   &::-webkit-media-controls-panel {
     background-color: rgba(255, 255, 255, 0.8);
   }
