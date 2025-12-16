@@ -41,6 +41,7 @@ export interface Message {
     amount?: number;
     currency?: string;
     tradeDescription?: string;
+    imageUrl?: string;
   };
 }
 
@@ -249,6 +250,7 @@ export default function ChatInterface() {
                       amount: parsedOffer.amount,
                       currency: parsedOffer.currency,
                       tradeDescription: parsedOffer.tradeDescription,
+                        imageUrl: parsedOffer.imageUrl,
                     }
                   : undefined,
                 linkUrl: detectedUrl ?? undefined,
