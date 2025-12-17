@@ -564,7 +564,15 @@ export default function ChatPanel({
 
                 <div className={styles.messageBubble}
                  onMouseEnter={() => setHoveredMessageId(m.id)}
-                onMouseLeave={() => setHoveredMessageId(null)}
+  onMouseLeave={(e) => {
+    // if moving into reaction bar, do NOT close
+    if (
+      (e.relatedTarget as HTMLElement)?.closest(`.${styles.reactionBar}`)
+    ) {
+      return;
+    }
+    setHoveredMessageId(null);
+  }}
                 >
                   <p className={styles.senderNameUser}>{m.senderName}</p>
                   {/* ✨ DROPDOWN TRIGGER */}
@@ -613,23 +621,26 @@ export default function ChatPanel({
                     {m.sent && getStatusIcon(m.status)}
                   </div>
 
-                  {hoveredMessageId === m.id && (
-                    <div
-                      className={`${styles.reactionBar} ${
-                        m.sent ? styles.sentReaction : styles.receivedReaction
-                      }`}
-                    >
-                      {["👍", "❤️", "😂", "😮", "😢", "👏"].map((emoji) => (
-                        <button
-                          key={emoji}
-                          onClick={() => handleReaction(m.id, emoji)}
-                          className={styles.reactionEmoji}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+               {hoveredMessageId === m.id && (
+  <div
+    className={`${styles.reactionBar} ${
+      m.sent ? styles.sentReaction : styles.receivedReaction
+    }`}
+    onMouseEnter={() => setHoveredMessageId(m.id)}
+    onMouseLeave={() => setHoveredMessageId(null)}
+  >
+    {["👍", "❤️", "😂", "😮", "😢", "👏"].map((emoji) => (
+      <button
+        key={emoji}
+        onClick={() => handleReaction(m.id, emoji)}
+        className={styles.reactionEmoji}
+      >
+        {emoji}
+      </button>
+    ))}
+  </div>
+)}
+
                 </div>
               </div>
             );
