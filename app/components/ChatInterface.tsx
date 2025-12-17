@@ -55,7 +55,6 @@ export interface Message {
 const decodeToken = (token: string) => {
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
-    console.log(payload,"payload")
     return payload.user_id;
   } catch (e) {
     return null;
@@ -208,6 +207,12 @@ export default function ChatInterface() {
     selectedUserRef.current = selectedUser;
   }, [selectedUser]);
 
+  const usersRef = useRef<User[]>([]);
+
+  useEffect(() => {
+    usersRef.current = users;
+  }, [users]);
+
   useEffect(() => {
     if (!parentToken) return;
 
@@ -239,9 +244,17 @@ export default function ChatInterface() {
               const parsed = JSON.parse(data.content);
               if (parsed.type === "OFFER") parsedOffer = parsed;
             } catch {}
-            const detectedUrl = !parsedOffer ? extractUrl(data.content) : null;
 
-            // 2. Update Chat Panel (ONLY if this conversation is actively open)
+            const detectedUrl = !parsedOffer ? extractUrl(data.content) : null;
+            const isMine = data.senderUserId === loggedInUserIdRef.current;
+
+            // 🔥 GET AVATAR FROM SIDEBAR USERS
+            const senderAvatar = isMine
+              ? myAvatar
+              : usersRef.current.find((u) => u.id === data.senderUserId)
+                  ?.avatar;
+
+            // 2. Update Chat Panel (ONLY if this conversation is open)
             if (data.conversationId === conversationIdRef.current) {
               setMessages((prev) => [
                 ...prev,
@@ -255,7 +268,8 @@ export default function ChatInterface() {
                       minute: "2-digit",
                     }
                   ),
-                  sent: data.senderUserId === loggedInUserIdRef.current,
+                  sent: isMine,
+                  senderAvatar, // ✅ FIXED
                   type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
                   offer: parsedOffer
                     ? {
@@ -278,22 +292,14 @@ export default function ChatInterface() {
               }
             }
 
-            // 3. Update Sidebar (ALWAYS runs to move user to top)
+            // 3. Update Sidebar (move conversation to top)
             setUsers((prev) => {
-              // Determine who the "other" person is.
-              // If I sent it (from another tab), target is recipient. If they sent it, target is sender.
-              const targetUserId =
-                data.senderUserId === loggedInUserIdRef.current
-                  ? data.recipientUserId // Ensure your API sends this, or match by conversationId if possible
-                  : data.senderUserId;
-
-              // Fallback: If we can't determine ID easily, find user by iterating (less efficient but safe)
               const existingIndex = prev.findIndex(
                 (u) =>
                   u.id === data.senderUserId || u.id === data.recipientUserId
               );
-
-              if (existingIndex === -1) return prev; // User not in list, do nothing
+              
+              if (existingIndex === -1) return prev;
 
               const existingUser = prev[existingIndex];
 
@@ -307,12 +313,9 @@ export default function ChatInterface() {
                     minute: "2-digit",
                   }
                 ),
-                // Increment unread only if we aren't looking at the chat
-
                 online: true,
               };
 
-              // 🔥 THE FIX: Filter out the old user, put updatedUser at [0]
               const others = prev.filter((_, idx) => idx !== existingIndex);
               return [updatedUser, ...others];
             });
@@ -387,8 +390,6 @@ export default function ChatInterface() {
     setHasMoreUsers(true);
     fetchUsers(null, true);
   }, [parentToken, fetchUsers]);
-
-  console.log(users, "usersarray");
 
   const myAvatar =
     users.find((u) => u.id === loggedInUserId)?.avatar || "/user.png";

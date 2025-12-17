@@ -582,7 +582,6 @@ export default function ChatPanel({
                       <FiChevronDown />
                     </button>
 
-                    {/* ✨ DROPDOWN MENU */}
                     {isDropdownOpen && (
                       <div className={styles.messageOptions}>
                         <button
