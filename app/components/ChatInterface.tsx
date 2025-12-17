@@ -390,6 +390,7 @@ export default function ChatInterface() {
 
 const myAvatar =
   users.find((u) => u.id === loggedInUserId)?.avatar || "/user.png";
+  console.log(myAvatar,"myAvatar")
 
   useEffect(() => {
     if (!parentToken) return;
