@@ -388,9 +388,8 @@ export default function ChatInterface() {
     fetchUsers(null, true);
   }, [parentToken, fetchUsers]);
 
-  // ───────────────────────────────────────────────
-  // SEARCH API — CALL WHEN TYPING
-  // ───────────────────────────────────────────────
+const myAvatar =
+  users.find((u) => u.id === loggedInUserId)?.avatar || "/user.png";
 
   useEffect(() => {
     if (!parentToken) return;
@@ -711,7 +710,7 @@ export default function ChatInterface() {
 
         fileName: file?.name,
         fileUrl: file?.url,
-
+ senderAvatar: myAvatar,
         linkUrl: file?.url,
         linkTitle: file?.name,
         linkDescription: file?.description,
@@ -769,6 +768,7 @@ export default function ChatInterface() {
                         minute: "2-digit",
                       })
                     : m.timestamp,
+                     senderAvatar: myAvatar,
                 }
               : m
           )
