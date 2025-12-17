@@ -307,10 +307,7 @@ export default function ChatInterface() {
                   }
                 ),
                 // Increment unread only if we aren't looking at the chat
-                unread:
-                  data.conversationId === conversationIdRef.current
-                    ? 0
-                    : (existingUser.unread || 0) + 1,
+                
                 online: true,
               };
 
