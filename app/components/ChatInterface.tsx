@@ -388,6 +388,8 @@ export default function ChatInterface() {
     fetchUsers(null, true);
   }, [parentToken, fetchUsers]);
 
+  console.log(users,"usersarray")
+
 const myAvatar =
   users.find((u) => u.id === loggedInUserId)?.avatar || "/user.png";
   console.log(myAvatar,"myAvatar")
