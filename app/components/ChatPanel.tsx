@@ -550,8 +550,7 @@ export default function ChatPanel({
                 className={`${styles.messageWrapper} ${
                   m.sent ? styles.sent : styles.received
                 }`}
-                onMouseEnter={() => setHoveredMessageId(m.id)}
-                onMouseLeave={() => setHoveredMessageId(null)}
+               
               >
                 {m.senderAvatar && (
                   <img
@@ -563,7 +562,10 @@ export default function ChatPanel({
                   />
                 )}
 
-                <div className={styles.messageBubble}>
+                <div className={styles.messageBubble}
+                 onMouseEnter={() => setHoveredMessageId(m.id)}
+                onMouseLeave={() => setHoveredMessageId(null)}
+                >
                   <p className={styles.senderNameUser}>{m.senderName}</p>
                   {/* ✨ DROPDOWN TRIGGER */}
                   <button
