@@ -653,6 +653,7 @@ const [isUsersLoading, setIsUsersLoading] = useState(false);
         replyTo: replyTo, // 👈 ADDED: Pass replyTo to state so UI renders it immediately
       };
 
+      console.log(optimistic,"messageoptimistic")
       setMessages((prev) => [...prev, optimistic]);
 
       // 🔥 EXIT SEARCH MODE
