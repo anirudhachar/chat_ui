@@ -536,7 +536,7 @@ export default function ChatPanel({
 
           {messages.map((m) => {
             const isDropdownOpen = activeMessageId === m.id;
-            console.log(m,"messagesbeingrendered")
+            console.log(m, "messagesbeingrendered");
 
             return (
               <div
@@ -545,13 +545,16 @@ export default function ChatPanel({
                   m.sent ? styles.sent : styles.received
                 }`}
               >
-                {!m.sent && m.senderAvatar && (
+                {m.senderAvatar && (
                   <img
                     src={m.senderAvatar}
                     alt={m.senderName}
-                    className={styles.messageAvatar}
+                    className={`${styles.messageAvatar} ${
+                      m.sent ? styles.myAvatar : styles.otherAvatar
+                    }`}
                   />
                 )}
+
                 <div className={styles.messageBubble}>
                   {/* ✨ DROPDOWN TRIGGER */}
                   <button
