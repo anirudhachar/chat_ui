@@ -372,19 +372,19 @@
 }
 
 /* 🔥 Emoji reaction bar */
-.reactionBar {
-  position: absolute;
- left:0;
-  display: flex;
-  gap: 6px;
-  padding: 4px 8px;
-  background: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
-  z-index: 10;
-  animation: fadeUp 0.15s ease-out;
-  top: 4px;    
-}
+// .reactionBar {
+//   position: absolute;
+//  left:0;
+//   display: flex;
+//   gap: 6px;
+//   padding: 4px 8px;
+//   background: #ffffff;
+//   border-radius: 20px;
+//   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+//   z-index: 10;
+//   animation: fadeUp 0.15s ease-out;
+//   top: 4px;    
+// }
 
 /* Positioning based on sender */
 .sentReaction {

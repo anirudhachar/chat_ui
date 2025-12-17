@@ -614,7 +614,7 @@ export default function ChatPanel({
                       {m.sent && getStatusIcon(m.status)}
                     </div>
 
-                    {hoveredMessageId === m.id && (
+                    {/* {hoveredMessageId === m.id && (
                       <div
                         className={`${styles.reactionBar} ${
                           m.sent ? styles.sentReaction : styles.receivedReaction
@@ -632,7 +632,7 @@ export default function ChatPanel({
                           </button>
                         ))}
                       </div>
-                    )}
+                    )} */}
                   </div>
                 </div>
               </div>
