@@ -562,86 +562,78 @@ export default function ChatPanel({
                 )}
 
                 <div
-                  className={styles.messageBubble}
+                  className={styles.messageHoverZone}
                   onMouseEnter={() => setHoveredMessageId(m.id)}
-                  onMouseLeave={(e) => {
-                    // if moving into reaction bar, do NOT close
-                    if (
-                      (e.relatedTarget as HTMLElement)?.closest(
-                        `.${styles.reactionBar}`
-                      )
-                    ) {
-                      return;
-                    }
-                    setHoveredMessageId(null);
-                  }}
+                  onMouseLeave={() => setHoveredMessageId(null)}
                 >
-                  <p className={styles.senderNameUser}>{m.senderName}</p>
-                  {/* ✨ DROPDOWN TRIGGER */}
-                  <button
-                    className={`${styles.optionsTrigger} ${
-                      isDropdownOpen ? styles.active : ""
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveMessageId(isDropdownOpen ? null : m.id);
-                    }}
-                    aria-label="Message options"
-                  >
-                    <FiChevronDown />
-                  </button>
-
-                  {/* ✨ DROPDOWN MENU */}
-                  {isDropdownOpen && (
-                    <div className={styles.messageOptions}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleReply(m);
-                        }}
-                      >
-                        <FiCornerUpLeft /> Reply
-                      </button>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCopy(m);
-                        }}
-                      >
-                        <FiCopy /> Copy
-                      </button>
-                    </div>
-                  )}
-
-                  {/* CONTENT */}
-                  {renderMessageContent(m)}
-
-                  {/* META */}
-                  <div className={styles.messageMeta}>
-                    <span className={styles.messageTime}>{m.timestamp}</span>
-                    {m.sent && getStatusIcon(m.status)}
-                  </div>
-
-                  {hoveredMessageId === m.id && (
-                    <div
-                      className={`${styles.reactionBar} ${
-                        m.sent ? styles.sentReaction : styles.receivedReaction
+                  <div className={styles.messageBubble}>
+                    <p className={styles.senderNameUser}>{m.senderName}</p>
+                    {/* ✨ DROPDOWN TRIGGER */}
+                    <button
+                      className={`${styles.optionsTrigger} ${
+                        isDropdownOpen ? styles.active : ""
                       }`}
-                      onMouseEnter={() => setHoveredMessageId(m.id)}
-                      onMouseLeave={() => setHoveredMessageId(null)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveMessageId(isDropdownOpen ? null : m.id);
+                      }}
+                      aria-label="Message options"
                     >
-                      {["👍", "❤️", "😂", "😮", "😢", "👏"].map((emoji) => (
+                      <FiChevronDown />
+                    </button>
+
+                    {/* ✨ DROPDOWN MENU */}
+                    {isDropdownOpen && (
+                      <div className={styles.messageOptions}>
                         <button
-                          key={emoji}
-                          onClick={() => handleReaction(m.id, emoji)}
-                          className={styles.reactionEmoji}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReply(m);
+                          }}
                         >
-                          {emoji}
+                          <FiCornerUpLeft /> Reply
                         </button>
-                      ))}
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(m);
+                          }}
+                        >
+                          <FiCopy /> Copy
+                        </button>
+                      </div>
+                    )}
+
+                    {/* CONTENT */}
+                    {renderMessageContent(m)}
+
+                    {/* META */}
+                    <div className={styles.messageMeta}>
+                      <span className={styles.messageTime}>{m.timestamp}</span>
+                      {m.sent && getStatusIcon(m.status)}
                     </div>
-                  )}
+
+                    {hoveredMessageId === m.id && (
+                      <div
+                        className={`${styles.reactionBar} ${
+                          m.sent ? styles.sentReaction : styles.receivedReaction
+                        }`}
+                        onMouseEnter={() => setHoveredMessageId(m.id)}
+                        onMouseLeave={() => setHoveredMessageId(null)}
+                      >
+                        {["👍", "❤️", "😂", "😮", "😢", "👏"].map((emoji) => (
+                          <button
+                            key={emoji}
+                            onClick={() => handleReaction(m.id, emoji)}
+                            className={styles.reactionEmoji}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             );

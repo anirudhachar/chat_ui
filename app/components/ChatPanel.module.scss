@@ -329,6 +329,14 @@
   }
 }
 
+.messageHoverZone {
+  position: relative;
+  display: inline-block;
+  padding-top: 40px;        // ⬅ creates hover-safe area above bubble
+  margin-top: -40px;        // ⬅ visually keeps layout same
+}
+
+
 .messageBubble {
   max-width: 65%;
   padding: 8px 12px;
@@ -336,7 +344,7 @@
   box-shadow: var(--shadow-sm);
   position: relative;
 
- pointer-events: auto;
+ 
   /* CRITICAL CHANGE: Allow flexible content stacking */
   display: flex;
   flex-direction: column;
@@ -366,7 +374,7 @@
 /* 🔥 Emoji reaction bar */
 .reactionBar {
   position: absolute;
-  top: -36px;
+ 
   display: flex;
   gap: 6px;
   padding: 4px 8px;
@@ -375,7 +383,7 @@
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
   z-index: 10;
   animation: fadeUp 0.15s ease-out;
-    pointer-events: auto;
+  top: 4px;    
 }
 
 /* Positioning based on sender */
