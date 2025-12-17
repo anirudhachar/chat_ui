@@ -550,7 +550,7 @@ export default function ChatInterface() {
 
  const handleUserSelect = async (user: User) => {
   if (!parentToken || !loggedInUserId) return;
-
+conversationIdRef.current = null;
   // 🔥 START LOADING FIRST (KEY FIX)
   setIsMessagesLoading(true);
 
@@ -763,6 +763,7 @@ export default function ChatInterface() {
         setLoggedInUserId(uid);
 
         if (incomingUser) {
+           setIsMessagesLoading(true);
           const user: User = {
             id: incomingUser.user_id,
             name: `${incomingUser.firstName} ${

@@ -37,7 +37,7 @@ interface ChatPanelProps {
   ) => void;
   onBack: () => void;
   onLoadMoreMessages: () => void;
-  
+
   hasMoreMessages: boolean;
   resetKey?: string;
   onReply?: (message: Message) => void;
@@ -109,8 +109,7 @@ export default function ChatPanel({
   }, [messages.length]);
 
   useEffect(() => {
-   if (isLoading || !hasMoreMessages || messages.length === 0) return;
-
+    if (isLoading || !hasMoreMessages || messages.length === 0) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -133,14 +132,13 @@ export default function ChatPanel({
     return () => {
       if (el) observer.unobserve(el);
     };
-  }, [hasMoreMessages, onLoadMoreMessages, messages.length]);
-
+  }, [hasMoreMessages, onLoadMoreMessages, messages.length, isLoading]);
 
   useEffect(() => {
-  if (isLoading) {
-    isFirstLoadRef.current = true;
-  }
-}, [isLoading]);
+    if (isLoading) {
+      isFirstLoadRef.current = true;
+    }
+  }, [isLoading]);
 
   /* ---------------- HELPERS ---------------- */
   const getAvatarColor = (id: string) => {
@@ -500,34 +498,33 @@ export default function ChatPanel({
           </div>
         )} */}
 
-      {isLoading && (
-  <div className={styles.loadingWrapper}>
-    <MessageSkeleton />
-    <MessageSkeleton />
-    <MessageSkeleton />
-  </div>
-)}
+        {isLoading && (
+          <div className={styles.loadingWrapper}>
+            <MessageSkeleton />
+            <MessageSkeleton />
+            <MessageSkeleton />
+          </div>
+        )}
 
-{!isLoading && messages.length === 0 && (
-  <div className={styles.emptyConversation}>
-    <div className={styles.profileRing}>
-      {selectedUser.avatar ? (
-        <img src={selectedUser.avatar} className={styles.emptyAvatar} />
-      ) : (
-        <div className={styles.emptyInitials}>
-          {getInitials(selectedUser.name)}
-        </div>
-      )}
-    </div>
-    <h3 className={styles.emptyTitle}>
-      You’re now connected with <span>{selectedUser.name}</span>
-    </h3>
-    <p className={styles.emptySubtitle}>
-      Say hello 👋 and start your conversation.
-    </p>
-  </div>
-)}
-
+        {!isLoading && messages.length === 0 && (
+          <div className={styles.emptyConversation}>
+            <div className={styles.profileRing}>
+              {selectedUser.avatar ? (
+                <img src={selectedUser.avatar} className={styles.emptyAvatar} />
+              ) : (
+                <div className={styles.emptyInitials}>
+                  {getInitials(selectedUser.name)}
+                </div>
+              )}
+            </div>
+            <h3 className={styles.emptyTitle}>
+              You’re now connected with <span>{selectedUser.name}</span>
+            </h3>
+            <p className={styles.emptySubtitle}>
+              Say hello 👋 and start your conversation.
+            </p>
+          </div>
+        )}
 
         <div className={styles.messagesContainer}>
           {hasMoreMessages && (
