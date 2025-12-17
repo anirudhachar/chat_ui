@@ -55,6 +55,7 @@ export interface Message {
 const decodeToken = (token: string) => {
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
+    console.log(payload,"payload")
     return payload.user_id;
   } catch (e) {
     return null;
@@ -307,7 +308,7 @@ export default function ChatInterface() {
                   }
                 ),
                 // Increment unread only if we aren't looking at the chat
-                
+
                 online: true,
               };
 
@@ -326,7 +327,6 @@ export default function ChatInterface() {
             setUsers((prev) => {
               // Find the user to update
               const targetId = data.lastMessageSenderId;
-           
 
               const index = prev.findIndex((u) => u.id === targetId);
 
@@ -388,11 +388,11 @@ export default function ChatInterface() {
     fetchUsers(null, true);
   }, [parentToken, fetchUsers]);
 
-  console.log(users,"usersarray")
+  console.log(users, "usersarray");
 
-const myAvatar =
-  users.find((u) => u.id === loggedInUserId)?.avatar || "/user.png";
-  console.log(myAvatar,"myAvatar")
+  const myAvatar =
+    users.find((u) => u.id === loggedInUserId)?.avatar || "/user.png";
+  console.log(myAvatar, "myAvatar");
 
   useEffect(() => {
     if (!parentToken) return;
@@ -713,7 +713,7 @@ const myAvatar =
 
         fileName: file?.name,
         fileUrl: file?.url,
- senderAvatar: myAvatar,
+        senderAvatar: myAvatar,
         linkUrl: file?.url,
         linkTitle: file?.name,
         linkDescription: file?.description,
@@ -771,7 +771,7 @@ const myAvatar =
                         minute: "2-digit",
                       })
                     : m.timestamp,
-                     senderAvatar: myAvatar,
+                  senderAvatar: myAvatar,
                 }
               : m
           )
