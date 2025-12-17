@@ -240,8 +240,9 @@ export default function ChatPanel({
             <div className={styles.replyQuoteBar} />
             <div className={styles.replyQuoteContent}>
               <span className={styles.replyQuoteUser}>
-                {m.replyTo.sent ? "You" : selectedUser?.name || "User"}
+                {m.replyTo.sent ? "You" : m.replyTo.senderName || "User"}
               </span>
+
               <p className={styles.replyQuoteText}>
                 {m.replyTo.type === "image" ? (
                   <span
@@ -543,6 +544,13 @@ export default function ChatPanel({
                   m.sent ? styles.sent : styles.received
                 }`}
               >
+                {!m.sent && m.senderAvatar && (
+                  <img
+                    src={m.senderAvatar}
+                    alt={m.senderName}
+                    className={styles.messageAvatar}
+                  />
+                )}
                 <div className={styles.messageBubble}>
                   {/* ✨ DROPDOWN TRIGGER */}
                   <button
@@ -603,8 +611,16 @@ export default function ChatPanel({
             <div className={styles.replyDecor} />
             <div className={styles.replyContent}>
               <span className={styles.replyAuthor}>
-                {replyingTo.sent ? "You" : selectedUser.name}
+                {replyingTo.sent ? "You" : replyingTo.senderName || "User"}
               </span>
+              {!replyingTo.sent && replyingTo.senderAvatar && (
+                <img
+                  src={replyingTo.senderAvatar}
+                  alt={replyingTo.senderName}
+                  className={styles.replyAvatar}
+                />
+              )}
+
               <p className={styles.replyText}>
                 {replyingTo.type === "image" ? (
                   <span className={styles.flexCenter}>

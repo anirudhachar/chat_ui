@@ -33,6 +33,9 @@ export interface Message {
   linkUrl?: string;
   linkImage?: string;
   linkDescription?: string;
+  senderId?: string;
+  senderName?: string;
+  senderAvatar?: string;
 
   offer?: {
     offerId: string;
@@ -462,41 +465,61 @@ const [isUsersLoading, setIsUsersLoading] = useState(false);
         const data = await res.json();
         console.log("📥 Messages:", data);
 
-        const mappedMessages: Message[] =
-          data?.data?.messages?.map((msg: any) => {
-            let parsedOffer = null;
+     const mappedMessages: Message[] =
+  data?.data?.messages?.map((msg: any) => {
+    let parsedOffer = null;
 
-            try {
-              const parsed = JSON.parse(msg.content);
-              if (parsed.type === "OFFER") parsedOffer = parsed;
-            } catch {}
+    try {
+      const parsed = JSON.parse(msg.content);
+      if (parsed.type === "OFFER") parsedOffer = parsed;
+    } catch {}
 
-            const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
+    const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
 
-            return {
-              id: msg.messageId,
-              content: parsedOffer?.text || msg.content,
-              timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-              }),
-              sent: msg.senderUserId === myUserId,
-              type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
-              offer: parsedOffer
-                ? {
-                    offerId: parsedOffer.offerId,
-                    listingId: parsedOffer.listingId,
-                    offerType: parsedOffer.offerType,
-                    amount: parsedOffer.amount,
-                    currency: parsedOffer.currency,
-                    tradeDescription: parsedOffer.tradeDescription,
-                    imageUrl: parsedOffer.imageUrl,
-                  }
-                : undefined,
-              linkUrl: detectedUrl ?? undefined,
-              status: msg.senderUserId === myUserId ? "sent" : undefined,
-            };
-          }) ?? [];
+    const sender = msg.sender;
+
+    return {
+      id: msg.messageId,
+      content: parsedOffer?.text || msg.content,
+
+      timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      }),
+
+      sent: msg.senderUserId === myUserId,
+
+      // 🔥 SENDER INFO (FROM API)
+      senderId: sender?.userId,
+      senderName:
+        msg.senderUserId === myUserId
+          ? "You"
+          : `${sender?.firstName ?? ""} ${sender?.lastName ?? ""}`.trim(),
+
+      senderAvatar: sender?.avatarUrl
+        ? `https://d34wmjl2ccaffd.cloudfront.net${sender.avatarUrl}`
+        : undefined,
+
+      type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
+
+      offer: parsedOffer
+        ? {
+            offerId: parsedOffer.offerId,
+            listingId: parsedOffer.listingId,
+            offerType: parsedOffer.offerType,
+            amount: parsedOffer.amount,
+            currency: parsedOffer.currency,
+            tradeDescription: parsedOffer.tradeDescription,
+            imageUrl: parsedOffer.imageUrl,
+          }
+        : undefined,
+
+      linkUrl: detectedUrl ?? undefined,
+
+      status: msg.senderUserId === myUserId ? "sent" : msg.deliveryStatus?.toLowerCase(),
+    };
+  }) ?? [];
+
 
         const ordered = mappedMessages.reverse();
 
