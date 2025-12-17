@@ -17,6 +17,7 @@ interface UserSidebarProps {
   onLoadMore: () => void;
   hasMore: boolean;
   isSearching: boolean;
+  isUsersLoading: boolean;
 }
 
 // ───────────────────────────────────────────────
@@ -59,6 +60,7 @@ export default function UserSidebar({
   onLoadMore,
   hasMore,
   isSearching,
+  isUsersLoading,
 }: UserSidebarProps) {
   const loadingIndicatorRef = useRef<HTMLDivElement>(null);
   const userListRef = useRef<HTMLDivElement>(null);
@@ -137,15 +139,18 @@ export default function UserSidebar({
 
       {/* User List */}
       <div className={styles.userList} ref={userListRef}>
-        {/* SEARCH/LOADING LOGIC */}
         {isSearching ? (
           <UserSidebarSkeleton count={6} />
-        ) : users.length === 0 && searchQuery.length >= 2 ? (
+        ) : searchQuery.length >= 2 && users.length === 0 ? (
           <div className={styles.noResults}>
             <p>No search results found.</p>
           </div>
-        ) : users.length === 0 ? (
+        ) : isUsersLoading ? (
           <UserSidebarSkeleton count={6} />
+        ) : users.length === 0 ? (
+          <div className={styles.noResults}>
+            <p>No conversations yet</p>
+          </div>
         ) : (
           users.map((user) => (
             <div

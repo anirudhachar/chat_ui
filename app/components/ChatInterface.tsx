@@ -66,6 +66,7 @@ export default function ChatInterface() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
+const [isUsersLoading, setIsUsersLoading] = useState(false);
 
   // NEW: State for message pagination
   const [messageCursor, setMessageCursor] = useState<string | null>(null);
@@ -124,6 +125,10 @@ export default function ChatInterface() {
     async (currentCursor: string | null, isInitialFetch: boolean) => {
       if (!parentToken) return;
 
+        if (isInitialFetch) {
+      setIsUsersLoading(true); // 🔥 start loading
+    }
+
       try {
         const url =
           `${process.env.NEXT_PUBLIC_API_URL}/conversations/list?limit=10` +
@@ -172,6 +177,10 @@ export default function ChatInterface() {
       } catch (error) {
         console.error("❌ Failed to fetch users:", error);
         setHasMoreUsers(false);
+      }finally{
+         if (isInitialFetch) {
+        setIsUsersLoading(false); 
+      }
       }
     },
     [parentToken]
@@ -424,91 +433,91 @@ export default function ChatInterface() {
   // ───────────────────────────────────────────────
   // FETCH MESSAGES (Refactored for pagination)
   // ───────────────────────────────────────────────
- const fetchMessages = useCallback(
-  async (
-    cid: string,
-    token: string,
-    myUserId: string | null,
-    currentCursor: string | null
-  ) => {
-    if (!myUserId || !cid) return;
+  const fetchMessages = useCallback(
+    async (
+      cid: string,
+      token: string,
+      myUserId: string | null,
+      currentCursor: string | null
+    ) => {
+      if (!myUserId || !cid) return;
 
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
-      const url =
-        `${baseUrl}/message/${cid}/list?limit=10` +
-        (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
+        const url =
+          `${baseUrl}/message/${cid}/list?limit=10` +
+          (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
 
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-      if (!res.ok) {
-        throw new Error("Failed to fetch messages");
+        if (!res.ok) {
+          throw new Error("Failed to fetch messages");
+        }
+
+        const data = await res.json();
+        console.log("📥 Messages:", data);
+
+        const mappedMessages: Message[] =
+          data?.data?.messages?.map((msg: any) => {
+            let parsedOffer = null;
+
+            try {
+              const parsed = JSON.parse(msg.content);
+              if (parsed.type === "OFFER") parsedOffer = parsed;
+            } catch {}
+
+            const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
+
+            return {
+              id: msg.messageId,
+              content: parsedOffer?.text || msg.content,
+              timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+              }),
+              sent: msg.senderUserId === myUserId,
+              type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
+              offer: parsedOffer
+                ? {
+                    offerId: parsedOffer.offerId,
+                    listingId: parsedOffer.listingId,
+                    offerType: parsedOffer.offerType,
+                    amount: parsedOffer.amount,
+                    currency: parsedOffer.currency,
+                    tradeDescription: parsedOffer.tradeDescription,
+                    imageUrl: parsedOffer.imageUrl,
+                  }
+                : undefined,
+              linkUrl: detectedUrl ?? undefined,
+              status: msg.senderUserId === myUserId ? "sent" : undefined,
+            };
+          }) ?? [];
+
+        const ordered = mappedMessages.reverse();
+
+        setMessages((prev) =>
+          currentCursor ? [...ordered, ...prev] : ordered
+        );
+
+        const nextCursor = data?.data?.cursor ?? null;
+        setMessageCursor(nextCursor);
+        setHasMoreMessages(Boolean(nextCursor));
+      } catch (error) {
+        console.error("❌ Failed to fetch messages:", error);
+        setHasMoreMessages(false);
+      } finally {
+        // 🔥 END loading ONLY here
+        setIsMessagesLoading(false);
       }
-
-      const data = await res.json();
-      console.log("📥 Messages:", data);
-
-      const mappedMessages: Message[] =
-        data?.data?.messages?.map((msg: any) => {
-          let parsedOffer = null;
-
-          try {
-            const parsed = JSON.parse(msg.content);
-            if (parsed.type === "OFFER") parsedOffer = parsed;
-          } catch {}
-
-          const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
-
-          return {
-            id: msg.messageId,
-            content: parsedOffer?.text || msg.content,
-            timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-            }),
-            sent: msg.senderUserId === myUserId,
-            type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
-            offer: parsedOffer
-              ? {
-                  offerId: parsedOffer.offerId,
-                  listingId: parsedOffer.listingId,
-                  offerType: parsedOffer.offerType,
-                  amount: parsedOffer.amount,
-                  currency: parsedOffer.currency,
-                  tradeDescription: parsedOffer.tradeDescription,
-                  imageUrl: parsedOffer.imageUrl,
-                }
-              : undefined,
-            linkUrl: detectedUrl ?? undefined,
-            status: msg.senderUserId === myUserId ? "sent" : undefined,
-          };
-        }) ?? [];
-
-      const ordered = mappedMessages.reverse();
-
-      setMessages((prev) =>
-        currentCursor ? [...ordered, ...prev] : ordered
-      );
-
-      const nextCursor = data?.data?.cursor ?? null;
-      setMessageCursor(nextCursor);
-      setHasMoreMessages(Boolean(nextCursor));
-    } catch (error) {
-      console.error("❌ Failed to fetch messages:", error);
-      setHasMoreMessages(false);
-    } finally {
-      // 🔥 END loading ONLY here
-      setIsMessagesLoading(false);
-    }
-  },
-  []
-);
- // Dependencies: empty since all required dependencies are passed as arguments or are stable state/props
+    },
+    []
+  );
+  // Dependencies: empty since all required dependencies are passed as arguments or are stable state/props
 
   // NEW: Function to load the next page of messages (older ones)
   const loadMoreMessages = () => {
@@ -548,46 +557,46 @@ export default function ChatInterface() {
     }
   };
 
- const handleUserSelect = async (user: User) => {
-  if (!parentToken || !loggedInUserId) return;
-conversationIdRef.current = null;
-  // 🔥 START LOADING FIRST (KEY FIX)
-  setIsMessagesLoading(true);
+  const handleUserSelect = async (user: User) => {
+    if (!parentToken || !loggedInUserId) return;
+    conversationIdRef.current = null;
+    // 🔥 START LOADING FIRST (KEY FIX)
+    setIsMessagesLoading(true);
 
-  // 🔥 Immediately render ChatPanel in loading state
-  setSelectedUser(user);
-  setMessages([]);
+    // 🔥 Immediately render ChatPanel in loading state
+    setSelectedUser(user);
+    setMessages([]);
 
-  // reset pagination
-  setMessageCursor(null);
-  setHasMoreMessages(true);
+    // reset pagination
+    setMessageCursor(null);
+    setHasMoreMessages(true);
 
-  // reset unread
-  setUsers((prev) =>
-    prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
-  );
+    // reset unread
+    setUsers((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
+    );
 
-  try {
-    // 🔁 CREATE / GET CONVERSATION
-    const cid = await getConversationId(user.id, parentToken);
+    try {
+      // 🔁 CREATE / GET CONVERSATION
+      const cid = await getConversationId(user.id, parentToken);
 
-    if (!cid) {
+      if (!cid) {
+        setIsMessagesLoading(false);
+        return;
+      }
+
+      // 📥 FETCH MESSAGES (same loading phase)
+      await fetchMessages(cid, parentToken, loggedInUserId, null);
+    } catch (e) {
+      console.error(e);
       setIsMessagesLoading(false);
-      return;
     }
 
-    // 📥 FETCH MESSAGES (same loading phase)
-    await fetchMessages(cid, parentToken, loggedInUserId, null);
-  } catch (e) {
-    console.error(e);
-    setIsMessagesLoading(false);
-  }
-
-  // 📱 Mobile UX
-  if (window.innerWidth < 768) {
-    setShowSidebar(false);
-  }
-};
+    // 📱 Mobile UX
+    if (window.innerWidth < 768) {
+      setShowSidebar(false);
+    }
+  };
 
   // ───────────────────────────────────────────────
   // SEND MESSAGE HANDLER
@@ -597,7 +606,7 @@ conversationIdRef.current = null;
   const handleSendMessage = useCallback(
     async (
       content: string,
-     type: "text" | "image" | "document" | "link" | "audio" = "text",
+      type: "text" | "image" | "document" | "link" | "audio" = "text",
       file?: {
         name: string;
         url: string;
@@ -763,7 +772,7 @@ conversationIdRef.current = null;
         setLoggedInUserId(uid);
 
         if (incomingUser) {
-           setIsMessagesLoading(true);
+          setIsMessagesLoading(true);
           const user: User = {
             id: incomingUser.user_id,
             name: `${incomingUser.firstName} ${
@@ -893,6 +902,7 @@ conversationIdRef.current = null;
           onLoadMore={loadMoreUsers}
           hasMore={hasMoreUsers && !isSearchActive}
           isSearching={isSearching}
+            isUsersLoading={isUsersLoading} 
         />
       </div>
 
@@ -902,7 +912,7 @@ conversationIdRef.current = null;
         <ChatPanel
           selectedUser={selectedUser}
           messages={messages}
-           isLoading={isMessagesLoading} 
+          isLoading={isMessagesLoading}
           onSendMessage={handleSendMessage}
           onBack={() => {
             setSelectedUser(null);
