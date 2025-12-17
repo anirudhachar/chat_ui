@@ -65,6 +65,7 @@ export default function ChatPanel({
   // ✨ STATE: Tracks dropdown & Reply
   const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
 
   /* 🔁 reset on chat switch */
   useEffect(() => {
@@ -72,6 +73,11 @@ export default function ChatPanel({
     setActiveMessageId(null);
     setReplyingTo(null);
   }, [resetKey]);
+
+  const handleReaction = (messageId: string, emoji: string) => {
+    console.log("Reacted:", messageId, emoji);
+    // TODO: call API / websocket
+  };
 
   /* ✨ Click Outside to Close Dropdown */
   useEffect(() => {
@@ -544,6 +550,8 @@ export default function ChatPanel({
                 className={`${styles.messageWrapper} ${
                   m.sent ? styles.sent : styles.received
                 }`}
+                onMouseEnter={() => setHoveredMessageId(m.id)}
+                onMouseLeave={() => setHoveredMessageId(null)}
               >
                 {m.senderAvatar && (
                   <img
@@ -602,6 +610,24 @@ export default function ChatPanel({
                     <span className={styles.messageTime}>{m.timestamp}</span>
                     {m.sent && getStatusIcon(m.status)}
                   </div>
+
+                  {hoveredMessageId === m.id && (
+                    <div
+                      className={`${styles.reactionBar} ${
+                        m.sent ? styles.sentReaction : styles.receivedReaction
+                      }`}
+                    >
+                      {["👍", "❤️", "😂", "😮", "😢", "👏"].map((emoji) => (
+                        <button
+                          key={emoji}
+                          onClick={() => handleReaction(m.id, emoji)}
+                          className={styles.reactionEmoji}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             );

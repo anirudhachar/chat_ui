@@ -297,20 +297,18 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
               >
                 Cancel
               </button>
-              {/* Stop Button */}
+
               <button className={styles.stopButton} onClick={stopRecording}>
                 <FiSquare fill="currentColor" />
               </button>
             </div>
           </div>
         ) : recordedAudio ? (
-          /* 2. PREVIEW AUDIO STATE */
           <div className={styles.audioPreviewContainer}>
             <button className={styles.iconButton} onClick={deleteRecordedAudio}>
               <FiTrash2 className={styles.trashIcon} />
             </button>
 
-            {/* Native Audio Player for Preview */}
             <audio
               src={recordedAudio.url}
               controls
