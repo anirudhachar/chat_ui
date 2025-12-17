@@ -424,86 +424,91 @@ export default function ChatInterface() {
   // ───────────────────────────────────────────────
   // FETCH MESSAGES (Refactored for pagination)
   // ───────────────────────────────────────────────
-  const fetchMessages = useCallback(
-    async (
-      cid: string,
-      token: string,
-      myUserId: string | null,
-      currentCursor: string | null
-    ) => {
-      if (!myUserId || !cid) return;
+ const fetchMessages = useCallback(
+  async (
+    cid: string,
+    token: string,
+    myUserId: string | null,
+    currentCursor: string | null
+  ) => {
+    if (!myUserId || !cid) return;
 
-      try {
-      setIsMessagesLoading(true);  // Use the provided local endpoint for testing if needed, otherwise use the live one
-        const baseUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
-        const url =
-          `${baseUrl}/message/${cid}/list?limit=10` +
-          (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
+      const url =
+        `${baseUrl}/message/${cid}/list?limit=10` +
+        (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
 
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-        const data = await res.json();
-        console.log("📥 Messages:", data);
-
-        const mappedMessages: Message[] =
-          data?.data?.messages?.map((msg: any) => {
-            let parsedOffer = null;
-
-            try {
-              const parsed = JSON.parse(msg.content);
-              if (parsed.type === "OFFER") parsedOffer = parsed;
-            } catch {}
-
-            const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
-
-            return {
-              id: msg.messageId,
-              content: parsedOffer?.text || msg.content,
-              timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-              }),
-              sent: msg.senderUserId === myUserId,
-              type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
-              offer: parsedOffer
-                ? {
-                    offerId: parsedOffer.offerId,
-                    listingId: parsedOffer.listingId,
-                    offerType: parsedOffer.offerType,
-                    amount: parsedOffer.amount,
-                    currency: parsedOffer.currency,
-                    tradeDescription: parsedOffer.tradeDescription,
-                    imageUrl: parsedOffer.imageUrl,
-                  }
-                : undefined,
-              linkUrl: detectedUrl ?? undefined,
-              status: msg.senderUserId === myUserId ? "sent" : undefined,
-            };
-          }) || [];
-
-        // If fetching with a cursor, prepend (load older messages).
-        // If cursor is null (initial fetch), replace and reverse (show newest at bottom).
-        setMessages((prev) => {
-          const newMessages = mappedMessages.reverse(); // New messages are chronologically reversed
-          return currentCursor ? [...newMessages, ...prev] : newMessages;
-        });
-
-        const nextCursor = data?.data?.cursor || null;
-        setMessageCursor(nextCursor);
-        setHasMoreMessages(!!nextCursor);
-        setIsMessagesLoading(false);
-      } catch (error) {
-        console.error("❌ Failed to fetch messages:", error);
-        setHasMoreMessages(false);
+      if (!res.ok) {
+        throw new Error("Failed to fetch messages");
       }
-    },
-    []
-  ); // Dependencies: empty since all required dependencies are passed as arguments or are stable state/props
+
+      const data = await res.json();
+      console.log("📥 Messages:", data);
+
+      const mappedMessages: Message[] =
+        data?.data?.messages?.map((msg: any) => {
+          let parsedOffer = null;
+
+          try {
+            const parsed = JSON.parse(msg.content);
+            if (parsed.type === "OFFER") parsedOffer = parsed;
+          } catch {}
+
+          const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
+
+          return {
+            id: msg.messageId,
+            content: parsedOffer?.text || msg.content,
+            timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+            }),
+            sent: msg.senderUserId === myUserId,
+            type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
+            offer: parsedOffer
+              ? {
+                  offerId: parsedOffer.offerId,
+                  listingId: parsedOffer.listingId,
+                  offerType: parsedOffer.offerType,
+                  amount: parsedOffer.amount,
+                  currency: parsedOffer.currency,
+                  tradeDescription: parsedOffer.tradeDescription,
+                  imageUrl: parsedOffer.imageUrl,
+                }
+              : undefined,
+            linkUrl: detectedUrl ?? undefined,
+            status: msg.senderUserId === myUserId ? "sent" : undefined,
+          };
+        }) ?? [];
+
+      const ordered = mappedMessages.reverse();
+
+      setMessages((prev) =>
+        currentCursor ? [...ordered, ...prev] : ordered
+      );
+
+      const nextCursor = data?.data?.cursor ?? null;
+      setMessageCursor(nextCursor);
+      setHasMoreMessages(Boolean(nextCursor));
+    } catch (error) {
+      console.error("❌ Failed to fetch messages:", error);
+      setHasMoreMessages(false);
+    } finally {
+      // 🔥 END loading ONLY here
+      setIsMessagesLoading(false);
+    }
+  },
+  []
+);
+ // Dependencies: empty since all required dependencies are passed as arguments or are stable state/props
 
   // NEW: Function to load the next page of messages (older ones)
   const loadMoreMessages = () => {
@@ -543,33 +548,46 @@ export default function ChatInterface() {
     }
   };
 
-  const handleUserSelect = async (user: User) => {
-    if (!parentToken || !loggedInUserId) return;
+ const handleUserSelect = async (user: User) => {
+  if (!parentToken || !loggedInUserId) return;
 
-    setSelectedUser(user);
-    setMessages([]);
+  // 🔥 START LOADING FIRST (KEY FIX)
+  setIsMessagesLoading(true);
 
-    // 🔁 Reset message pagination
-    setMessageCursor(null);
-    setHasMoreMessages(true);
+  // 🔥 Immediately render ChatPanel in loading state
+  setSelectedUser(user);
+  setMessages([]);
 
-    // 🔕 Reset unread count in sidebar
-    setUsers((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
-    );
+  // reset pagination
+  setMessageCursor(null);
+  setHasMoreMessages(true);
 
+  // reset unread
+  setUsers((prev) =>
+    prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
+  );
+
+  try {
+    // 🔁 CREATE / GET CONVERSATION
     const cid = await getConversationId(user.id, parentToken);
 
-    // 📥 Initial message fetch
-    if (cid) {
-      fetchMessages(cid, parentToken, loggedInUserId, null);
+    if (!cid) {
+      setIsMessagesLoading(false);
+      return;
     }
 
-    // 📱 Mobile UX
-    if (window.innerWidth < 768) {
-      setShowSidebar(false);
-    }
-  };
+    // 📥 FETCH MESSAGES (same loading phase)
+    await fetchMessages(cid, parentToken, loggedInUserId, null);
+  } catch (e) {
+    console.error(e);
+    setIsMessagesLoading(false);
+  }
+
+  // 📱 Mobile UX
+  if (window.innerWidth < 768) {
+    setShowSidebar(false);
+  }
+};
 
   // ───────────────────────────────────────────────
   // SEND MESSAGE HANDLER

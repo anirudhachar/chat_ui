@@ -37,6 +37,7 @@ interface ChatPanelProps {
   ) => void;
   onBack: () => void;
   onLoadMoreMessages: () => void;
+  
   hasMoreMessages: boolean;
   resetKey?: string;
   onReply?: (message: Message) => void;
