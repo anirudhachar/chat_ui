@@ -545,15 +545,7 @@ export default function ChatPanel({
                   m.sent ? styles.sent : styles.received
                 }`}
               >
-                {m.senderAvatar && (
-                  <img
-                    src={m.senderAvatar}
-                    alt={m.senderName}
-                    className={`${styles.messageAvatar} ${
-                      m.sent ? styles.myAvatar : styles.otherAvatar
-                    }`}
-                  />
-                )}
+               
 
                 <div className={styles.messageBubble}>
                   {/* ✨ DROPDOWN TRIGGER */}
@@ -602,6 +594,15 @@ export default function ChatPanel({
                     {m.sent && getStatusIcon(m.status)}
                   </div>
                 </div>
+                 {m.senderAvatar && (
+                  <img
+                    src={m.senderAvatar}
+                    alt={m.senderName}
+                    className={`${styles.messageAvatar} ${
+                      m.sent ? styles.myAvatar : styles.otherAvatar
+                    }`}
+                  />
+                )}
               </div>
             );
           })}
