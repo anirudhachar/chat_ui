@@ -207,7 +207,7 @@ const [isUsersLoading, setIsUsersLoading] = useState(false);
     selectedUserRef.current = selectedUser;
   }, [selectedUser]);
 
-  useEffect(() => {
+useEffect(() => {
     if (!parentToken) return;
 
     const wsUrl = `wss://k4g7m4879h.execute-api.us-east-1.amazonaws.com/dev?token=${encodeURIComponent(
@@ -229,87 +229,126 @@ const [isUsersLoading, setIsUsersLoading] = useState(false);
 
         switch (eventType) {
           // ─────────────────────────────
-          // NEW MESSAGE (RIGHT CHAT)
+          // NEW MESSAGE
           // ─────────────────────────────
           case "newMessage": {
-            if (data.conversationId !== conversationIdRef.current) break;
-
+            // 1. Parse Data
             let parsedOffer = null;
-
             try {
               const parsed = JSON.parse(data.content);
               if (parsed.type === "OFFER") parsedOffer = parsed;
             } catch {}
-
             const detectedUrl = !parsedOffer ? extractUrl(data.content) : null;
 
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: data.messageId,
-                content: parsedOffer?.text || data.content,
-                timestamp: new Date(data.createdAt).toLocaleTimeString(
-                  "en-US",
-                  {
+            // 2. Update Chat Panel (ONLY if this conversation is actively open)
+            if (data.conversationId === conversationIdRef.current) {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: data.messageId,
+                  content: parsedOffer?.text || data.content,
+                  timestamp: new Date(data.createdAt).toLocaleTimeString("en-US", {
                     hour: "numeric",
                     minute: "2-digit",
-                  }
-                ),
-                sent: data.senderUserId === loggedInUserIdRef.current,
-                type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
-                offer: parsedOffer
-                  ? {
-                      offerId: parsedOffer.offerId,
-                      listingId: parsedOffer.listingId,
-                      offerType: parsedOffer.offerType,
-                      amount: parsedOffer.amount,
-                      currency: parsedOffer.currency,
-                      tradeDescription: parsedOffer.tradeDescription,
-                      imageUrl: parsedOffer.imageUrl,
-                    }
-                  : undefined,
-                linkUrl: detectedUrl ?? undefined,
-                status: "delivered",
-              },
-            ]);
+                  }),
+                  sent: data.senderUserId === loggedInUserIdRef.current,
+                  type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
+                  offer: parsedOffer
+                    ? {
+                        offerId: parsedOffer.offerId,
+                        listingId: parsedOffer.listingId,
+                        offerType: parsedOffer.offerType,
+                        amount: parsedOffer.amount,
+                        currency: parsedOffer.currency,
+                        tradeDescription: parsedOffer.tradeDescription,
+                        imageUrl: parsedOffer.imageUrl,
+                      }
+                    : undefined,
+                  linkUrl: detectedUrl ?? undefined,
+                  status: "delivered",
+                },
+              ]);
 
-            if (detectedUrl) {
-              fetchLinkPreview(data.messageId, detectedUrl);
+              if (detectedUrl) {
+                fetchLinkPreview(data.messageId, detectedUrl);
+              }
             }
 
+            // 3. Update Sidebar (ALWAYS runs to move user to top)
+            setUsers((prev) => {
+              // Determine who the "other" person is.
+              // If I sent it (from another tab), target is recipient. If they sent it, target is sender.
+              const targetUserId =
+                data.senderUserId === loggedInUserIdRef.current
+                  ? data.recipientUserId // Ensure your API sends this, or match by conversationId if possible
+                  : data.senderUserId;
+
+              // Fallback: If we can't determine ID easily, find user by iterating (less efficient but safe)
+              const existingIndex = prev.findIndex(
+                (u) => u.id === data.senderUserId || u.id === data.recipientUserId
+              );
+
+              if (existingIndex === -1) return prev; // User not in list, do nothing
+
+              const existingUser = prev[existingIndex];
+
+              const updatedUser: User = {
+                ...existingUser,
+                lastMessage: parsedOffer ? "Sent an offer" : data.content,
+                lastMessageTime: new Date(data.createdAt).toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                }),
+                // Increment unread only if we aren't looking at the chat
+                unread:
+                  data.conversationId === conversationIdRef.current
+                    ? 0
+                    : (existingUser.unread || 0) + 1,
+                online: true,
+              };
+
+              // 🔥 THE FIX: Filter out the old user, put updatedUser at [0]
+              const others = prev.filter((_, idx) => idx !== existingIndex);
+              return [updatedUser, ...others];
+            });
+
             break;
           }
 
           // ─────────────────────────────
-          // SIDEBAR UPDATE
+          // SIDEBAR UPDATE (Conversation Updated)
           // ─────────────────────────────
           case "conversationUpdated": {
-            setUsers((prev) =>
-              prev.map((u) =>
-                u.id === data.lastMessageSenderId
-                  ? {
-                      ...u,
-                      lastMessage: data.lastMessagePreview,
-                      lastMessageTime: new Date(
-                        data.lastMessageAt
-                      ).toLocaleTimeString("en-US", {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      }),
-                      unread:
-                        selectedUserRef.current?.id === u.id
-                          ? 0
-                          : (u.unread ?? 0) + (data.unreadIncrement ?? 0),
-                    }
-                  : u
-              )
-            );
+            setUsers((prev) => {
+              // Find the user to update
+              const targetId = data.lastMessageSenderId; 
+              // Note: Ideally match by conversationId if your User object has it, 
+              // otherwise match by user ID.
+              
+              const index = prev.findIndex((u) => u.id === targetId); 
+              
+              if (index === -1) return prev;
+
+              const updatedUser = {
+                ...prev[index],
+                lastMessage: data.lastMessagePreview,
+                lastMessageTime: new Date(data.lastMessageAt).toLocaleTimeString(
+                  "en-US",
+                  { hour: "numeric", minute: "2-digit" }
+                ),
+                unread:
+                  selectedUserRef.current?.id === targetId
+                    ? 0
+                    : (prev[index].unread ?? 0) + (data.unreadIncrement ?? 0),
+              };
+
+              // 🔥 THE FIX: Move to top
+              const others = prev.filter((_, i) => i !== index);
+              return [updatedUser, ...others];
+            });
             break;
           }
 
-          // ─────────────────────────────
-          // ACK (OPTIONAL)
-          // ─────────────────────────────
           case "messageSentAck": {
             console.log("✅ Message acknowledged by server");
             break;
@@ -325,10 +364,6 @@ const [isUsersLoading, setIsUsersLoading] = useState(false);
 
     ws.onerror = (err) => {
       console.error("❌ WebSocket error", err);
-    };
-
-    ws.onclose = () => {
-      console.log("🔌 WebSocket disconnected");
     };
 
     return () => {
