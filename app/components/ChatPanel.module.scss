@@ -329,7 +329,6 @@
   }
 }
 
-
 .messageBubble {
   max-width: 65%;
   padding: 8px 12px;
@@ -1118,11 +1117,20 @@
   margin-right: 3px;
 }
 
-
 .replyAvatar {
   width: 28px;
   height: 28px;
   border-radius: 50%;
   object-fit: cover;
   margin-right: 6px;
+}
+
+.senderNameUser {
+  font-weight: 400;
+
+  font-size: 12px;
+  line-height: 14px;
+  letter-spacing: 0%;
+  text-align: center;
+  color: #8f8dfc;
 }

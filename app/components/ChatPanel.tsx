@@ -556,7 +556,7 @@ export default function ChatPanel({
                 )}
 
                 <div className={styles.messageBubble}>
-                  <p>{m.senderName}</p>
+                  <p className={styles.senderNameUser}>{m.senderName}</p>
                   {/* ✨ DROPDOWN TRIGGER */}
                   <button
                     className={`${styles.optionsTrigger} ${
