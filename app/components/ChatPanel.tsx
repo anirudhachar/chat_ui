@@ -23,7 +23,7 @@ import MessageSkeleton from "./MessageSkeleton/MessageSkeleton";
 interface ChatPanelProps {
   selectedUser: User | null;
   messages: Message[];
-  // Updated onSendMessage to accept replyTo
+  isLoading: boolean;
   onSendMessage: (
     content: string,
     type?: "text" | "image" | "document" | "link" | "audio",
@@ -51,6 +51,7 @@ export default function ChatPanel({
   hasMoreMessages,
   resetKey,
   onReply,
+  isLoading,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
@@ -470,7 +471,7 @@ export default function ChatPanel({
 
       {/* MESSAGES */}
       <div className={styles.messagesArea} ref={messagesAreaRef}>
-        {messages.length === 0 && (
+        {/* {messages.length === 0 && (
           <div className={styles.emptyConversation}>
             <div className={styles.profileRing}>
               {selectedUser.avatar ? (
@@ -488,7 +489,33 @@ export default function ChatPanel({
               Say hello 👋 and start your conversation.
             </p>
           </div>
-        )}
+        )} */}
+
+        {isLoading ? (
+          <div className={styles.loadingWrapper}>
+            <MessageSkeleton />
+            <MessageSkeleton />
+            <MessageSkeleton />
+          </div>
+        ) : messages.length === 0 ? (
+          <div className={styles.emptyConversation}>
+            <div className={styles.profileRing}>
+              {selectedUser.avatar ? (
+                <img src={selectedUser.avatar} className={styles.emptyAvatar} />
+              ) : (
+                <div className={styles.emptyInitials}>
+                  {getInitials(selectedUser.name)}
+                </div>
+              )}
+            </div>
+            <h3 className={styles.emptyTitle}>
+              You’re now connected with <span>{selectedUser.name}</span>
+            </h3>
+            <p className={styles.emptySubtitle}>
+              Say hello 👋 and start your conversation.
+            </p>
+          </div>
+        ) : null}
 
         <div className={styles.messagesContainer}>
           {hasMoreMessages && (

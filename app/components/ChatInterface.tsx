@@ -83,6 +83,8 @@ export default function ChatInterface() {
   const selectedUserRef = useRef<User | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const extractUrl = (text: string) => {
@@ -432,7 +434,7 @@ export default function ChatInterface() {
       if (!myUserId || !cid) return;
 
       try {
-        // Use the provided local endpoint for testing if needed, otherwise use the live one
+      setIsMessagesLoading(true);  // Use the provided local endpoint for testing if needed, otherwise use the live one
         const baseUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 
         const url =
@@ -494,6 +496,7 @@ export default function ChatInterface() {
         const nextCursor = data?.data?.cursor || null;
         setMessageCursor(nextCursor);
         setHasMoreMessages(!!nextCursor);
+        setIsMessagesLoading(false);
       } catch (error) {
         console.error("❌ Failed to fetch messages:", error);
         setHasMoreMessages(false);
@@ -880,6 +883,7 @@ export default function ChatInterface() {
         <ChatPanel
           selectedUser={selectedUser}
           messages={messages}
+           isLoading={isMessagesLoading} 
           onSendMessage={handleSendMessage}
           onBack={() => {
             setSelectedUser(null);
