@@ -1099,8 +1099,9 @@
 }
 
 .messageAvatar {
-  width: 100%;
-  height: 100%;
+  width: 28px;
+  height: 28px;
+  margin-right: 3px;
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid #ddd;
