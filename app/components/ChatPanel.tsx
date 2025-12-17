@@ -536,6 +536,7 @@ export default function ChatPanel({
 
           {messages.map((m) => {
             const isDropdownOpen = activeMessageId === m.id;
+            console.log(m,"messagesbeingrendered")
 
             return (
               <div

@@ -69,7 +69,7 @@ export default function ChatInterface() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
-const [isUsersLoading, setIsUsersLoading] = useState(false);
+  const [isUsersLoading, setIsUsersLoading] = useState(false);
 
   // NEW: State for message pagination
   const [messageCursor, setMessageCursor] = useState<string | null>(null);
@@ -128,9 +128,9 @@ const [isUsersLoading, setIsUsersLoading] = useState(false);
     async (currentCursor: string | null, isInitialFetch: boolean) => {
       if (!parentToken) return;
 
-        if (isInitialFetch) {
-      setIsUsersLoading(true); // 🔥 start loading
-    }
+      if (isInitialFetch) {
+        setIsUsersLoading(true); // 🔥 start loading
+      }
 
       try {
         const url =
@@ -180,10 +180,10 @@ const [isUsersLoading, setIsUsersLoading] = useState(false);
       } catch (error) {
         console.error("❌ Failed to fetch users:", error);
         setHasMoreUsers(false);
-      }finally{
-         if (isInitialFetch) {
-        setIsUsersLoading(false); 
-      }
+      } finally {
+        if (isInitialFetch) {
+          setIsUsersLoading(false);
+        }
       }
     },
     [parentToken]
@@ -207,7 +207,7 @@ const [isUsersLoading, setIsUsersLoading] = useState(false);
     selectedUserRef.current = selectedUser;
   }, [selectedUser]);
 
-useEffect(() => {
+  useEffect(() => {
     if (!parentToken) return;
 
     const wsUrl = `wss://k4g7m4879h.execute-api.us-east-1.amazonaws.com/dev?token=${encodeURIComponent(
@@ -247,10 +247,13 @@ useEffect(() => {
                 {
                   id: data.messageId,
                   content: parsedOffer?.text || data.content,
-                  timestamp: new Date(data.createdAt).toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  }),
+                  timestamp: new Date(data.createdAt).toLocaleTimeString(
+                    "en-US",
+                    {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    }
+                  ),
                   sent: data.senderUserId === loggedInUserIdRef.current,
                   type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
                   offer: parsedOffer
@@ -285,7 +288,8 @@ useEffect(() => {
 
               // Fallback: If we can't determine ID easily, find user by iterating (less efficient but safe)
               const existingIndex = prev.findIndex(
-                (u) => u.id === data.senderUserId || u.id === data.recipientUserId
+                (u) =>
+                  u.id === data.senderUserId || u.id === data.recipientUserId
               );
 
               if (existingIndex === -1) return prev; // User not in list, do nothing
@@ -295,10 +299,13 @@ useEffect(() => {
               const updatedUser: User = {
                 ...existingUser,
                 lastMessage: parsedOffer ? "Sent an offer" : data.content,
-                lastMessageTime: new Date(data.createdAt).toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                }),
+                lastMessageTime: new Date(data.createdAt).toLocaleTimeString(
+                  "en-US",
+                  {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  }
+                ),
                 // Increment unread only if we aren't looking at the chat
                 unread:
                   data.conversationId === conversationIdRef.current
@@ -321,21 +328,22 @@ useEffect(() => {
           case "conversationUpdated": {
             setUsers((prev) => {
               // Find the user to update
-              const targetId = data.lastMessageSenderId; 
-              // Note: Ideally match by conversationId if your User object has it, 
-              // otherwise match by user ID.
-              
-              const index = prev.findIndex((u) => u.id === targetId); 
-              
+              const targetId = data.lastMessageSenderId;
+           
+
+              const index = prev.findIndex((u) => u.id === targetId);
+
               if (index === -1) return prev;
 
               const updatedUser = {
                 ...prev[index],
                 lastMessage: data.lastMessagePreview,
-                lastMessageTime: new Date(data.lastMessageAt).toLocaleTimeString(
-                  "en-US",
-                  { hour: "numeric", minute: "2-digit" }
-                ),
+                lastMessageTime: new Date(
+                  data.lastMessageAt
+                ).toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                }),
                 unread:
                   selectedUserRef.current?.id === targetId
                     ? 0
@@ -500,61 +508,65 @@ useEffect(() => {
         const data = await res.json();
         console.log("📥 Messages:", data);
 
-     const mappedMessages: Message[] =
-  data?.data?.messages?.map((msg: any) => {
-    let parsedOffer = null;
+        const mappedMessages: Message[] =
+          data?.data?.messages?.map((msg: any) => {
+            let parsedOffer = null;
 
-    try {
-      const parsed = JSON.parse(msg.content);
-      if (parsed.type === "OFFER") parsedOffer = parsed;
-    } catch {}
+            try {
+              const parsed = JSON.parse(msg.content);
+              if (parsed.type === "OFFER") parsedOffer = parsed;
+            } catch {}
 
-    const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
+            const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
 
-    const sender = msg.sender;
+            const sender = msg.sender;
 
-    return {
-      id: msg.messageId,
-      content: parsedOffer?.text || msg.content,
+            return {
+              id: msg.messageId,
+              content: parsedOffer?.text || msg.content,
 
-      timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      }),
+              timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+              }),
 
-      sent: msg.senderUserId === myUserId,
+              sent: msg.senderUserId === myUserId,
 
-      // 🔥 SENDER INFO (FROM API)
-      senderId: sender?.userId,
-      senderName:
-        msg.senderUserId === myUserId
-          ? "You"
-          : `${sender?.firstName ?? ""} ${sender?.lastName ?? ""}`.trim(),
+              // 🔥 SENDER INFO (FROM API)
+              senderId: sender?.userId,
+              senderName:
+                msg.senderUserId === myUserId
+                  ? "You"
+                  : `${sender?.firstName ?? ""} ${
+                      sender?.lastName ?? ""
+                    }`.trim(),
 
-      senderAvatar: sender?.avatarUrl
-        ? `https://d34wmjl2ccaffd.cloudfront.net${sender.avatarUrl}`
-        : undefined,
+              senderAvatar: sender?.avatarUrl
+                ? `https://d34wmjl2ccaffd.cloudfront.net${sender.avatarUrl}`
+                : undefined,
 
-      type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
+              type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
 
-      offer: parsedOffer
-        ? {
-            offerId: parsedOffer.offerId,
-            listingId: parsedOffer.listingId,
-            offerType: parsedOffer.offerType,
-            amount: parsedOffer.amount,
-            currency: parsedOffer.currency,
-            tradeDescription: parsedOffer.tradeDescription,
-            imageUrl: parsedOffer.imageUrl,
-          }
-        : undefined,
+              offer: parsedOffer
+                ? {
+                    offerId: parsedOffer.offerId,
+                    listingId: parsedOffer.listingId,
+                    offerType: parsedOffer.offerType,
+                    amount: parsedOffer.amount,
+                    currency: parsedOffer.currency,
+                    tradeDescription: parsedOffer.tradeDescription,
+                    imageUrl: parsedOffer.imageUrl,
+                  }
+                : undefined,
 
-      linkUrl: detectedUrl ?? undefined,
+              linkUrl: detectedUrl ?? undefined,
 
-      status: msg.senderUserId === myUserId ? "sent" : msg.deliveryStatus?.toLowerCase(),
-    };
-  }) ?? [];
-
+              status:
+                msg.senderUserId === myUserId
+                  ? "sent"
+                  : msg.deliveryStatus?.toLowerCase(),
+            };
+          }) ?? [];
 
         const ordered = mappedMessages.reverse();
 
@@ -711,7 +723,7 @@ useEffect(() => {
         replyTo: replyTo, // 👈 ADDED: Pass replyTo to state so UI renders it immediately
       };
 
-      console.log(optimistic,"messageoptimistic")
+      console.log(optimistic, "messageoptimistic");
       setMessages((prev) => [...prev, optimistic]);
 
       // 🔥 EXIT SEARCH MODE
@@ -961,7 +973,7 @@ useEffect(() => {
           onLoadMore={loadMoreUsers}
           hasMore={hasMoreUsers && !isSearchActive}
           isSearching={isSearching}
-            isUsersLoading={isUsersLoading} 
+          isUsersLoading={isUsersLoading}
         />
       </div>
 
