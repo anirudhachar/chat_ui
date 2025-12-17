@@ -148,6 +148,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.unreadUser {
+  font-weight: 700; 
+}
 
 .timestamp {
   font-size: 12px;
@@ -157,11 +160,8 @@
 }
 
 .lastMessageWrapper {
-  // 🔥 MODIFIED: Change justify-content from space-between to align-items: center
-  // and add flex properties for the status icon.
   display: flex;
-  align-items: center; // Align items vertically in the center
-  gap: 4px; // 🔥 NEW: Space between icon, message, and badge
+  align-items: center;
 }
 
 .lastMessage {
@@ -177,9 +177,9 @@
 .statusIcons {
   display: flex;
   position: relative;
-  width: 14px; /* Fixed width for the icon area */
+  width: 14px;
   height: 14px;
-  color: var(--color-icon-sent, #667781); // Default grey for Sent/Delivered
+  color: var(--color-icon-sent, #667781);
 
   svg {
     position: absolute;

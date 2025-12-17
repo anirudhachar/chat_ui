@@ -180,7 +180,13 @@ export default function UserSidebar({
 
               <div className={styles.userInfo}>
                 <div className={styles.userHeader}>
-                  <h3 className={styles.userName}>{user.name}</h3>
+                  <h3
+                    className={`${styles.userName} ${
+                      Number(user.unread) > 0 ? styles.unreadUser : ""
+                    }`}
+                  >
+                    {user.name}
+                  </h3>
                   <span className={styles.timestamp}>
                     {user.lastMessageTime}
                   </span>
