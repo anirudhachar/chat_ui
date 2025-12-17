@@ -316,16 +316,19 @@
 
 .messageWrapper {
   display: flex;
+  align-items: flex-end;
+  gap: 6px;
   margin-bottom: var(--spacing-xs);
 
   &.sent {
-    justify-content: flex-end;
+    flex-direction: row-reverse;
   }
 
   &.received {
-    justify-content: flex-start;
+    flex-direction: row;
   }
 }
+
 
 .messageBubble {
   max-width: 65%;
@@ -1101,11 +1104,21 @@
 .messageAvatar {
   width: 28px;
   height: 28px;
-  margin-right: 3px;
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid #ddd;
 }
+
+/* Avatar spacing per side */
+.sent .messageAvatar {
+  margin-left: 3px;
+}
+
+.received .messageAvatar {
+  margin-right: 3px;
+}
+
+
 .replyAvatar {
   width: 28px;
   height: 28px;
