@@ -78,25 +78,20 @@
   transition: background-color 0.2s ease;
   border-bottom: 1px solid var(--color-border);
 
-   &:hover {
-    background-color: #f6f7fb;
+  &:hover {
+    background: linear-gradient(
+      90deg,
+      rgba(235, 235, 255, 0.62) 0%,
+      rgba(255, 237, 237, 0.62) 100%
+    );
   }
 
-  /* 🟦 Active (selected chat) */
   &.active {
-    background-color: #eef1ff;
-
-    /* left accent bar */
-    &::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 8px;
-      bottom: 8px;
-      width: 3px;
-      background-color: #6c63ff; // matches your purple theme
-      border-radius: 2px;
-    }
+    background: linear-gradient(
+      90deg,
+      rgba(235, 235, 255, 0.62) 0%,
+      rgba(255, 237, 237, 0.62) 100%
+    );
   }
 }
 
