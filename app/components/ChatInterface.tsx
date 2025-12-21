@@ -62,6 +62,7 @@ const decodeToken = (token: string) => {
 };
 
 export default function ChatInterface() {
+  const wsRef = useRef<WebSocket | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMoreUsers, setHasMoreUsers] = useState(true);
@@ -221,6 +222,7 @@ export default function ChatInterface() {
     )}`;
 
     const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
 
     ws.onopen = () => {
       console.log("WebSocket connected");
@@ -253,6 +255,27 @@ export default function ChatInterface() {
               ? myAvatar
               : usersRef.current.find((u) => u.id === data.senderUserId)
                   ?.avatar;
+
+            if (!isMine) {
+              ws.send(
+                JSON.stringify({
+                  action: "ackDelivered",
+                  conversationId: data.conversationId,
+                  messageIds: [data.messageId || data.messageKey],
+                })
+              );
+            }
+
+            // 👈 3. ACK READ (Only if user is looking at this conversation right now)
+            if (!isMine && data.conversationId === conversationIdRef.current) {
+              ws.send(
+                JSON.stringify({
+                  action: "ackRead",
+                  conversationId: data.conversationId,
+                  messageIds: [data.messageId || data.messageKey],
+                })
+              );
+            }
 
             // 2. Update Chat Panel (ONLY if this conversation is open)
             if (data.conversationId === conversationIdRef.current) {
@@ -298,7 +321,7 @@ export default function ChatInterface() {
                 (u) =>
                   u.id === data.senderUserId || u.id === data.recipientUserId
               );
-              
+
               if (existingIndex === -1) return prev;
 
               const existingUser = prev[existingIndex];
@@ -320,6 +343,32 @@ export default function ChatInterface() {
               return [updatedUser, ...others];
             });
 
+            break;
+          }
+
+          case "messageRead": {
+            // The payload.data should contain messageKey/messageId
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === data.messageKey || m.id === data.messageId
+                  ? { ...m, status: "read" } // Update status to read
+                  : m
+              )
+            );
+            break;
+          }
+
+          // ─────────────────────────────
+          // 👈 5. MESSAGE DELIVERED
+          // ─────────────────────────────
+          case "messageDelivered": {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === data.messageKey || m.id === data.messageId
+                  ? { ...m, status: "delivered" }
+                  : m
+              )
+            );
             break;
           }
 
@@ -376,6 +425,7 @@ export default function ChatInterface() {
 
     return () => {
       ws.close();
+      wsRef.current = null;
     };
   }, [parentToken]);
 
@@ -476,9 +526,6 @@ export default function ChatInterface() {
     }
   };
 
-  // ───────────────────────────────────────────────
-  // FETCH MESSAGES (Refactored for pagination)
-  // ───────────────────────────────────────────────
   const fetchMessages = useCallback(
     async (
       cid: string,
@@ -508,6 +555,7 @@ export default function ChatInterface() {
         const data = await res.json();
         console.log("📥 Messages:", data);
 
+        // 1. Map messages for UI
         const mappedMessages: Message[] =
           data?.data?.messages?.map((msg: any) => {
             let parsedOffer = null;
@@ -518,7 +566,6 @@ export default function ChatInterface() {
             } catch {}
 
             const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
-
             const sender = msg.sender;
 
             return {
@@ -532,7 +579,6 @@ export default function ChatInterface() {
 
               sent: msg.senderUserId === myUserId,
 
-              // 🔥 SENDER INFO (FROM API)
               senderId: sender?.userId,
               senderName:
                 msg.senderUserId === myUserId
@@ -561,10 +607,15 @@ export default function ChatInterface() {
 
               linkUrl: detectedUrl ?? undefined,
 
+              // 🔥 STATUS LOGIC:
+              // If it's my message: check if backend says it's read
+              // If it's their message: I am reading it now, so mark as "read" locally
               status:
                 msg.senderUserId === myUserId
-                  ? "sent"
-                  : msg.deliveryStatus?.toLowerCase(),
+                  ? msg.readAt
+                    ? "read"
+                    : "delivered"
+                  : "read",
             };
           }) ?? [];
 
@@ -577,11 +628,36 @@ export default function ChatInterface() {
         const nextCursor = data?.data?.cursor ?? null;
         setMessageCursor(nextCursor);
         setHasMoreMessages(Boolean(nextCursor));
+
+        // ─────────────────────────────────────────────────────────────
+        // 🔥 NEW: Send 'ackRead' for incoming unread messages
+        // ─────────────────────────────────────────────────────────────
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          // Find messages that are NOT mine and NOT yet marked as read by backend
+          const unreadMessageIds = data?.data?.messages
+            ?.filter(
+              (m: any) =>
+                m.senderUserId !== myUserId && // Not sent by me
+                !m.readAt // Not already read
+            )
+            .map((m: any) => m.messageId);
+
+          if (unreadMessageIds && unreadMessageIds.length > 0) {
+            console.log("📤 Sending ackRead for:", unreadMessageIds);
+
+            wsRef.current.send(
+              JSON.stringify({
+                action: "ackRead",
+                conversationId: cid,
+                messageIds: unreadMessageIds,
+              })
+            );
+          }
+        }
       } catch (error) {
         console.error("❌ Failed to fetch messages:", error);
         setHasMoreMessages(false);
       } finally {
-        // 🔥 END loading ONLY here
         setIsMessagesLoading(false);
       }
     },
