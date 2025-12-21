@@ -28,7 +28,7 @@ export interface Message {
   status?: "sending" | "sent" | "delivered" | "read" | "failed";
   fileName?: string;
   fileUrl?: string;
-
+  messageKey?: string;
   linkTitle?: string;
   linkUrl?: string;
   linkImage?: string;
@@ -395,19 +395,20 @@ export default function ChatInterface() {
             break;
           }
 
+          // Inside ws.onmessage
+
           case "messageEdited": {
             setMessages((prev) =>
               prev.map((m) => {
-                // Check both ID types (UUID or Composite) to be safe
+                // Check both to be safe
                 const isMatch =
-                  m.id === data.messageKey || m.id === data.messageId;
+                  m.messageKey === data.messageKey || m.id === data.messageId;
 
                 if (isMatch) {
                   return {
                     ...m,
-                    content: data.newContent, // Update text
-                    // You can add an 'isEdited' flag here if your Message type supports it
-                    // isEdited: true
+                    content: data.newContent,
+                    // (m as any).isEdited = true; // Optional if you added isEdited to interface
                   };
                 }
                 return m;
@@ -416,12 +417,11 @@ export default function ChatInterface() {
             break;
           }
 
-          // 🗑️ HANDLE DELETE
           case "messageDeleted": {
             setMessages((prev) =>
-              // Filter out the deleted message
               prev.filter(
-                (m) => m.id !== data.messageKey && m.id !== data.messageId
+                (m) =>
+                  m.messageKey !== data.messageKey && m.id !== data.messageId
               )
             );
             break;
@@ -626,7 +626,7 @@ export default function ChatInterface() {
             return {
               id: msg.messageId,
               content: parsedOffer?.text || msg.content,
-
+              messageKey: msg.messageKey,
               timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
                 hour: "numeric",
                 minute: "2-digit",
@@ -1102,7 +1102,7 @@ export default function ChatInterface() {
           },
           body: JSON.stringify({
             conversationId: conversationIdRef.current,
-            messageKey: msg.id, // Sends the Composite Key (Timestamp#UUID)
+            messageKey: msg.messageKey, // Sends the Composite Key (Timestamp#UUID)
             newContent: newContent,
           }),
         }
@@ -1135,7 +1135,7 @@ export default function ChatInterface() {
           },
           body: JSON.stringify({
             conversationId: conversationIdRef.current,
-            messageKey: msg.id, // Sends the Composite Key
+            messageKey: msg.messageKey, // Sends the Composite Key
           }),
         }
       );
