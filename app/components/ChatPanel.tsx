@@ -487,7 +487,7 @@ export default function ChatPanel({
         <button className={styles.backButton} onClick={onBack}><FiArrowLeft /></button>
         <div className={styles.avatarWrapper}>
           {selectedUser.avatar ? (
-            <img src={selectedUser.avatar} alt="User" className={styles.headerAvatar} />
+            <img src={selectedUser.avatar} alt="User" className={styles.headerAvatar}   style={{ width: "36px", height: "36px", borderRadius: "50%" }}/>
           ) : (
             <div className={styles.headerInitials}>{getInitials(selectedUser.name)}</div>
           )}
