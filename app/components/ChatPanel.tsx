@@ -319,9 +319,9 @@ const MessageRow = ({
       )}
 
       <div className={styles.bubbleContainer}>
-        {/* 🌟 ACTION BAR (Floating Pill on Hover)
-           Hide this bar if we are currently editing the message 
-        */}
+      <div className={`${styles.senderNameLabel} ${isMine ? styles.textRight : styles.textLeft}`}>
+            {isMine ? "You" : m.senderName || "User"}
+        </div>
         {!isEditing && (
           <div className={`${styles.actionBar} ${isMine ? styles.actionLeft : styles.actionRight}`}>
             
