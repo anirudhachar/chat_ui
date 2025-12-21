@@ -1095,7 +1095,7 @@ export default function ChatInterface() {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/message/edit`,
         {
-          method: "POST", // Check if your backend wants POST or PUT
+          method: "PUT", // Check if your backend wants POST or PUT
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${parentToken}`, // 🔥 Token passed here
