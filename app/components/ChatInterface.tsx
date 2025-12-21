@@ -1128,7 +1128,7 @@ export default function ChatInterface() {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/message/delete`,
         {
-          method: "POST", // Check if your backend wants POST or DELETE
+          method: "DELETE", // Check if your backend wants POST or DELETE
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${parentToken}`, // 🔥 Token passed here
