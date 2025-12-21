@@ -1093,7 +1093,7 @@ export default function ChatInterface() {
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/chat/message/edit`,
+        `${process.env.NEXT_PUBLIC_API_URL}/message/edit`,
         {
           method: "POST", // Check if your backend wants POST or PUT
           headers: {
@@ -1126,7 +1126,7 @@ export default function ChatInterface() {
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/chat/message/delete`,
+        `${process.env.NEXT_PUBLIC_API_URL}/message/delete`,
         {
           method: "POST", // Check if your backend wants POST or DELETE
           headers: {
