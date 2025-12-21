@@ -428,16 +428,35 @@ export default function ChatInterface() {
             break;
           }
 
-          case "messageReactionUpdated": {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.messageKey === data.messageKey || m.id === data.messageId
-                  ? { ...m, reactions: data.reactions } // Backend should send updated map
-                  : m
-              )
-            );
-            break;
-          }
+        case "messageReactionUpdated": {
+  setMessages((prev) =>
+    prev.map((m) => {
+      const isMatch =
+        m.messageKey === data.messageKey || m.id === data.messageId;
+
+      if (!isMatch) return m;
+
+      // 🔥 Preserve optimistic reactions
+      const existing = m.reactions || {};
+
+      // 🔥 Normalize backend → UI shape
+      const normalized = normalizeReactions(
+        data.reactions,
+        loggedInUserIdRef.current!
+      );
+
+      return {
+        ...m,
+        reactions: {
+          ...existing,   // 👈 keep optimistic
+          ...normalized, // 👈 apply backend confirmation
+        },
+      };
+    })
+  );
+  break;
+}
+
 
           // ─────────────────────────────
           // SIDEBAR UPDATE (Conversation Updated)
@@ -1251,7 +1270,7 @@ export default function ChatInterface() {
 const handleReaction = async (msg: Message, emoji: string) => {
   if (!parentToken || !conversationIdRef.current || !msg.messageKey) return;
 
-  // ⚡ Optimistic Update
+ 
   setMessages((prev) =>
     prev.map((m) => {
       if (m.messageKey !== msg.messageKey) return m;
