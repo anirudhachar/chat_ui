@@ -395,6 +395,38 @@ export default function ChatInterface() {
             break;
           }
 
+          case "messageEdited": {
+            setMessages((prev) =>
+              prev.map((m) => {
+                // Check both ID types (UUID or Composite) to be safe
+                const isMatch =
+                  m.id === data.messageKey || m.id === data.messageId;
+
+                if (isMatch) {
+                  return {
+                    ...m,
+                    content: data.newContent, // Update text
+                    // You can add an 'isEdited' flag here if your Message type supports it
+                    // isEdited: true
+                  };
+                }
+                return m;
+              })
+            );
+            break;
+          }
+
+          // 🗑️ HANDLE DELETE
+          case "messageDeleted": {
+            setMessages((prev) =>
+              // Filter out the deleted message
+              prev.filter(
+                (m) => m.id !== data.messageKey && m.id !== data.messageId
+              )
+            );
+            break;
+          }
+
           // ─────────────────────────────
           // SIDEBAR UPDATE (Conversation Updated)
           // ─────────────────────────────
@@ -1053,62 +1085,67 @@ export default function ChatInterface() {
     fetchMessages,
   ]);
 
+  // ───────────────────────────────────────────────
+  // ✏️ EDIT MESSAGE API
+  // ───────────────────────────────────────────────
   const handleEditMessage = async (msg: Message, newContent: string) => {
-    try {
-      const token = localStorage.getItem("token"); // Or however you get your auth token
+    if (!parentToken || !conversationIdRef.current) return;
 
-      const response = await fetch(
+    try {
+      const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/chat/message/edit`,
         {
-          method: "POST", // or PUT, depending on your backend
+          method: "POST", // Check if your backend wants POST or PUT
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${parentToken}`, // 🔥 Token passed here
           },
           body: JSON.stringify({
             conversationId: conversationIdRef.current,
-            // 🔥 CRITICAL: Send the composite key (Timestamp#UUID)
-            messageKey: msg.id,
+            messageKey: msg.id, // Sends the Composite Key (Timestamp#UUID)
             newContent: newContent,
           }),
         }
       );
 
-      if (!response.ok) throw new Error("Failed to edit");
+      if (!res.ok) throw new Error("Failed to edit message");
 
-      // Note: You don't need to update state manually here.
-      // The WebSocket "messageEdited" event will automatically update the UI!
+      // Note: We don't manually update state here.
+      // We wait for the "messageEdited" WebSocket event to update the UI.
     } catch (error) {
-      console.error("Error editing message:", error);
-      alert("Failed to edit message");
+      console.error("❌ Error editing message:", error);
+      alert("Could not edit message");
     }
   };
 
+  // ───────────────────────────────────────────────
+  // 🗑️ DELETE MESSAGE API
+  // ───────────────────────────────────────────────
   const handleDeleteMessage = async (msg: Message) => {
-    try {
-      const token = localStorage.getItem("token");
+    if (!parentToken || !conversationIdRef.current) return;
 
-      const response = await fetch(
+    try {
+      const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/chat/message/delete`,
         {
-          method: "POST", // or DELETE
+          method: "POST", // Check if your backend wants POST or DELETE
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${parentToken}`, // 🔥 Token passed here
           },
           body: JSON.stringify({
             conversationId: conversationIdRef.current,
-            messageKey: msg.id, // 🔥 CRITICAL
+            messageKey: msg.id, // Sends the Composite Key
           }),
         }
       );
 
-      if (!response.ok) throw new Error("Failed to delete");
+      if (!res.ok) throw new Error("Failed to delete message");
 
-      // Again, wait for WebSocket "messageDeleted" event to update UI
+      // Note: We wait for the "messageDeleted" WebSocket event to remove it from UI.
     } catch (error) {
-      console.error("Error deleting message:", error);
-      alert("Failed to delete message");
+      console.error("❌ Error deleting message:", error);
+      alert("Could not delete message");
     }
   };
 
