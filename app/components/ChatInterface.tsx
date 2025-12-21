@@ -250,7 +250,7 @@ export default function ChatInterface() {
             const detectedUrl = !parsedOffer ? extractUrl(data.content) : null;
             const isMine = data.senderUserId === loggedInUserIdRef.current;
 
-            // 🔥 CRITICAL FIX: Use 'messageKey' for ACKs (Backend requires Timestamp#UUID)
+            console.log(data,"datsend")
             const backendMessageKey = data.messageKey || data.messageId;
 
             // 🔥 GET AVATAR FROM SIDEBAR USERS
