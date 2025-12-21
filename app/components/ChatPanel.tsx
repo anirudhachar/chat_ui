@@ -69,7 +69,7 @@ const MessageRow = ({
 }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  
+
   // ✏️ NEW: Local Editing State
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
@@ -83,7 +83,10 @@ const MessageRow = ({
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowMenu(false);
       }
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(event.target as Node)
+      ) {
         setShowEmojiPicker(false);
       }
     };
@@ -127,17 +130,26 @@ const MessageRow = ({
   // ─────────────────────────────────────────────
   const getCopyText = (msg: Message): string => {
     switch (msg.type) {
-      case "text": return msg.content || "";
-      case "image": return msg.content || msg.fileUrl || "";
-      case "document": return `${msg.fileName || "Document"}\n${msg.fileUrl || ""}`;
-      case "link": return msg.linkUrl || msg.content || "";
+      case "text":
+        return msg.content || "";
+      case "image":
+        return msg.content || msg.fileUrl || "";
+      case "document":
+        return `${msg.fileName || "Document"}\n${msg.fileUrl || ""}`;
+      case "link":
+        return msg.linkUrl || msg.content || "";
       case "offer":
         if (!msg.offer) return "";
         if (msg.offer.offerType === "PRICE") {
-          return `Offer: ${msg.offer.currency} ${msg.offer.amount}\n${msg.content || ""}`;
+          return `Offer: ${msg.offer.currency} ${msg.offer.amount}\n${
+            msg.content || ""
+          }`;
         }
-        return `Trade Offer: ${msg.offer.tradeDescription}\n${msg.content || ""}`;
-      default: return msg.content || "";
+        return `Trade Offer: ${msg.offer.tradeDescription}\n${
+          msg.content || ""
+        }`;
+      default:
+        return msg.content || "";
     }
   };
 
@@ -155,10 +167,16 @@ const MessageRow = ({
             spellCheck={false}
           />
           <div className={styles.editActions}>
-            <button className={`${styles.editBtn} ${styles.cancelBtn}`} onClick={handleCancelEdit}>
+            <button
+              className={`${styles.editBtn} ${styles.cancelBtn}`}
+              onClick={handleCancelEdit}
+            >
               Cancel
             </button>
-            <button className={`${styles.editBtn} ${styles.saveBtn}`} onClick={handleSaveEdit}>
+            <button
+              className={`${styles.editBtn} ${styles.saveBtn}`}
+              onClick={handleSaveEdit}
+            >
               Save
             </button>
           </div>
@@ -188,7 +206,11 @@ const MessageRow = ({
               </p>
             </div>
             {m.replyTo.type === "image" && m.replyTo.fileUrl && (
-               <img src={m.replyTo.fileUrl} alt="" className={styles.replyQuoteThumb} />
+              <img
+                src={m.replyTo.fileUrl}
+                alt=""
+                className={styles.replyQuoteThumb}
+              />
             )}
           </div>
           {content}
@@ -215,10 +237,18 @@ const MessageRow = ({
     // 📦 OFFER
     if (m.type === "offer" && m.offer) {
       return wrapWithReply(
-        <div className={`${styles.offerCard} ${isMine ? styles.sent : styles.received}`}>
+        <div
+          className={`${styles.offerCard} ${
+            isMine ? styles.sent : styles.received
+          }`}
+        >
           <div className={styles.productRow}>
             {m.offer.imageUrl && (
-              <img src={m.offer.imageUrl} alt="Listing" className={styles.productImage} />
+              <img
+                src={m.offer.imageUrl}
+                alt="Listing"
+                className={styles.productImage}
+              />
             )}
             <div className={styles.productInfo}>
               <p className={styles.productTitle}>MacBook Pro 13&quot; 2021</p>
@@ -240,7 +270,11 @@ const MessageRow = ({
     if (m.type === "image" && m.fileUrl) {
       return wrapWithReply(
         <div className={styles.mediaContainer}>
-          <img src={m.fileUrl} alt={m.content} className={styles.messageImage} />
+          <img
+            src={m.fileUrl}
+            alt={m.content}
+            className={styles.messageImage}
+          />
           {m.content && m.content.trim() !== "📷 Photo" && (
             <p className={styles.messageCaption}>{m.content}</p>
           )}
@@ -251,10 +285,19 @@ const MessageRow = ({
     // 📄 DOCUMENT
     if (m.type === "document" && m.fileUrl) {
       return wrapWithReply(
-        <a href={m.fileUrl} target="_blank" rel="noopener noreferrer" className={styles.messageDocumentLink}>
-          <div className={styles.documentIcon}><FiFile size={20} /></div>
+        <a
+          href={m.fileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.messageDocumentLink}
+        >
+          <div className={styles.documentIcon}>
+            <FiFile size={20} />
+          </div>
           <div className={styles.documentInfo}>
-            <p className={styles.documentName}>{m.fileName || m.content || "Document"}</p>
+            <p className={styles.documentName}>
+              {m.fileName || m.content || "Document"}
+            </p>
             {m.content && m.content.trim() !== m.fileName?.trim() && (
               <p className={styles.documentSize}>{m.content}</p>
             )}
@@ -268,12 +311,27 @@ const MessageRow = ({
       if (m.linkTitle) {
         return wrapWithReply(
           <>
-            <a href={m.linkUrl} target="_blank" rel="noopener noreferrer" className={styles.messageLinkPreview}>
-              {m.linkImage && <img src={m.linkImage} alt={m.linkTitle} className={styles.linkImage} />}
+            <a
+              href={m.linkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.messageLinkPreview}
+            >
+              {m.linkImage && (
+                <img
+                  src={m.linkImage}
+                  alt={m.linkTitle}
+                  className={styles.linkImage}
+                />
+              )}
               <div className={styles.linkContent}>
-                <p className={styles.linkSource}>{new URL(m.linkUrl).hostname}</p>
+                <p className={styles.linkSource}>
+                  {new URL(m.linkUrl).hostname}
+                </p>
                 <p className={styles.linkTitle}>{m.linkTitle}</p>
-                {m.linkDescription && <p className={styles.linkDescription}>{m.linkDescription}</p>}
+                {m.linkDescription && (
+                  <p className={styles.linkDescription}>{m.linkDescription}</p>
+                )}
               </div>
             </a>
             {m.content && m.content.trim() !== m.linkUrl.trim() && (
@@ -283,7 +341,12 @@ const MessageRow = ({
         );
       }
       return wrapWithReply(
-        <a href={m.linkUrl} target="_blank" rel="noopener noreferrer" className={styles.messageText}>
+        <a
+          href={m.linkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.messageText}
+        >
           {m.content || m.linkUrl}
         </a>
       );
@@ -297,8 +360,10 @@ const MessageRow = ({
     if (!status) return null;
     if (status === "sending") return <FiClock className={styles.sendingIcon} />;
     if (status === "failed") return <span>❌</span>;
-    if (status === "read") return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
-    if (status === "delivered") return <BsCheckAll className={styles.tickIcon} />;
+    if (status === "read")
+      return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
+    if (status === "delivered")
+      return <BsCheckAll className={styles.tickIcon} />;
     return <BsCheck className={styles.tickIcon} />;
   };
 
@@ -306,29 +371,44 @@ const MessageRow = ({
   const QUICK_REACTIONS = ["👍", "👏", "😄", "🤔", "❤️"];
 
   return (
-    <div className={`${styles.messageRow} ${isMine ? styles.myRow : styles.theirRow}`}>
+    <div
+      className={`${styles.messageRow} ${
+        isMine ? styles.myRow : styles.theirRow
+      }`}
+    >
       {/* AVATAR */}
       {!isMine && (
         <div className={styles.avatarCol}>
           {m.senderAvatar ? (
-            <img src={m.senderAvatar} alt="avatar" className={styles.messageAvatar} />
+            <img
+              src={m.senderAvatar}
+              alt="avatar"
+              className={styles.messageAvatar}
+            />
           ) : (
-            <div className={styles.defaultAvatar}>{m.senderName?.charAt(0)}</div>
+            <div className={styles.defaultAvatar}>
+              {m.senderName?.charAt(0)}
+            </div>
           )}
         </div>
       )}
 
       <div className={styles.bubbleContainer}>
-      <div className={`${styles.senderNameLabel} ${isMine ? styles.textRight : styles.textLeft}`}>
-            {isMine ? "You" : m.senderName || "User"}
-        </div>
+     
         {!isEditing && (
-          <div className={`${styles.actionBar} ${isMine ? styles.actionLeft : styles.actionRight}`}>
-            
+          <div
+            className={`${styles.actionBar} ${
+              isMine ? styles.actionLeft : styles.actionRight
+            }`}
+          >
             {/* 1. Quick Reactions */}
             <div className={styles.quickReactions}>
               {QUICK_REACTIONS.map((emoji) => (
-                <button key={emoji} className={styles.reactionBtn} onClick={() => onReact(m, emoji)}>
+                <button
+                  key={emoji}
+                  className={styles.reactionBtn}
+                  onClick={() => onReact(m, emoji)}
+                >
                   {emoji}
                 </button>
               ))}
@@ -364,31 +444,53 @@ const MessageRow = ({
             <div className={styles.divider} />
 
             {/* 3. Reply Button */}
-            <button className={styles.actionBtn} onClick={() => onReply(m)} title="Reply">
+            <button
+              className={styles.actionBtn}
+              onClick={() => onReply(m)}
+              title="Reply"
+            >
               <FiCornerUpLeft />
             </button>
 
             {/* 4. More Options */}
             <div className={styles.actionBtnWrapper} ref={menuRef}>
-              <button className={styles.actionBtn} onClick={() => setShowMenu(!showMenu)}>
+              <button
+                className={styles.actionBtn}
+                onClick={() => setShowMenu(!showMenu)}
+              >
                 <FiMoreVertical />
               </button>
 
               {showMenu && (
                 <div className={styles.dropdownMenu}>
-                  <div onClick={() => { onCopy(m); setShowMenu(false); }} className={styles.dropdownItem}>
+                  <div
+                    onClick={() => {
+                      onCopy(m);
+                      setShowMenu(false);
+                    }}
+                    className={styles.dropdownItem}
+                  >
                     <FiCopy size={14} /> Copy
                   </div>
-                  
+
                   {/* 🔥 INLINE EDIT TRIGGER */}
                   {isMine && m.type === "text" && (
-                    <div onClick={handleStartEdit} className={styles.dropdownItem}>
+                    <div
+                      onClick={handleStartEdit}
+                      className={styles.dropdownItem}
+                    >
                       <FiEdit2 size={14} /> Edit
                     </div>
                   )}
-                  
+
                   {isMine && (
-                    <div onClick={() => { onDelete(m); setShowMenu(false); }} className={`${styles.dropdownItem} ${styles.danger}`}>
+                    <div
+                      onClick={() => {
+                        onDelete(m);
+                        setShowMenu(false);
+                      }}
+                      className={`${styles.dropdownItem} ${styles.danger}`}
+                    >
                       <FiTrash size={14} /> Delete
                     </div>
                   )}
@@ -400,12 +502,21 @@ const MessageRow = ({
 
         {/* 📨 MESSAGE BUBBLE */}
         <div className={styles.messageBubble}>
+             <div
+          className={`${styles.senderNameLabel} ${
+            isMine ? styles.textRight : styles.textLeft
+          }`}
+        >
+          {isMine ? "You" : m.senderName || "User"}
+        </div>
           {renderContent()}
-          
+
           {/* Metadata: Hide while editing to keep it clean */}
           {!isEditing && (
             <div className={styles.messageMeta}>
-              {(m as any).isEdited && <span className={styles.editedTag}>(edited)</span>}
+              {(m as any).isEdited && (
+                <span className={styles.editedTag}>(edited)</span>
+              )}
               <span className={styles.messageTime}>{m.timestamp}</span>
               {isMine && getStatusIcon(m.status)}
             </div>
@@ -415,14 +526,21 @@ const MessageRow = ({
         {/* 😍 REACTION PILLS */}
         {m.reactions && Object.keys(m.reactions).length > 0 && (
           <div className={styles.reactionRow}>
-            {Object.entries(m.reactions).map(([emoji, userIds]) => (
-              userIds.length > 0 && (
-                <button key={emoji} className={styles.reactionPill} onClick={() => onReact(m, emoji)}>
-                  <span className={styles.reactionEmoji}>{emoji}</span>
-                  <span className={styles.reactionCount}>{userIds.length}</span>
-                </button>
-              )
-            ))}
+            {Object.entries(m.reactions).map(
+              ([emoji, userIds]) =>
+                userIds.length > 0 && (
+                  <button
+                    key={emoji}
+                    className={styles.reactionPill}
+                    onClick={() => onReact(m, emoji)}
+                  >
+                    <span className={styles.reactionEmoji}>{emoji}</span>
+                    <span className={styles.reactionCount}>
+                      {userIds.length}
+                    </span>
+                  </button>
+                )
+            )}
           </div>
         )}
       </div>
@@ -496,7 +614,8 @@ export default function ChatPanel({
       },
       { root: messagesAreaRef.current, threshold: 0.1 }
     );
-    if (topMessageSentinelRef.current) observer.observe(topMessageSentinelRef.current);
+    if (topMessageSentinelRef.current)
+      observer.observe(topMessageSentinelRef.current);
     return () => observer.disconnect();
   }, [hasMoreMessages, onLoadMoreMessages, messages.length, isLoading]);
 
@@ -526,14 +645,24 @@ export default function ChatPanel({
   };
 
   const getInitials = (name: string) =>
-    name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+    name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
 
   /* Empty State */
   if (!selectedUser) {
     return (
       <div className={styles.emptyState}>
         <div className={styles.emptyCard}>
-          <Image src="/Frame 238021 (1).svg" alt="Chat" width={90} height={90} />
+          <Image
+            src="/Frame 238021 (1).svg"
+            alt="Chat"
+            width={90}
+            height={90}
+          />
           <h2 className={styles.title}>Let’s start chatting</h2>
           <p className={styles.subtitle}>Search for a person to start.</p>
         </div>
@@ -545,12 +674,21 @@ export default function ChatPanel({
     <div className={styles.chatPanel}>
       {/* HEADER */}
       <div className={styles.chatHeader}>
-        <button className={styles.backButton} onClick={onBack}><FiArrowLeft /></button>
+        <button className={styles.backButton} onClick={onBack}>
+          <FiArrowLeft />
+        </button>
         <div className={styles.avatarWrapper}>
           {selectedUser.avatar ? (
-            <img src={selectedUser.avatar} alt="User" className={styles.headerAvatar} style={{ width: "36px", height: "36px", borderRadius: "50%" }}/>
+            <img
+              src={selectedUser.avatar}
+              alt="User"
+              className={styles.headerAvatar}
+              style={{ width: "36px", height: "36px", borderRadius: "50%" }}
+            />
           ) : (
-            <div className={styles.headerInitials}>{getInitials(selectedUser.name)}</div>
+            <div className={styles.headerInitials}>
+              {getInitials(selectedUser.name)}
+            </div>
           )}
           {selectedUser.online && <div className={styles.onlineIndicator} />}
         </div>
@@ -558,14 +696,18 @@ export default function ChatPanel({
           <h2 className={styles.userName}>{selectedUser.name}</h2>
           <p className={styles.userStatus}>Online</p>
         </div>
-        <button className={styles.moreButton}><FiMoreVertical /></button>
+        <button className={styles.moreButton}>
+          <FiMoreVertical />
+        </button>
       </div>
 
       {/* MESSAGES AREA */}
       <div className={styles.messagesArea} ref={messagesAreaRef}>
         {isLoading && (
           <div className={styles.loadingWrapper}>
-            <MessageSkeleton /><MessageSkeleton /><MessageSkeleton />
+            <MessageSkeleton />
+            <MessageSkeleton />
+            <MessageSkeleton />
           </div>
         )}
 
@@ -573,17 +715,25 @@ export default function ChatPanel({
           <div className={styles.emptyConversation}>
             <div className={styles.profileRing}>
               {selectedUser.avatar ? (
-                 <img src={selectedUser.avatar} className={styles.emptyAvatar} />
+                <img src={selectedUser.avatar} className={styles.emptyAvatar} />
               ) : (
-                 <div className={styles.emptyInitials}>{getInitials(selectedUser.name)}</div>
+                <div className={styles.emptyInitials}>
+                  {getInitials(selectedUser.name)}
+                </div>
               )}
             </div>
-            <h3 className={styles.emptyTitle}>You’re connected with <span>{selectedUser.name}</span></h3>
+            <h3 className={styles.emptyTitle}>
+              You’re connected with <span>{selectedUser.name}</span>
+            </h3>
           </div>
         )}
 
         <div className={styles.messagesContainer}>
-          {hasMoreMessages && <div ref={topMessageSentinelRef}>{isLoadingOlderRef.current && <MessageSkeleton />}</div>}
+          {hasMoreMessages && (
+            <div ref={topMessageSentinelRef}>
+              {isLoadingOlderRef.current && <MessageSkeleton />}
+            </div>
+          )}
 
           {messages.map((m) => (
             <MessageRow
@@ -609,15 +759,26 @@ export default function ChatPanel({
           <div className={styles.replyContainer}>
             <div className={styles.replyDecor} />
             <div className={styles.replyContent}>
-              <span className={styles.replyAuthor}>{replyingTo.sent ? "You" : replyingTo.senderName}</span>
+              <span className={styles.replyAuthor}>
+                {replyingTo.sent ? "You" : replyingTo.senderName}
+              </span>
               <p className={styles.replyText}>
                 {replyingTo.type === "image" ? "📷 Photo" : replyingTo.content}
               </p>
             </div>
             {replyingTo.type === "image" && replyingTo.fileUrl && (
-              <img src={replyingTo.fileUrl} alt="" className={styles.replyThumb} />
+              <img
+                src={replyingTo.fileUrl}
+                alt=""
+                className={styles.replyThumb}
+              />
             )}
-            <button onClick={() => setReplyingTo(null)} className={styles.closeReply}><FiX /></button>
+            <button
+              onClick={() => setReplyingTo(null)}
+              className={styles.closeReply}
+            >
+              <FiX />
+            </button>
           </div>
         </div>
       )}
