@@ -593,6 +593,36 @@ export default function ChatInterface() {
     }
   };
 
+  const normalizeReactions = (
+    backendReactions: any,
+    myUserId: string
+  ): Record<string, string[]> => {
+    if (!backendReactions) return {};
+
+    const normalized: Record<string, string[]> = {};
+
+    Object.entries(backendReactions).forEach(([emoji, data]: [string, any]) => {
+      const users: string[] = [];
+
+      // If backend says I reacted
+      if (data?.reactedByMe && myUserId) {
+        users.push(myUserId);
+      }
+
+      // Fill remaining count with placeholders (we don't know other userIds)
+      const remaining = Math.max((data?.count || 0) - users.length, 0);
+      for (let i = 0; i < remaining; i++) {
+        users.push(`unknown-${emoji}-${i}`);
+      }
+
+      if (users.length > 0) {
+        normalized[emoji] = users;
+      }
+    });
+
+    return normalized;
+  };
+
   const fetchMessages = useCallback(
     async (
       cid: string,
@@ -622,94 +652,111 @@ export default function ChatInterface() {
         const data = await res.json();
         console.log("📥 Messages:", data);
 
-        // 1. Map messages for UI
-        const mappedMessages: Message[] =
-          data?.data?.messages?.map((msg: any) => {
-            let parsedOffer = null;
+        const apiMessages = data?.data?.messages ?? [];
 
-            try {
-              const parsed = JSON.parse(msg.content);
-              if (parsed.type === "OFFER") parsedOffer = parsed;
-            } catch {}
+        // 🔥 MAP BACKEND → UI SHAPE (NO STATE ACCESS HERE)
+        const mappedMessages: Message[] = apiMessages.map((msg: any) => {
+          let parsedOffer = null;
 
-            const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
-            const sender = msg.sender;
+          try {
+            const parsed = JSON.parse(msg.content);
+            if (parsed.type === "OFFER") parsedOffer = parsed;
+          } catch {}
+
+          const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
+          const sender = msg.sender;
+
+          return {
+            id: msg.messageId,
+            messageKey: msg.messageKey,
+
+            content: parsedOffer?.text || msg.content,
+
+            timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+            }),
+
+            sent: msg.senderUserId === myUserId,
+
+            senderId: sender?.userId,
+            senderName:
+              msg.senderUserId === myUserId
+                ? "You"
+                : `${sender?.firstName ?? ""} ${sender?.lastName ?? ""}`.trim(),
+
+            senderAvatar: sender?.avatarUrl
+              ? `https://d34wmjl2ccaffd.cloudfront.net${sender.avatarUrl}`
+              : undefined,
+
+            type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
+
+            offer: parsedOffer
+              ? {
+                  offerId: parsedOffer.offerId,
+                  listingId: parsedOffer.listingId,
+                  offerType: parsedOffer.offerType,
+                  amount: parsedOffer.amount,
+                  currency: parsedOffer.currency,
+                  tradeDescription: parsedOffer.tradeDescription,
+                  imageUrl: parsedOffer.imageUrl,
+                }
+              : undefined,
+
+            linkUrl: detectedUrl ?? undefined,
+
+            // 🔥 NORMALIZED REACTIONS
+            reactions: normalizeReactions(msg.reactions, myUserId),
+
+            // 🔥 STATUS
+            status:
+              msg.senderUserId === myUserId
+                ? msg.readAt
+                  ? "read"
+                  : "delivered"
+                : "read",
+          };
+        });
+
+        // ─────────────────────────────────────────────
+        // 🔥 MERGE WITH EXISTING STATE (CRITICAL)
+        // ─────────────────────────────────────────────
+        setMessages((prev) => {
+          const existingMap = new Map(
+            prev.map((m) => [m.messageKey || m.id, m])
+          );
+
+          const merged = mappedMessages.map((msg) => {
+            const prevMsg = existingMap.get(msg.messageKey || msg.id);
 
             return {
-              id: msg.messageId,
-              content: parsedOffer?.text || msg.content,
-              messageKey: msg.messageKey,
-              timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-              }),
-
-              sent: msg.senderUserId === myUserId,
-
-              senderId: sender?.userId,
-              senderName:
-                msg.senderUserId === myUserId
-                  ? "You"
-                  : `${sender?.firstName ?? ""} ${
-                      sender?.lastName ?? ""
-                    }`.trim(),
-
-              senderAvatar: sender?.avatarUrl
-                ? `https://d34wmjl2ccaffd.cloudfront.net${sender.avatarUrl}`
-                : undefined,
-
-              type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
-
-              offer: parsedOffer
-                ? {
-                    offerId: parsedOffer.offerId,
-                    listingId: parsedOffer.listingId,
-                    offerType: parsedOffer.offerType,
-                    amount: parsedOffer.amount,
-                    currency: parsedOffer.currency,
-                    tradeDescription: parsedOffer.tradeDescription,
-                    imageUrl: parsedOffer.imageUrl,
-                  }
-                : undefined,
-
-              linkUrl: detectedUrl ?? undefined,
-
-              // 🔥 STATUS LOGIC:
-              // If it's my message: check if backend says it's read
-              // If it's their message: I am reading it now, so mark as "read" locally
-              status:
-                msg.senderUserId === myUserId
-                  ? msg.readAt
-                    ? "read"
-                    : "delivered"
-                  : "read",
+              ...prevMsg,
+              ...msg,
+              reactions: msg.reactions ?? prevMsg?.reactions ?? {},
             };
-          }) ?? [];
+          });
 
-        const ordered = mappedMessages.reverse();
+          const ordered = merged.reverse();
 
-        setMessages((prev) =>
-          currentCursor ? [...ordered, ...prev] : ordered
-        );
+          return currentCursor ? [...ordered, ...prev] : ordered;
+        });
 
+        // ─────────────────────────────────────────────
+        // Pagination
+        // ─────────────────────────────────────────────
         const nextCursor = data?.data?.cursor ?? null;
         setMessageCursor(nextCursor);
         setHasMoreMessages(Boolean(nextCursor));
 
-        // ─────────────────────────────────────────────────────────────
-        // 🔥 NEW: Send 'ackRead' for incoming unread messages
-        // ─────────────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────
+        // 🔥 ACK READ
+        // ─────────────────────────────────────────────
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          // Find messages that are NOT mine and NOT yet marked as read by backend
-          const unreadMessageIds = data?.data?.messages
-            ?.filter(
-              (m: any) =>
-                m.senderUserId !== myUserId && // Not sent by me
-                !m.readAt // Not already read
-            )
-            .map((m: any) => m.messageId);
+          const unreadMessageIds = apiMessages
+            .filter((m: any) => m.senderUserId !== myUserId && !m.readAt)
+            .map((m: any) => m.messageKey || m.messageId);
 
-          if (unreadMessageIds && unreadMessageIds.length > 0) {
+          if (unreadMessageIds.length > 0) {
             console.log("📤 Sending ackRead for:", unreadMessageIds);
 
             wsRef.current.send(
@@ -730,6 +777,7 @@ export default function ChatInterface() {
     },
     []
   );
+
   // Dependencies: empty since all required dependencies are passed as arguments or are stable state/props
 
   // NEW: Function to load the next page of messages (older ones)
