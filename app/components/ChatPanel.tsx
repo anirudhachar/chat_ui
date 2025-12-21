@@ -6,47 +6,372 @@ import {
   FiMoreVertical,
   FiClock,
   FiFile,
-  FiChevronDown,
   FiCopy,
   FiCornerUpLeft,
   FiX,
   FiImage,
-  FiEdit2, // ✨ Added
-  FiTrash, // ✨ Added
+  FiEdit2,
+  FiTrash,
+  FiSmile,
+  FiChevronDown
 } from "react-icons/fi";
 import { BsCheck, BsCheckAll } from "react-icons/bs";
 import Image from "next/image";
+import EmojiPicker, { Theme } from "emoji-picker-react";
 
 import { User, Message } from "./ChatInterface";
 import MessageInput from "./MessageInput";
 import styles from "./ChatPanel.module.scss";
 import MessageSkeleton from "./MessageSkeleton/MessageSkeleton";
 
+// ───────────────────────────────────────────────
+// TYPES
+// ───────────────────────────────────────────────
 interface ChatPanelProps {
   selectedUser: User | null;
   messages: Message[];
   isLoading: boolean;
-  onEditMessage?: (message: Message) => void;   // ✨ Wired up
-  onDeleteMessage?: (message: Message) => void; // ✨ Wired up
+  hasMoreMessages: boolean;
+  resetKey?: string;
   onSendMessage: (
     content: string,
     type?: "text" | "image" | "document" | "link" | "audio",
-    file?: {
-      name: string;
-      url: string;
-      image?: string;
-      description?: string;
-    },
+    file?: any,
     replyTo?: Message
   ) => void;
   onBack: () => void;
   onLoadMoreMessages: () => void;
-
-  hasMoreMessages: boolean;
-  resetKey?: string;
   onReply?: (message: Message) => void;
+  onEditMessage?: (message: Message) => void;
+  onDeleteMessage?: (message: Message) => void;
+  onReact: (message: Message, emoji: string) => void;
 }
 
+// ───────────────────────────────────────────────
+// SUB-COMPONENT: Message Row
+// (Contains the exact original rendering logic + New Hover UI)
+// ───────────────────────────────────────────────
+const MessageRow = ({
+  m,
+  isMine,
+  onReply,
+  onCopy,
+  onEdit,
+  onDelete,
+  onReact,
+}: {
+  m: Message;
+  isMine: boolean;
+  onReply: (m: Message) => void;
+  onCopy: (m: Message) => void;
+  onEdit: (m: Message) => void;
+  onDelete: (m: Message) => void;
+  onReact: (m: Message, e: string) => void;
+}) => {
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+
+  const menuRef = useRef<HTMLDivElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  // Close popups on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // ─────────────────────────────────────────────
+  // 1. ORIGINAL RENDERING LOGIC (Restored)
+  // ─────────────────────────────────────────────
+  const getCopyText = (msg: Message): string => {
+    switch (msg.type) {
+      case "text": return msg.content || "";
+      case "image": return msg.content || msg.fileUrl || "";
+      case "document": return `${msg.fileName || "Document"}\n${msg.fileUrl || ""}`;
+      case "link": return msg.linkUrl || msg.content || "";
+      case "offer":
+        if (!msg.offer) return "";
+        if (msg.offer.offerType === "PRICE") {
+          return `Offer: ${msg.offer.currency} ${msg.offer.amount}\n${msg.content || ""}`;
+        }
+        return `Trade Offer: ${msg.offer.tradeDescription}\n${msg.content || ""}`;
+      default: return msg.content || "";
+    }
+  };
+
+  const renderContent = () => {
+    // 🏷️ WRAPPER: Handles "Reply Quote"
+    const wrapWithReply = (content: ReactNode) => {
+      if (!m.replyTo) return content;
+      return (
+        <div className={styles.contentWithReply}>
+          <div className={styles.replyQuote}>
+            <div className={styles.replyQuoteBar} />
+            <div className={styles.replyQuoteContent}>
+              <span className={styles.replyQuoteUser}>
+                {m.replyTo.sent ? "You" : m.replyTo.senderName || "User"}
+              </span>
+              <p className={styles.replyQuoteText}>
+                {m.replyTo.type === "image" ? (
+                  <span className={styles.flexCenter}>
+                    <FiImage /> Photo
+                  </span>
+                ) : (
+                  getCopyText(m.replyTo)
+                )}
+              </p>
+            </div>
+            {m.replyTo.type === "image" && m.replyTo.fileUrl && (
+               <img src={m.replyTo.fileUrl} alt="" className={styles.replyQuoteThumb} />
+            )}
+          </div>
+          {content}
+        </div>
+      );
+    };
+
+    // 🎤 AUDIO
+    if (m.type === "audio" && m.fileUrl) {
+      return wrapWithReply(
+        <div className={styles.audioMessageContainer}>
+          <div className={styles.audioHeader}>
+            <span style={{ fontSize: "1.2rem", marginRight: "8px" }}>🎤</span>
+            <span>Voice Message</span>
+          </div>
+          <audio controls src={m.fileUrl} className={styles.audioPlayer} />
+          {m.content && m.content !== "🎤 Voice Message" && (
+            <p className={styles.messageCaption}>{m.content}</p>
+          )}
+        </div>
+      );
+    }
+
+    // 📦 OFFER MESSAGE (Restored Original Structure)
+    if (m.type === "offer" && m.offer) {
+      return wrapWithReply(
+        <div className={`${styles.offerCard} ${isMine ? styles.sent : styles.received}`}>
+          <div className={styles.productRow}>
+            {m.offer.imageUrl && (
+              <img src={m.offer.imageUrl} alt="Listing" className={styles.productImage} />
+            )}
+            <div className={styles.productInfo}>
+              <p className={styles.productTitle}>MacBook Pro 13&quot; 2021</p>
+              <p className={styles.productPrice}>$967.00</p>
+            </div>
+          </div>
+          <div className={styles.offerAmount}>
+            Offer Amount{" "}
+            <strong>
+              {m.offer.currency} {m.offer.amount}
+            </strong>
+          </div>
+          {m.content && <p className={styles.offerMessage}>{m.content}</p>}
+        </div>
+      );
+    }
+
+    // 📷 IMAGE MESSAGE
+    if (m.type === "image" && m.fileUrl) {
+      return wrapWithReply(
+        <div className={styles.mediaContainer}>
+          <img src={m.fileUrl} alt={m.content} className={styles.messageImage} />
+          {m.content && m.content.trim() !== "📷 Photo" && (
+            <p className={styles.messageCaption}>{m.content}</p>
+          )}
+        </div>
+      );
+    }
+
+    // 📄 DOCUMENT MESSAGE
+    if (m.type === "document" && m.fileUrl) {
+      return wrapWithReply(
+        <a href={m.fileUrl} target="_blank" rel="noopener noreferrer" className={styles.messageDocumentLink}>
+          <div className={styles.documentIcon}><FiFile size={20} /></div>
+          <div className={styles.documentInfo}>
+            <p className={styles.documentName}>{m.fileName || m.content || "Document"}</p>
+            {m.content && m.content.trim() !== m.fileName?.trim() && (
+              <p className={styles.documentSize}>{m.content}</p>
+            )}
+          </div>
+        </a>
+      );
+    }
+
+    // 🔗 LINK MESSAGE
+    if (m.type === "link" && m.linkUrl) {
+      if (m.linkTitle) {
+        return wrapWithReply(
+          <>
+            <a href={m.linkUrl} target="_blank" rel="noopener noreferrer" className={styles.messageLinkPreview}>
+              {m.linkImage && <img src={m.linkImage} alt={m.linkTitle} className={styles.linkImage} />}
+              <div className={styles.linkContent}>
+                <p className={styles.linkSource}>{new URL(m.linkUrl).hostname}</p>
+                <p className={styles.linkTitle}>{m.linkTitle}</p>
+                {m.linkDescription && <p className={styles.linkDescription}>{m.linkDescription}</p>}
+              </div>
+            </a>
+            {m.content && m.content.trim() !== m.linkUrl.trim() && (
+              <p className={styles.messageText}>{m.content}</p>
+            )}
+          </>
+        );
+      }
+      return wrapWithReply(
+        <a href={m.linkUrl} target="_blank" rel="noopener noreferrer" className={styles.messageText}>
+          {m.content || m.linkUrl}
+        </a>
+      );
+    }
+
+    // 💬 TEXT
+    return wrapWithReply(<p className={styles.messageText}>{m.content}</p>);
+  };
+
+  const getStatusIcon = (status?: string) => {
+    if (!status) return null;
+    if (status === "sending") return <FiClock className={styles.sendingIcon} />;
+    if (status === "failed") return <span>❌</span>;
+    if (status === "read") return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
+    if (status === "delivered") return <BsCheckAll className={styles.tickIcon} />;
+    return <BsCheck className={styles.tickIcon} />;
+  };
+
+  // LinkedIn Style: 5 quick emojis
+  const QUICK_REACTIONS = ["👍", "👏", "😄", "🤔", "❤️"];
+
+  return (
+    <div className={`${styles.messageRow} ${isMine ? styles.myRow : styles.theirRow}`}>
+      {/* AVATAR */}
+      {!isMine && (
+        <div className={styles.avatarCol}>
+          {m.senderAvatar ? (
+            <img src={m.senderAvatar} alt="avatar" className={styles.messageAvatar} />
+          ) : (
+            <div className={styles.defaultAvatar}>{m.senderName?.charAt(0)}</div>
+          )}
+        </div>
+      )}
+
+      <div className={styles.bubbleContainer}>
+        {/* ───────────────────────────────────────────────
+            🌟 ACTION BAR (Floating Pill on Hover)
+           ─────────────────────────────────────────────── */}
+        <div className={`${styles.actionBar} ${isMine ? styles.actionLeft : styles.actionRight}`}>
+          
+          {/* 1. Quick Reactions */}
+          <div className={styles.quickReactions}>
+            {QUICK_REACTIONS.map((emoji) => (
+              <button key={emoji} className={styles.reactionBtn} onClick={() => onReact(m, emoji)}>
+                {emoji}
+              </button>
+            ))}
+          </div>
+
+          <div className={styles.divider} />
+
+          {/* 2. Plus Button (Picker) */}
+          <div className={styles.actionBtnWrapper} ref={pickerRef}>
+            <button
+              className={styles.actionBtn}
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              title="Add reaction"
+            >
+              <FiSmile /> <span className={styles.plusSign}>+</span>
+            </button>
+            {showEmojiPicker && (
+              <div className={styles.emojiPickerPopup}>
+                <EmojiPicker
+                  onEmojiClick={(e) => {
+                    onReact(m, e.emoji);
+                    setShowEmojiPicker(false);
+                  }}
+                  width={280}
+                  height={350}
+                  theme={Theme.LIGHT}
+                  previewConfig={{ showPreview: false }}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className={styles.divider} />
+
+          {/* 3. Reply Button */}
+          <button className={styles.actionBtn} onClick={() => onReply(m)} title="Reply">
+            <FiCornerUpLeft />
+          </button>
+
+          {/* 4. More Options */}
+          <div className={styles.actionBtnWrapper} ref={menuRef}>
+            <button className={styles.actionBtn} onClick={() => setShowMenu(!showMenu)}>
+              <FiMoreVertical />
+            </button>
+
+            {showMenu && (
+              <div className={styles.dropdownMenu}>
+                <div onClick={() => { onCopy(m); setShowMenu(false); }} className={styles.dropdownItem}>
+                  <FiCopy size={14} /> Copy
+                </div>
+                {isMine && m.type === "text" && (
+                  <div onClick={() => { onEdit(m); setShowMenu(false); }} className={styles.dropdownItem}>
+                    <FiEdit2 size={14} /> Edit
+                  </div>
+                )}
+                {isMine && (
+                  <div onClick={() => { onDelete(m); setShowMenu(false); }} className={`${styles.dropdownItem} ${styles.danger}`}>
+                    <FiTrash size={14} /> Delete
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 📨 MESSAGE BUBBLE */}
+        <div className={styles.messageBubble}>
+          {renderContent()}
+          
+          {/* Edited Tag */}
+          {(m as any).isEdited && (
+            <span className={styles.editedTag}>(edited)</span>
+          )}
+          
+          {/* Timestamp & Status */}
+          <div className={styles.messageMeta}>
+            <span className={styles.messageTime}>{m.timestamp}</span>
+            {isMine && getStatusIcon(m.status)}
+          </div>
+        </div>
+
+        {/* 😍 REACTION PILLS */}
+        {m.reactions && Object.keys(m.reactions).length > 0 && (
+          <div className={styles.reactionRow}>
+            {Object.entries(m.reactions).map(([emoji, userIds]) => (
+              userIds.length > 0 && (
+                <button key={emoji} className={styles.reactionPill} onClick={() => onReact(m, emoji)}>
+                  <span className={styles.reactionEmoji}>{emoji}</span>
+                  <span className={styles.reactionCount}>{userIds.length}</span>
+                </button>
+              )
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ───────────────────────────────────────────────
+// MAIN CHAT PANEL
+// ───────────────────────────────────────────────
 export default function ChatPanel({
   selectedUser,
   messages,
@@ -57,8 +382,9 @@ export default function ChatPanel({
   resetKey,
   onReply,
   isLoading,
-  onEditMessage,   // ✨ Destructured
-  onDeleteMessage, // ✨ Destructured
+  onEditMessage,
+  onDeleteMessage,
+  onReact,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
@@ -68,33 +394,13 @@ export default function ChatPanel({
   const isLoadingOlderRef = useRef(false);
   const prevScrollHeightRef = useRef(0);
 
-  // ✨ STATE: Tracks dropdown & Reply
-  const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
-  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
 
-  /* 🔁 reset on chat switch */
   useEffect(() => {
     isFirstLoadRef.current = true;
-    setActiveMessageId(null);
     setReplyingTo(null);
   }, [resetKey]);
 
-  /* ✨ Click Outside to Close Dropdown */
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        activeMessageId &&
-        !(event.target as Element).closest(`.${styles.messageOptions}`)
-      ) {
-        setActiveMessageId(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [activeMessageId]);
-
-  /* ---------------- SCROLL LOGIC ---------------- */
   useEffect(() => {
     const container = messagesAreaRef.current;
     if (!container || messages.length === 0) return;
@@ -117,114 +423,38 @@ export default function ChatPanel({
 
   useEffect(() => {
     if (isLoading || !hasMoreMessages || messages.length === 0) return;
-
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
           const container = messagesAreaRef.current;
           if (!container) return;
-
           isLoadingOlderRef.current = true;
           prevScrollHeightRef.current = container.scrollHeight;
-
           onLoadMoreMessages();
         }
       },
       { root: messagesAreaRef.current, threshold: 0.1 }
     );
-
-    const el = topMessageSentinelRef.current;
-    if (el) observer.observe(el);
-
-    return () => {
-      if (el) observer.unobserve(el);
-    };
+    if (topMessageSentinelRef.current) observer.observe(topMessageSentinelRef.current);
+    return () => observer.disconnect();
   }, [hasMoreMessages, onLoadMoreMessages, messages.length, isLoading]);
 
   useEffect(() => {
-    if (isLoading) {
-      isFirstLoadRef.current = true;
-    }
+    if (isLoading) isFirstLoadRef.current = true;
   }, [isLoading]);
 
-  /* ---------------- HELPERS ---------------- */
-  const getInitials = (name: string) =>
-    name
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-
-  const getStatusIcon = (
-    status?: "sending" | "sent" | "delivered" | "read" | "failed"
-  ) => {
-    if (!status) return null;
-    if (status === "sending") return <FiClock className={styles.sendingIcon} />;
-    if (status === "failed") return <span>❌</span>;
-    if (status === "read")
-      return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
-    if (status === "delivered")
-      return <BsCheckAll className={styles.tickIcon} />;
-    return <BsCheck className={styles.tickIcon} />;
-  };
-
-  const getCopyText = (m: Message): string => {
-    switch (m.type) {
-      case "text":
-        return m.content || "";
-      case "image":
-        return m.content || m.fileUrl || "";
-      case "document":
-        return `${m.fileName || "Document"}\n${m.fileUrl || ""}`;
-      case "link":
-        return m.linkUrl || m.content || "";
-      case "offer":
-        if (!m.offer) return "";
-        if (m.offer.offerType === "PRICE") {
-          return `Offer: ${m.offer.currency} ${m.offer.amount}\n${
-            m.content || ""
-          }`;
-        }
-        return `Trade Offer: ${m.offer.tradeDescription}\n${m.content || ""}`;
-      default:
-        return m.content || "";
-    }
-  };
-
-  /* ---------------- HANDLERS ---------------- */
-  const handleCopy = (msg: Message) => {
-    const text = getCopyText(msg);
-    if (!text) return;
-    navigator.clipboard.writeText(text);
-    setActiveMessageId(null);
-  };
-
+  /* Handlers */
   const handleReply = (msg: Message) => {
     setReplyingTo(msg);
     if (onReply) onReply(msg);
-    setActiveMessageId(null);
   };
 
-  // ✨ NEW: Handle Edit Click
-  const handleEditClick = (msg: Message) => {
-    if (onEditMessage) onEditMessage(msg);
-    setActiveMessageId(null);
+  const handleCopy = (msg: Message) => {
+    // Basic copy logic, specific text extraction is in MessageRow
+    const text = msg.content || msg.linkUrl || "";
+    if (text) navigator.clipboard.writeText(text);
   };
 
-  // ✨ NEW: Handle Delete Click
-  const handleDeleteClick = (msg: Message) => {
-    if (confirm("Are you sure you want to delete this message?")) {
-      if (onDeleteMessage) onDeleteMessage(msg);
-    }
-    setActiveMessageId(null);
-  };
-
-  const cancelReply = () => {
-    setReplyingTo(null);
-  };
-
-  // Wrapper to inject replyTo state into sending mechanism
   const handleInternalSendMessage = (
     content: string,
     type?: "text" | "image" | "document" | "link" | "audio",
@@ -234,204 +464,17 @@ export default function ChatPanel({
     setReplyingTo(null);
   };
 
-  const renderMessageContent = (m: Message): ReactNode => {
-    // ✨ Helper: Wraps the main content with the "Reply Quote" if it exists
-    const wrapWithReply = (content: ReactNode) => {
-      if (!m.replyTo) return content;
+  const getInitials = (name: string) =>
+    name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
-      return (
-        <div className={styles.contentWithReply}>
-          <div className={styles.replyQuote}>
-            <div className={styles.replyQuoteBar} />
-            <div className={styles.replyQuoteContent}>
-              <span className={styles.replyQuoteUser}>
-                {m.replyTo.sent ? "You" : m.replyTo.senderName || "User"}
-              </span>
-
-              <p className={styles.replyQuoteText}>
-                {m.replyTo.type === "image" ? (
-                  <span
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    <FiImage /> Photo
-                  </span>
-                ) : (
-                  getCopyText(m.replyTo)
-                )}
-              </p>
-            </div>
-            {m.replyTo.type === "image" && m.replyTo.fileUrl && (
-              <img
-                src={m.replyTo.fileUrl}
-                alt=""
-                className={styles.replyQuoteThumb}
-              />
-            )}
-          </div>
-          {content}
-        </div>
-      );
-    };
-
-    if (m.type === "audio" && m.fileUrl) {
-      return wrapWithReply(
-        <div className={styles.audioMessageContainer}>
-          <div className={styles.audioHeader}>
-            <span style={{ fontSize: "1.2rem", marginRight: "8px" }}>🎤</span>
-            <span>Voice Message</span>
-          </div>
-          <audio controls src={m.fileUrl} className={styles.audioPlayer} />
-          {m.content && m.content !== "🎤 Voice Message" && (
-            <p className={styles.messageCaption}>{m.content}</p>
-          )}
-        </div>
-      );
-    }
-    // 📦 OFFER MESSAGE
-    if (m.type === "offer" && m.offer) {
-      return wrapWithReply(
-        <div
-          className={`${styles.offerCard} ${
-            m.sent ? styles.sent : styles.received
-          }`}
-        >
-          <div className={styles.productRow}>
-            {m.offer.imageUrl && (
-              <img
-                src={m.offer.imageUrl}
-                alt="Listing"
-                className={styles.productImage}
-              />
-            )}
-            <div className={styles.productInfo}>
-              <p className={styles.productTitle}>MacBook Pro 13&quot; 2021</p>
-              <p className={styles.productPrice}>$967.00</p>
-            </div>
-          </div>
-          <div className={styles.offerAmount}>
-            Offer Amount{" "}
-            <strong>
-              {m.offer.currency} {m.offer.amount}
-            </strong>
-          </div>
-          {m.content && <p className={styles.offerMessage}>{m.content}</p>}
-        </div>
-      );
-    }
-
-    // 📷 IMAGE MESSAGE
-    if (m.type === "image" && m.fileUrl) {
-      return wrapWithReply(
-        <div className={styles.mediaContainer}>
-          <img
-            src={m.fileUrl}
-            alt={m.content}
-            className={styles.messageImage}
-          />
-          {m.content && m.content.trim() !== "📷 Photo" && (
-            <p className={styles.messageCaption}>{m.content}</p>
-          )}
-        </div>
-      );
-    }
-
-    // 📄 DOCUMENT MESSAGE
-    if (m.type === "document" && m.fileUrl) {
-      return wrapWithReply(
-        <a
-          href={m.fileUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={styles.messageDocumentLink}
-        >
-          <div className={styles.documentIcon}>
-            <FiFile size={20} />
-          </div>
-          <div className={styles.documentInfo}>
-            <p className={styles.documentName}>
-              {m.fileName || m.content || "Document"}
-            </p>
-            {m.content && m.content.trim() !== m.fileName?.trim() && (
-              <p className={styles.documentSize}>{m.content}</p>
-            )}
-          </div>
-        </a>
-      );
-    }
-
-    // 🔗 LINK MESSAGE
-    if (m.type === "link" && m.linkUrl) {
-      if (m.linkTitle) {
-        return wrapWithReply(
-          <>
-            <a
-              href={m.linkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.messageLinkPreview}
-            >
-              {m.linkImage && (
-                <img
-                  src={m.linkImage}
-                  alt={m.linkTitle}
-                  className={styles.linkImage}
-                />
-              )}
-              <div className={styles.linkContent}>
-                <p className={styles.linkSource}>
-                  {new URL(m.linkUrl).hostname}
-                </p>
-                <p className={styles.linkTitle}>{m.linkTitle}</p>
-                {m.linkDescription && (
-                  <p className={styles.linkDescription}>{m.linkDescription}</p>
-                )}
-              </div>
-            </a>
-            {m.content && m.content.trim() !== m.linkUrl.trim() && (
-              <p className={styles.messageText}>{m.content}</p>
-            )}
-          </>
-        );
-      }
-      return wrapWithReply(
-        <a
-          href={m.linkUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={styles.messageText}
-        >
-          {m.content || m.linkUrl}
-        </a>
-      );
-    }
-
-    // 💬 DEFAULT: TEXT MESSAGE
-    return wrapWithReply(<p className={styles.messageText}>{m.content}</p>);
-  };
-
-  /* ---------- EMPTY STATE ---------- */
+  /* Empty State */
   if (!selectedUser) {
     return (
       <div className={styles.emptyState}>
         <div className={styles.emptyCard}>
-          <div className={styles.imageWrapper}>
-            <Image
-              src="/Frame 238021 (1).svg"
-              alt="Chat illustration"
-              width={90}
-              height={90}
-              priority
-            />
-          </div>
+          <Image src="/Frame 238021 (1).svg" alt="Chat" width={90} height={90} />
           <h2 className={styles.title}>Let’s start chatting</h2>
-          <p className={styles.subtitle}>
-            Search for a person from the left sidebar to start a conversation.
-          </p>
-          <div className={styles.hint}>Search a user • Start typing</div>
+          <p className={styles.subtitle}>Search for a person to start.</p>
         </div>
       </div>
     );
@@ -441,43 +484,27 @@ export default function ChatPanel({
     <div className={styles.chatPanel}>
       {/* HEADER */}
       <div className={styles.chatHeader}>
-        <button className={styles.backButton} onClick={onBack}>
-          <FiArrowLeft />
-        </button>
-
+        <button className={styles.backButton} onClick={onBack}><FiArrowLeft /></button>
         <div className={styles.avatarWrapper}>
-          <div className={styles.avatar}>
-            {selectedUser.avatar ? (
-              <img
-                src={selectedUser.avatar}
-                alt={selectedUser.name}
-                className={styles.avatarImage}
-                style={{ width: "36px", height: "36px", borderRadius: "50%" }}
-              />
-            ) : (
-              getInitials(selectedUser.name)
-            )}
-          </div>
+          {selectedUser.avatar ? (
+            <img src={selectedUser.avatar} alt="User" className={styles.headerAvatar} />
+          ) : (
+            <div className={styles.headerInitials}>{getInitials(selectedUser.name)}</div>
+          )}
           {selectedUser.online && <div className={styles.onlineIndicator} />}
         </div>
-
         <div className={styles.userInfo}>
           <h2 className={styles.userName}>{selectedUser.name}</h2>
-          <p className={styles.userStatus}>Stanford University</p>
+          <p className={styles.userStatus}>Online</p>
         </div>
-
-        <button className={styles.moreButton}>
-          <FiMoreVertical />
-        </button>
+        <button className={styles.moreButton}><FiMoreVertical /></button>
       </div>
 
-      {/* MESSAGES */}
+      {/* MESSAGES AREA */}
       <div className={styles.messagesArea} ref={messagesAreaRef}>
         {isLoading && (
           <div className={styles.loadingWrapper}>
-            <MessageSkeleton />
-            <MessageSkeleton />
-            <MessageSkeleton />
+            <MessageSkeleton /><MessageSkeleton /><MessageSkeleton />
           </div>
         )}
 
@@ -485,192 +512,50 @@ export default function ChatPanel({
           <div className={styles.emptyConversation}>
             <div className={styles.profileRing}>
               {selectedUser.avatar ? (
-                <img src={selectedUser.avatar} className={styles.emptyAvatar} />
+                 <img src={selectedUser.avatar} className={styles.emptyAvatar} />
               ) : (
-                <div className={styles.emptyInitials}>
-                  {getInitials(selectedUser.name)}
-                </div>
+                 <div className={styles.emptyInitials}>{getInitials(selectedUser.name)}</div>
               )}
             </div>
-            <h3 className={styles.emptyTitle}>
-              You’re now connected with <span>{selectedUser.name}</span>
-            </h3>
-            <p className={styles.emptySubtitle}>
-              Say hello 👋 and start your conversation.
-            </p>
+            <h3 className={styles.emptyTitle}>You’re connected with <span>{selectedUser.name}</span></h3>
           </div>
         )}
 
         <div className={styles.messagesContainer}>
-          {hasMoreMessages && (
-            <div ref={topMessageSentinelRef}>
-              {isLoadingOlderRef.current && <MessageSkeleton />}
-            </div>
-          )}
+          {hasMoreMessages && <div ref={topMessageSentinelRef}>{isLoadingOlderRef.current && <MessageSkeleton />}</div>}
 
-          {messages.map((m) => {
-            const isDropdownOpen = activeMessageId === m.id;
+          {messages.map((m) => (
+            <MessageRow
+              key={m.id}
+              m={m}
+              isMine={m.sent}
+              onReply={handleReply}
+              onCopy={handleCopy}
+              onEdit={onEditMessage || (() => {})}
+              onDelete={onDeleteMessage || (() => {})}
+              onReact={onReact}
+            />
+          ))}
 
-            return (
-              <div
-                key={m.id}
-                className={`${styles.messageWrapper} ${
-                  m.sent ? styles.sent : styles.received
-                }`}
-              >
-                {m.senderAvatar && (
-                  <img
-                    src={m.senderAvatar}
-                    alt={m.senderName}
-                    className={`${styles.messageAvatar} ${
-                      m.sent ? styles.myAvatar : styles.otherAvatar
-                    }`}
-                  />
-                )}
-
-                <div
-                  className={styles.messageHoverZone}
-                  onMouseEnter={() => setHoveredMessageId(m.id)}
-                  onMouseLeave={() => setHoveredMessageId(null)}
-                >
-                  <div className={styles.messageBubble}>
-                    <p className={styles.senderNameUser}>{m.senderName}</p>
-                    
-                    {/* ✨ DROPDOWN TRIGGER */}
-                    <button
-                      className={`${styles.optionsTrigger} ${
-                        isDropdownOpen ? styles.active : ""
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveMessageId(isDropdownOpen ? null : m.id);
-                      }}
-                      aria-label="Message options"
-                    >
-                      <FiChevronDown />
-                    </button>
-
-                    {isDropdownOpen && (
-                      <div className={styles.messageOptions}>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleReply(m);
-                          }}
-                        >
-                          <FiCornerUpLeft /> Reply
-                        </button>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopy(m);
-                          }}
-                        >
-                          <FiCopy /> Copy
-                        </button>
-
-                        {/* 🔥 EDITED & DELETE BUTTONS (Only for me) */}
-                        {m.sent && (
-                          <>
-                            {m.type === "text" && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEditClick(m);
-                                }}
-                              >
-                                <FiEdit2 /> Edit
-                              </button>
-                            )}
-
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteClick(m);
-                              }}
-                              style={{ color: "#ff4444" }}
-                            >
-                              <FiTrash /> Delete
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
-
-                    {/* CONTENT */}
-                    {renderMessageContent(m)}
-
-                    {/* 🔥 EDITED STATUS LABEL */}
-                    {/* (m as any) used to prevent TS error if Message interface isn't updated yet */}
-                    {(m as any).isEdited && (
-                      <span
-                        style={{
-                          fontSize: "0.65rem",
-                          color: "#8696a0",
-                          display: "block",
-                          textAlign: "right",
-                          fontStyle: "italic",
-                          marginTop: "2px",
-                          marginRight: "4px",
-                        }}
-                      >
-                        (edited)
-                      </span>
-                    )}
-
-                    {/* META */}
-                    <div className={styles.messageMeta}>
-                      <span className={styles.messageTime}>{m.timestamp}</span>
-                      {m.sent && getStatusIcon(m.status)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
           <div ref={messagesEndRef} />
         </div>
       </div>
 
+      {/* REPLY PREVIEW (For Input) */}
       {replyingTo && (
         <div className={styles.replyPreview}>
           <div className={styles.replyContainer}>
             <div className={styles.replyDecor} />
             <div className={styles.replyContent}>
-              <span className={styles.replyAuthor}>
-                {replyingTo.sent ? "You" : replyingTo.senderName || "User"}
-              </span>
-              {!replyingTo.sent && replyingTo.senderAvatar && (
-                <img
-                  src={replyingTo.senderAvatar}
-                  alt={replyingTo.senderName}
-                  className={styles.replyAvatar}
-                />
-              )}
-
+              <span className={styles.replyAuthor}>{replyingTo.sent ? "You" : replyingTo.senderName}</span>
               <p className={styles.replyText}>
-                {replyingTo.type === "image" ? (
-                  <span className={styles.flexCenter}>
-                    <FiImage /> Photo
-                  </span>
-                ) : (
-                  getCopyText(replyingTo)
-                )}
+                {replyingTo.type === "image" ? "📷 Photo" : replyingTo.content}
               </p>
             </div>
-
             {replyingTo.type === "image" && replyingTo.fileUrl && (
-              <img
-                src={replyingTo.fileUrl}
-                alt=""
-                className={styles.replyThumb}
-              />
+              <img src={replyingTo.fileUrl} alt="" className={styles.replyThumb} />
             )}
-
-            <button onClick={cancelReply} className={styles.closeReply}>
-              <FiX />
-            </button>
+            <button onClick={() => setReplyingTo(null)} className={styles.closeReply}><FiX /></button>
           </div>
         </div>
       )}

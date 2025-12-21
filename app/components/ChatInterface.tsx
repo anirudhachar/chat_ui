@@ -36,6 +36,7 @@ export interface Message {
   senderId?: string;
   senderName?: string;
   senderAvatar?: string;
+  reactions?: Record<string, string[]>;
 
   offer?: {
     offerId: string;
@@ -250,7 +251,7 @@ export default function ChatInterface() {
             const detectedUrl = !parsedOffer ? extractUrl(data.content) : null;
             const isMine = data.senderUserId === loggedInUserIdRef.current;
 
-            console.log(data,"datsend")
+            console.log(data, "datsend");
             const backendMessageKey = data.messageKey || data.messageId;
 
             // 🔥 GET AVATAR FROM SIDEBAR USERS
@@ -422,6 +423,17 @@ export default function ChatInterface() {
               prev.filter(
                 (m) =>
                   m.messageKey !== data.messageKey && m.id !== data.messageId
+              )
+            );
+            break;
+          }
+
+          case "messageReactionUpdated": {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.messageKey === data.messageKey || m.id === data.messageId
+                  ? { ...m, reactions: data.reactions } // Backend should send updated map
+                  : m
               )
             );
             break;
@@ -1149,6 +1161,52 @@ export default function ChatInterface() {
     }
   };
 
+  const handleReaction = async (msg: Message, emoji: string) => {
+    if (!parentToken || !conversationIdRef.current || !msg.messageKey) return;
+
+    // ⚡ Optimistic Update (Immediate Feedback)
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id === msg.id) {
+          const currentReactions = m.reactions || {};
+          const users = currentReactions[emoji] || [];
+
+          // Toggle Logic: If I'm in the list, remove me. If not, add me.
+          const myId = loggedInUserId!;
+          const hasReacted = users.includes(myId);
+
+          const newUsers = hasReacted
+            ? users.filter((uid) => uid !== myId)
+            : [...users, myId];
+
+          // If count is 0, remove the key entirely
+          const newReactions = { ...currentReactions, [emoji]: newUsers };
+          if (newUsers.length === 0) delete newReactions[emoji];
+
+          return { ...m, reactions: newReactions };
+        }
+        return m;
+      })
+    );
+
+    try {
+      // 🔥 EXACT PAYLOAD YOU REQUESTED
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/message/react`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${parentToken}`,
+        },
+        body: JSON.stringify({
+          conversationId: conversationIdRef.current,
+          messageKey: msg.messageKey, // Timestamp#UUID
+          emoji: emoji,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to react", err);
+    }
+  };
   // ───────────────────────────────────────────────
   // RENDER
   // ───────────────────────────────────────────────
@@ -1195,6 +1253,7 @@ export default function ChatInterface() {
             }
           }}
           onDeleteMessage={handleDeleteMessage}
+          onReact={handleReaction}
         />
       </div>
     </div>
