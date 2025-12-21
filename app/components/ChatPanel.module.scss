@@ -608,7 +608,73 @@
   margin-right: 4px;
   margin-top: 2px;
 }
+/* ─────────────────────────────────────────────────────────────
+   ✏️ INLINE EDITING STYLES (Add to bottom of ChatPanel.module.scss)
+   ───────────────────────────────────────────────────────────── */
+.editContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 240px;
+  width: 100%;
+}
 
+.editInput {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #c7d2d9;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  resize: none;
+  outline: none;
+  background-color: #fff;
+  color: #111;
+  min-height: 60px;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+  
+  &:focus {
+    border-color: #0b66c2; /* LinkedIn Blue */
+    box-shadow: 0 0 0 2px rgba(11, 102, 194, 0.2);
+  }
+}
+
+.editActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.editBtn {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 16px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.cancelBtn {
+  background: transparent;
+  color: #666;
+  border: 1px solid #ccc;
+  
+  &:hover {
+    background: #f3f4f6;
+    color: #333;
+  }
+}
+
+.saveBtn {
+  background: #0b66c2;
+  color: white;
+  
+  &:hover {
+    background: #004182;
+  }
+}
 /* ─────────────────────────────────────────────────────────────
    ✨ UPDATES TO MESSAGE BUBBLE
    ───────────────────────────────────────────────────────────── */

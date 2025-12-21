@@ -1100,32 +1100,48 @@ export default function ChatInterface() {
   // ───────────────────────────────────────────────
   // ✏️ EDIT MESSAGE API
   // ───────────────────────────────────────────────
+  // ───────────────────────────────────────────────
+  // ✏️ EDIT MESSAGE API
+  // ───────────────────────────────────────────────
   const handleEditMessage = async (msg: Message, newContent: string) => {
     if (!parentToken || !conversationIdRef.current) return;
+
+    // 1. ⚡ OPTIMISTIC UPDATE: Update UI immediately before API call
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === msg.id
+          ? { ...m, content: newContent, isEdited: true } // Update content & add edited flag
+          : m
+      )
+    );
 
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/message/edit`,
         {
-          method: "PUT", // Check if your backend wants POST or PUT
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${parentToken}`, // 🔥 Token passed here
+            Authorization: `Bearer ${parentToken}`,
           },
           body: JSON.stringify({
             conversationId: conversationIdRef.current,
-            messageKey: msg.messageKey, // Sends the Composite Key (Timestamp#UUID)
+            messageKey: msg.messageKey,
             newContent: newContent,
           }),
         }
       );
 
-      if (!res.ok) throw new Error("Failed to edit message");
+      if (!res.ok) {
+        throw new Error("Failed to edit message");
+      }
 
-      // Note: We don't manually update state here.
-      // We wait for the "messageEdited" WebSocket event to update the UI.
+      // If success, WebSocket will eventually confirm it, but UI is already updated.
     } catch (error) {
       console.error("❌ Error editing message:", error);
+
+      // Optional: Revert change if API fails
+      // setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, content: msg.content } : m));
       alert("Could not edit message");
     }
   };
@@ -1246,12 +1262,7 @@ export default function ChatInterface() {
           onLoadMoreMessages={loadMoreMessages}
           hasMoreMessages={hasMoreMessages}
           resetKey={selectedUser?.id}
-          onEditMessage={(msg) => {
-            const newText = prompt("Edit your message:", msg.content);
-            if (newText && newText !== msg.content) {
-              handleEditMessage(msg, newText);
-            }
-          }}
+          onEditMessage={handleEditMessage}
           onDeleteMessage={handleDeleteMessage}
           onReact={handleReaction}
         />

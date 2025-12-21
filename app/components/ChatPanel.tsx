@@ -13,7 +13,6 @@ import {
   FiEdit2,
   FiTrash,
   FiSmile,
-  FiChevronDown
 } from "react-icons/fi";
 import { BsCheck, BsCheckAll } from "react-icons/bs";
 import Image from "next/image";
@@ -42,14 +41,14 @@ interface ChatPanelProps {
   onBack: () => void;
   onLoadMoreMessages: () => void;
   onReply?: (message: Message) => void;
-  onEditMessage?: (message: Message) => void;
+  // 🔥 UPDATE: Callback now accepts newContent string
+  onEditMessage?: (message: Message, newContent: string) => void;
   onDeleteMessage?: (message: Message) => void;
   onReact: (message: Message, emoji: string) => void;
 }
 
 // ───────────────────────────────────────────────
 // SUB-COMPONENT: Message Row
-// (Contains the exact original rendering logic + New Hover UI)
 // ───────────────────────────────────────────────
 const MessageRow = ({
   m,
@@ -64,12 +63,16 @@ const MessageRow = ({
   isMine: boolean;
   onReply: (m: Message) => void;
   onCopy: (m: Message) => void;
-  onEdit: (m: Message) => void;
+  onEdit: (m: Message, newContent: string) => void;
   onDelete: (m: Message) => void;
   onReact: (m: Message, e: string) => void;
 }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  
+  // ✏️ NEW: Local Editing State
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState("");
 
   const menuRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -89,7 +92,38 @@ const MessageRow = ({
   }, []);
 
   // ─────────────────────────────────────────────
-  // 1. ORIGINAL RENDERING LOGIC (Restored)
+  // EDIT HANDLERS
+  // ─────────────────────────────────────────────
+  const handleStartEdit = () => {
+    setEditContent(m.content || "");
+    setIsEditing(true);
+    setShowMenu(false); // Close the menu
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditContent("");
+  };
+
+  const handleSaveEdit = () => {
+    if (editContent.trim() !== "") {
+      onEdit(m, editContent); // Pass new text up to parent
+      setIsEditing(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSaveEdit();
+    }
+    if (e.key === "Escape") {
+      handleCancelEdit();
+    }
+  };
+
+  // ─────────────────────────────────────────────
+  // RENDER CONTENT LOGIC
   // ─────────────────────────────────────────────
   const getCopyText = (msg: Message): string => {
     switch (msg.type) {
@@ -108,7 +142,31 @@ const MessageRow = ({
   };
 
   const renderContent = () => {
-    // 🏷️ WRAPPER: Handles "Reply Quote"
+    // ✏️ 1. EDIT MODE (Only for text messages)
+    if (isEditing) {
+      return (
+        <div className={styles.editContainer}>
+          <textarea
+            className={styles.editInput}
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            autoFocus
+            spellCheck={false}
+          />
+          <div className={styles.editActions}>
+            <button className={`${styles.editBtn} ${styles.cancelBtn}`} onClick={handleCancelEdit}>
+              Cancel
+            </button>
+            <button className={`${styles.editBtn} ${styles.saveBtn}`} onClick={handleSaveEdit}>
+              Save
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // 🏷️ 2. NORMAL MODE WRAPPER: Handles "Reply Quote"
     const wrapWithReply = (content: ReactNode) => {
       if (!m.replyTo) return content;
       return (
@@ -154,7 +212,7 @@ const MessageRow = ({
       );
     }
 
-    // 📦 OFFER MESSAGE (Restored Original Structure)
+    // 📦 OFFER
     if (m.type === "offer" && m.offer) {
       return wrapWithReply(
         <div className={`${styles.offerCard} ${isMine ? styles.sent : styles.received}`}>
@@ -178,7 +236,7 @@ const MessageRow = ({
       );
     }
 
-    // 📷 IMAGE MESSAGE
+    // 📷 IMAGE
     if (m.type === "image" && m.fileUrl) {
       return wrapWithReply(
         <div className={styles.mediaContainer}>
@@ -190,7 +248,7 @@ const MessageRow = ({
       );
     }
 
-    // 📄 DOCUMENT MESSAGE
+    // 📄 DOCUMENT
     if (m.type === "document" && m.fileUrl) {
       return wrapWithReply(
         <a href={m.fileUrl} target="_blank" rel="noopener noreferrer" className={styles.messageDocumentLink}>
@@ -205,7 +263,7 @@ const MessageRow = ({
       );
     }
 
-    // 🔗 LINK MESSAGE
+    // 🔗 LINK
     if (m.type === "link" && m.linkUrl) {
       if (m.linkTitle) {
         return wrapWithReply(
@@ -261,94 +319,97 @@ const MessageRow = ({
       )}
 
       <div className={styles.bubbleContainer}>
-        {/* ───────────────────────────────────────────────
-            🌟 ACTION BAR (Floating Pill on Hover)
-           ─────────────────────────────────────────────── */}
-        <div className={`${styles.actionBar} ${isMine ? styles.actionLeft : styles.actionRight}`}>
-          
-          {/* 1. Quick Reactions */}
-          <div className={styles.quickReactions}>
-            {QUICK_REACTIONS.map((emoji) => (
-              <button key={emoji} className={styles.reactionBtn} onClick={() => onReact(m, emoji)}>
-                {emoji}
+        {/* 🌟 ACTION BAR (Floating Pill on Hover)
+           Hide this bar if we are currently editing the message 
+        */}
+        {!isEditing && (
+          <div className={`${styles.actionBar} ${isMine ? styles.actionLeft : styles.actionRight}`}>
+            
+            {/* 1. Quick Reactions */}
+            <div className={styles.quickReactions}>
+              {QUICK_REACTIONS.map((emoji) => (
+                <button key={emoji} className={styles.reactionBtn} onClick={() => onReact(m, emoji)}>
+                  {emoji}
+                </button>
+              ))}
+            </div>
+
+            <div className={styles.divider} />
+
+            {/* 2. Plus Button (Picker) */}
+            <div className={styles.actionBtnWrapper} ref={pickerRef}>
+              <button
+                className={styles.actionBtn}
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                title="Add reaction"
+              >
+                <FiSmile /> <span className={styles.plusSign}>+</span>
               </button>
-            ))}
-          </div>
-
-          <div className={styles.divider} />
-
-          {/* 2. Plus Button (Picker) */}
-          <div className={styles.actionBtnWrapper} ref={pickerRef}>
-            <button
-              className={styles.actionBtn}
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              title="Add reaction"
-            >
-              <FiSmile /> <span className={styles.plusSign}>+</span>
-            </button>
-            {showEmojiPicker && (
-              <div className={styles.emojiPickerPopup}>
-                <EmojiPicker
-                  onEmojiClick={(e) => {
-                    onReact(m, e.emoji);
-                    setShowEmojiPicker(false);
-                  }}
-                  width={280}
-                  height={350}
-                  theme={Theme.LIGHT}
-                  previewConfig={{ showPreview: false }}
-                />
-              </div>
-            )}
-          </div>
-
-          <div className={styles.divider} />
-
-          {/* 3. Reply Button */}
-          <button className={styles.actionBtn} onClick={() => onReply(m)} title="Reply">
-            <FiCornerUpLeft />
-          </button>
-
-          {/* 4. More Options */}
-          <div className={styles.actionBtnWrapper} ref={menuRef}>
-            <button className={styles.actionBtn} onClick={() => setShowMenu(!showMenu)}>
-              <FiMoreVertical />
-            </button>
-
-            {showMenu && (
-              <div className={styles.dropdownMenu}>
-                <div onClick={() => { onCopy(m); setShowMenu(false); }} className={styles.dropdownItem}>
-                  <FiCopy size={14} /> Copy
+              {showEmojiPicker && (
+                <div className={styles.emojiPickerPopup}>
+                  <EmojiPicker
+                    onEmojiClick={(e) => {
+                      onReact(m, e.emoji);
+                      setShowEmojiPicker(false);
+                    }}
+                    width={280}
+                    height={350}
+                    theme={Theme.LIGHT}
+                    previewConfig={{ showPreview: false }}
+                  />
                 </div>
-                {isMine && m.type === "text" && (
-                  <div onClick={() => { onEdit(m); setShowMenu(false); }} className={styles.dropdownItem}>
-                    <FiEdit2 size={14} /> Edit
+              )}
+            </div>
+
+            <div className={styles.divider} />
+
+            {/* 3. Reply Button */}
+            <button className={styles.actionBtn} onClick={() => onReply(m)} title="Reply">
+              <FiCornerUpLeft />
+            </button>
+
+            {/* 4. More Options */}
+            <div className={styles.actionBtnWrapper} ref={menuRef}>
+              <button className={styles.actionBtn} onClick={() => setShowMenu(!showMenu)}>
+                <FiMoreVertical />
+              </button>
+
+              {showMenu && (
+                <div className={styles.dropdownMenu}>
+                  <div onClick={() => { onCopy(m); setShowMenu(false); }} className={styles.dropdownItem}>
+                    <FiCopy size={14} /> Copy
                   </div>
-                )}
-                {isMine && (
-                  <div onClick={() => { onDelete(m); setShowMenu(false); }} className={`${styles.dropdownItem} ${styles.danger}`}>
-                    <FiTrash size={14} /> Delete
-                  </div>
-                )}
-              </div>
-            )}
+                  
+                  {/* 🔥 INLINE EDIT TRIGGER */}
+                  {isMine && m.type === "text" && (
+                    <div onClick={handleStartEdit} className={styles.dropdownItem}>
+                      <FiEdit2 size={14} /> Edit
+                    </div>
+                  )}
+                  
+                  {isMine && (
+                    <div onClick={() => { onDelete(m); setShowMenu(false); }} className={`${styles.dropdownItem} ${styles.danger}`}>
+                      <FiTrash size={14} /> Delete
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 📨 MESSAGE BUBBLE */}
         <div className={styles.messageBubble}>
           {renderContent()}
           
-          {/* Edited Tag */}
-          {(m as any).isEdited && (
-            <span className={styles.editedTag}>(edited)</span>
+          {/* Metadata: Hide while editing to keep it clean */}
+          {!isEditing && (
+            <div className={styles.messageMeta}>
+              {(m as any).isEdited && <span className={styles.editedTag}>(edited)</span>}
+              <span className={styles.messageTime}>{m.timestamp}</span>
+              {isMine && getStatusIcon(m.status)}
+            </div>
           )}
-          
-          {/* Timestamp & Status */}
-          <div className={styles.messageMeta}>
-            <span className={styles.messageTime}>{m.timestamp}</span>
-            {isMine && getStatusIcon(m.status)}
-          </div>
         </div>
 
         {/* 😍 REACTION PILLS */}
@@ -487,7 +548,7 @@ export default function ChatPanel({
         <button className={styles.backButton} onClick={onBack}><FiArrowLeft /></button>
         <div className={styles.avatarWrapper}>
           {selectedUser.avatar ? (
-            <img src={selectedUser.avatar} alt="User" className={styles.headerAvatar}   style={{ width: "36px", height: "36px", borderRadius: "50%" }}/>
+            <img src={selectedUser.avatar} alt="User" className={styles.headerAvatar} style={{ width: "36px", height: "36px", borderRadius: "50%" }}/>
           ) : (
             <div className={styles.headerInitials}>{getInitials(selectedUser.name)}</div>
           )}
@@ -531,6 +592,7 @@ export default function ChatPanel({
               isMine={m.sent}
               onReply={handleReply}
               onCopy={handleCopy}
+              // 🔥 PASSING EDIT HANDLER with new signature
               onEdit={onEditMessage || (() => {})}
               onDelete={onDeleteMessage || (() => {})}
               onReact={onReact}
