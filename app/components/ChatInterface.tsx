@@ -745,7 +745,8 @@ export default function ChatInterface() {
   const sendMessageToApi = async (
     cid: string,
     content: string,
-    token: string
+    token: string,
+    replyToMessageKey?: string
   ) => {
     try {
       const res = await fetch(
@@ -759,6 +760,7 @@ export default function ChatInterface() {
           body: JSON.stringify({
             conversationId: cid,
             content,
+            ...(replyToMessageKey && { replyToMessageKey }),
           }),
         }
       );
@@ -826,16 +828,23 @@ export default function ChatInterface() {
         image?: string;
         description?: string;
       },
-      replyTo?: Message // 👈 ADDED: 4th argument to accept the reply object
+      replyTo?: Message
     ) => {
       if (!selectedUser || !parentToken) return;
 
-      const detectedUrl = extractUrl(content);
+      // 1. Detect URL for Link Preview logic later
+      // (Ensure you have an extractUrl helper or regex here)
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      const detectedUrl = content.match(urlRegex)?.[0];
 
+      // 2. Ensure Conversation ID exists
       let cid = conversationId;
       if (!cid) {
         cid = await getConversationId(selectedUser.id, parentToken);
         if (!cid) return;
+        // If you have a ref for conversationId, update it here too
+        conversationIdRef.current = cid;
+        setConversationId(cid);
       }
 
       const tempId = `temp-${Date.now()}`;
@@ -845,7 +854,7 @@ export default function ChatInterface() {
       });
 
       // ─────────────────────────────────────────────
-      // OPTIMISTIC MESSAGE
+      // ⚡ 3. OPTIMISTIC UPDATE
       // ─────────────────────────────────────────────
       const optimistic: Message = {
         id: tempId,
@@ -857,24 +866,22 @@ export default function ChatInterface() {
 
         fileName: file?.name,
         fileUrl: file?.url,
-        senderAvatar: myAvatar,
-        linkUrl: file?.url,
+        senderAvatar: myAvatar, // Ensure myAvatar is defined in your component
+        linkUrl: file?.url || detectedUrl,
         linkTitle: file?.name,
         linkDescription: file?.description,
         linkImage: file?.image,
 
-        replyTo: replyTo, // 👈 ADDED: Pass replyTo to state so UI renders it immediately
+        replyTo: replyTo, // ✅ Pass reply object so UI shows it immediately
       };
 
-      console.log(optimistic, "messageoptimistic");
       setMessages((prev) => [...prev, optimistic]);
 
-      // 🔥 EXIT SEARCH MODE
+      // 🔥 Clear Search & Move User to Top
       setSearchQuery("");
       setSearchResults([]);
       setIsSearching(false);
 
-      // 🔥 MOVE CONVERSATION TO TOP
       setUsers((prev) => {
         const updatedUser: User = {
           ...selectedUser,
@@ -890,17 +897,30 @@ export default function ChatInterface() {
       });
 
       // ─────────────────────────────────────────────
-      // SEND TO API
+      // 📡 4. SEND TO API
       // ─────────────────────────────────────────────
       const apiContent =
         type === "text" ? content : file?.url || file?.name || content;
 
       try {
-        const data = await sendMessageToApi(cid, apiContent, parentToken);
+        // Extract the key from the message we are replying to
+        const replyKey = replyTo?.messageKey;
+
+        // Send to API (Make sure sendMessageToApi accepts the 4th argument)
+        const data = await sendMessageToApi(
+          cid,
+          apiContent,
+          parentToken,
+          replyKey
+        );
 
         const realId = data?.data?.messageId ?? data?.data?.message?.messageId;
         const realTime =
           data?.data?.createdAt ?? data?.data?.message?.createdAt;
+
+        // 🔥 IMPORTANT: Capture the new message's key from the server
+        const realKey =
+          data?.data?.messageKey ?? data?.data?.message?.messageKey;
 
         setMessages((prev) =>
           prev.map((m) =>
@@ -908,6 +928,7 @@ export default function ChatInterface() {
               ? {
                   ...m,
                   id: realId ?? m.id,
+                  messageKey: realKey, // ✅ Save the key so we can Edit/Reply/Delete this message later
                   status: "sent",
                   timestamp: realTime
                     ? new Date(realTime).toLocaleTimeString("en-US", {
@@ -922,7 +943,7 @@ export default function ChatInterface() {
         );
 
         // ─────────────────────────────────────────────
-        // 🔗 FETCH LINK PREVIEW (AFTER SEND)
+        // 🔗 5. FETCH LINK PREVIEW (After Send)
         // ─────────────────────────────────────────────
         if (detectedUrl && type === "text") {
           try {
@@ -949,11 +970,12 @@ export default function ChatInterface() {
                 )
               );
             }
-          } catch {
-            // preview failure is non-blocking
+          } catch (e) {
+            console.warn("Link preview failed", e);
           }
         }
-      } catch {
+      } catch (error) {
+        console.error("Message send failed:", error);
         setMessages((prev) =>
           prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
         );
@@ -966,6 +988,7 @@ export default function ChatInterface() {
       setSearchQuery,
       setSearchResults,
       setIsSearching,
+      myAvatar, // Added as dependency
     ]
   );
 
