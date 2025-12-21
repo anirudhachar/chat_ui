@@ -214,7 +214,7 @@ export default function ChatInterface() {
     usersRef.current = users;
   }, [users]);
 
-  useEffect(() => {
+ useEffect(() => {
     if (!parentToken) return;
 
     const wsUrl = `wss://k4g7m4879h.execute-api.us-east-1.amazonaws.com/dev?token=${encodeURIComponent(
@@ -249,6 +249,9 @@ export default function ChatInterface() {
 
             const detectedUrl = !parsedOffer ? extractUrl(data.content) : null;
             const isMine = data.senderUserId === loggedInUserIdRef.current;
+            
+            // 🔥 CRITICAL FIX: Use 'messageKey' for ACKs (Backend requires Timestamp#UUID)
+            const backendMessageKey = data.messageKey || data.messageId;
 
             // 🔥 GET AVATAR FROM SIDEBAR USERS
             const senderAvatar = isMine
@@ -256,33 +259,43 @@ export default function ChatInterface() {
               : usersRef.current.find((u) => u.id === data.senderUserId)
                   ?.avatar;
 
+            // ─────────────────────────────────────────────────────────
+            // 🛑 ACKNOWLEDGEMENT LOGIC (Fixed to prevent 500 Errors)
+            // ─────────────────────────────────────────────────────────
             if (!isMine) {
-              ws.send(
-                JSON.stringify({
-                  action: "ackDelivered",
-                  conversationId: data.conversationId,
-                  messageIds: [data.messageId || data.messageKey],
-                })
-              );
-            }
+              const isChatOpen = data.conversationId === conversationIdRef.current;
 
-            // 👈 3. ACK READ (Only if user is looking at this conversation right now)
-            if (!isMine && data.conversationId === conversationIdRef.current) {
-              ws.send(
-                JSON.stringify({
-                  action: "ackRead",
-                  conversationId: data.conversationId,
-                  messageIds: [data.messageId || data.messageKey],
-                })
-              );
+              if (isChatOpen) {
+                // Case A: User is looking at the chat -> Send READ immediately.
+                // (Sending 'ackRead' implies it was delivered, so we skip 'ackDelivered' to avoid race conditions)
+                console.log("👀 Chat open, sending ackRead for:", backendMessageKey);
+                ws.send(
+                  JSON.stringify({
+                    action: "ackRead",
+                    conversationId: data.conversationId,
+                    messageIds: [backendMessageKey],
+                  })
+                );
+              } else {
+                // Case B: User is in another chat/menu -> Send DELIVERED.
+                console.log("📨 Chat closed, sending ackDelivered for:", backendMessageKey);
+                ws.send(
+                  JSON.stringify({
+                    action: "ackDelivered",
+                    conversationId: data.conversationId,
+                    messageIds: [backendMessageKey],
+                  })
+                );
+              }
             }
+            // ─────────────────────────────────────────────────────────
 
             // 2. Update Chat Panel (ONLY if this conversation is open)
             if (data.conversationId === conversationIdRef.current) {
               setMessages((prev) => [
                 ...prev,
                 {
-                  id: data.messageId,
+                  id: data.messageId, // Keep using messageId for React 'key' if that's what your UI uses
                   content: parsedOffer?.text || data.content,
                   timestamp: new Date(data.createdAt).toLocaleTimeString(
                     "en-US",
@@ -292,7 +305,7 @@ export default function ChatInterface() {
                     }
                   ),
                   sent: isMine,
-                  senderAvatar, // ✅ FIXED
+                  senderAvatar,
                   type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
                   offer: parsedOffer
                     ? {
@@ -306,7 +319,7 @@ export default function ChatInterface() {
                       }
                     : undefined,
                   linkUrl: detectedUrl ?? undefined,
-                  status: "delivered",
+                  status: isMine ? "sent" : "read", // If I'm seeing it arrive, it's effectively read
                 },
               ]);
 
@@ -337,6 +350,11 @@ export default function ChatInterface() {
                   }
                 ),
                 online: true,
+                // If chat is NOT open, increment unread count
+                unread:
+                  data.conversationId === conversationIdRef.current
+                    ? 0
+                    : (existingUser.unread || 0) + 1,
               };
 
               const others = prev.filter((_, idx) => idx !== existingIndex);
@@ -350,8 +368,9 @@ export default function ChatInterface() {
             // The payload.data should contain messageKey/messageId
             setMessages((prev) =>
               prev.map((m) =>
+                // Match against either ID type to be safe
                 m.id === data.messageKey || m.id === data.messageId
-                  ? { ...m, status: "read" } // Update status to read
+                  ? { ...m, status: "read" }
                   : m
               )
             );
@@ -399,7 +418,7 @@ export default function ChatInterface() {
                     : (prev[index].unread ?? 0) + (data.unreadIncrement ?? 0),
               };
 
-              // 🔥 THE FIX: Move to top
+              // Move to top
               const others = prev.filter((_, i) => i !== index);
               return [updatedUser, ...others];
             });
