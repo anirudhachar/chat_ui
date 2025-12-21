@@ -1248,52 +1248,54 @@ export default function ChatInterface() {
     }
   };
 
-  const handleReaction = async (msg: Message, emoji: string) => {
-    if (!parentToken || !conversationIdRef.current || !msg.messageKey) return;
+const handleReaction = async (msg: Message, emoji: string) => {
+  if (!parentToken || !conversationIdRef.current || !msg.messageKey) return;
 
-    // ⚡ Optimistic Update (Immediate Feedback)
-    setMessages((prev) =>
-      prev.map((m) => {
-        if (m.id === msg.id) {
-          const currentReactions = m.reactions || {};
-          const users = currentReactions[emoji] || [];
+  // ⚡ Optimistic Update
+  setMessages((prev) =>
+    prev.map((m) => {
+      if (m.messageKey !== msg.messageKey) return m;
 
-          // Toggle Logic: If I'm in the list, remove me. If not, add me.
-          const myId = loggedInUserId!;
-          const hasReacted = users.includes(myId);
+      const currentReactions = m.reactions || {};
+      const users = currentReactions[emoji] || [];
 
-          const newUsers = hasReacted
-            ? users.filter((uid) => uid !== myId)
-            : [...users, myId];
+      const myId = loggedInUserId!;
+      const hasReacted = users.includes(myId);
 
-          // If count is 0, remove the key entirely
-          const newReactions = { ...currentReactions, [emoji]: newUsers };
-          if (newUsers.length === 0) delete newReactions[emoji];
+      const newUsers = hasReacted
+        ? users.filter((uid) => uid !== myId)
+        : [...users, myId];
 
-          return { ...m, reactions: newReactions };
-        }
-        return m;
-      })
-    );
+      const newReactions = { ...currentReactions };
 
-    try {
-      // 🔥 EXACT PAYLOAD YOU REQUESTED
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/message/react`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${parentToken}`,
-        },
-        body: JSON.stringify({
-          conversationId: conversationIdRef.current,
-          messageKey: msg.messageKey, // Timestamp#UUID
-          emoji: emoji,
-        }),
-      });
-    } catch (err) {
-      console.error("Failed to react", err);
-    }
-  };
+      if (newUsers.length > 0) {
+        newReactions[emoji] = newUsers;
+      } else {
+        delete newReactions[emoji];
+      }
+
+      return { ...m, reactions: newReactions };
+    })
+  );
+
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/message/react`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${parentToken}`,
+      },
+      body: JSON.stringify({
+        conversationId: conversationIdRef.current,
+        messageKey: msg.messageKey,
+        emoji,
+      }),
+    });
+  } catch (err) {
+    console.error("Failed to react", err);
+  }
+};
+
   // ───────────────────────────────────────────────
   // RENDER
   // ───────────────────────────────────────────────
