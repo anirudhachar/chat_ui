@@ -214,7 +214,7 @@ export default function ChatInterface() {
     usersRef.current = users;
   }, [users]);
 
- useEffect(() => {
+  useEffect(() => {
     if (!parentToken) return;
 
     const wsUrl = `wss://k4g7m4879h.execute-api.us-east-1.amazonaws.com/dev?token=${encodeURIComponent(
@@ -249,7 +249,7 @@ export default function ChatInterface() {
 
             const detectedUrl = !parsedOffer ? extractUrl(data.content) : null;
             const isMine = data.senderUserId === loggedInUserIdRef.current;
-            
+
             // 🔥 CRITICAL FIX: Use 'messageKey' for ACKs (Backend requires Timestamp#UUID)
             const backendMessageKey = data.messageKey || data.messageId;
 
@@ -263,12 +263,16 @@ export default function ChatInterface() {
             // 🛑 ACKNOWLEDGEMENT LOGIC (Fixed to prevent 500 Errors)
             // ─────────────────────────────────────────────────────────
             if (!isMine) {
-              const isChatOpen = data.conversationId === conversationIdRef.current;
+              const isChatOpen =
+                data.conversationId === conversationIdRef.current;
 
               if (isChatOpen) {
                 // Case A: User is looking at the chat -> Send READ immediately.
                 // (Sending 'ackRead' implies it was delivered, so we skip 'ackDelivered' to avoid race conditions)
-                console.log("👀 Chat open, sending ackRead for:", backendMessageKey);
+                console.log(
+                  "👀 Chat open, sending ackRead for:",
+                  backendMessageKey
+                );
                 ws.send(
                   JSON.stringify({
                     action: "ackRead",
@@ -278,7 +282,10 @@ export default function ChatInterface() {
                 );
               } else {
                 // Case B: User is in another chat/menu -> Send DELIVERED.
-                console.log("📨 Chat closed, sending ackDelivered for:", backendMessageKey);
+                console.log(
+                  "📨 Chat closed, sending ackDelivered for:",
+                  backendMessageKey
+                );
                 ws.send(
                   JSON.stringify({
                     action: "ackDelivered",
@@ -377,9 +384,6 @@ export default function ChatInterface() {
             break;
           }
 
-          // ─────────────────────────────
-          // 👈 5. MESSAGE DELIVERED
-          // ─────────────────────────────
           case "messageDelivered": {
             setMessages((prev) =>
               prev.map((m) =>
@@ -1049,6 +1053,65 @@ export default function ChatInterface() {
     fetchMessages,
   ]);
 
+  const handleEditMessage = async (msg: Message, newContent: string) => {
+    try {
+      const token = localStorage.getItem("token"); // Or however you get your auth token
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/chat/message/edit`,
+        {
+          method: "POST", // or PUT, depending on your backend
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            conversationId: conversationIdRef.current,
+            // 🔥 CRITICAL: Send the composite key (Timestamp#UUID)
+            messageKey: msg.id,
+            newContent: newContent,
+          }),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to edit");
+
+      // Note: You don't need to update state manually here.
+      // The WebSocket "messageEdited" event will automatically update the UI!
+    } catch (error) {
+      console.error("Error editing message:", error);
+      alert("Failed to edit message");
+    }
+  };
+
+  const handleDeleteMessage = async (msg: Message) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/chat/message/delete`,
+        {
+          method: "POST", // or DELETE
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            conversationId: conversationIdRef.current,
+            messageKey: msg.id, // 🔥 CRITICAL
+          }),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to delete");
+
+      // Again, wait for WebSocket "messageDeleted" event to update UI
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      alert("Failed to delete message");
+    }
+  };
+
   // ───────────────────────────────────────────────
   // RENDER
   // ───────────────────────────────────────────────
@@ -1088,6 +1151,13 @@ export default function ChatInterface() {
           onLoadMoreMessages={loadMoreMessages}
           hasMoreMessages={hasMoreMessages}
           resetKey={selectedUser?.id}
+          onEditMessage={(msg) => {
+            const newText = prompt("Edit your message:", msg.content);
+            if (newText && newText !== msg.content) {
+              handleEditMessage(msg, newText);
+            }
+          }}
+          onDeleteMessage={handleDeleteMessage}
         />
       </div>
     </div>

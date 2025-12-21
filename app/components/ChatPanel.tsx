@@ -11,6 +11,8 @@ import {
   FiCornerUpLeft,
   FiX,
   FiImage,
+  FiEdit2, // ✨ Added
+  FiTrash, // ✨ Added
 } from "react-icons/fi";
 import { BsCheck, BsCheckAll } from "react-icons/bs";
 import Image from "next/image";
@@ -24,6 +26,8 @@ interface ChatPanelProps {
   selectedUser: User | null;
   messages: Message[];
   isLoading: boolean;
+  onEditMessage?: (message: Message) => void;   // ✨ Wired up
+  onDeleteMessage?: (message: Message) => void; // ✨ Wired up
   onSendMessage: (
     content: string,
     type?: "text" | "image" | "document" | "link" | "audio",
@@ -33,7 +37,7 @@ interface ChatPanelProps {
       image?: string;
       description?: string;
     },
-    replyTo?: Message // ✨ New Prop
+    replyTo?: Message
   ) => void;
   onBack: () => void;
   onLoadMoreMessages: () => void;
@@ -53,6 +57,8 @@ export default function ChatPanel({
   resetKey,
   onReply,
   isLoading,
+  onEditMessage,   // ✨ Destructured
+  onDeleteMessage, // ✨ Destructured
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
@@ -73,11 +79,6 @@ export default function ChatPanel({
     setActiveMessageId(null);
     setReplyingTo(null);
   }, [resetKey]);
-
-  const handleReaction = (messageId: string, emoji: string) => {
-    console.log("Reacted:", messageId, emoji);
-    // TODO: call API / websocket
-  };
 
   /* ✨ Click Outside to Close Dropdown */
   useEffect(() => {
@@ -147,20 +148,6 @@ export default function ChatPanel({
   }, [isLoading]);
 
   /* ---------------- HELPERS ---------------- */
-  const getAvatarColor = (id: string) => {
-    const colors = [
-      "#00a884",
-      "#667781",
-      "#0088cc",
-      "#e9a944",
-      "#9b72cb",
-      "#00897b",
-      "#ff6b6b",
-      "#4fb3d4",
-    ];
-    return colors[parseInt(id.replace(/\D/g, "") || "0", 10) % colors.length];
-  };
-
   const getInitials = (name: string) =>
     name
       .split(" ")
@@ -219,6 +206,20 @@ export default function ChatPanel({
     setActiveMessageId(null);
   };
 
+  // ✨ NEW: Handle Edit Click
+  const handleEditClick = (msg: Message) => {
+    if (onEditMessage) onEditMessage(msg);
+    setActiveMessageId(null);
+  };
+
+  // ✨ NEW: Handle Delete Click
+  const handleDeleteClick = (msg: Message) => {
+    if (confirm("Are you sure you want to delete this message?")) {
+      if (onDeleteMessage) onDeleteMessage(msg);
+    }
+    setActiveMessageId(null);
+  };
+
   const cancelReply = () => {
     setReplyingTo(null);
   };
@@ -234,11 +235,9 @@ export default function ChatPanel({
   };
 
   const renderMessageContent = (m: Message): ReactNode => {
-    console.log(m, "messgeincoming");
     // ✨ Helper: Wraps the main content with the "Reply Quote" if it exists
     const wrapWithReply = (content: ReactNode) => {
       if (!m.replyTo) return content;
-      console.log(content, "contentreply");
 
       return (
         <div className={styles.contentWithReply}>
@@ -265,7 +264,6 @@ export default function ChatPanel({
                 )}
               </p>
             </div>
-            {/* Optional: Show mini thumbnail if replying to image */}
             {m.replyTo.type === "image" && m.replyTo.fileUrl && (
               <img
                 src={m.replyTo.fileUrl}
@@ -283,12 +281,10 @@ export default function ChatPanel({
       return wrapWithReply(
         <div className={styles.audioMessageContainer}>
           <div className={styles.audioHeader}>
-            {/* Optional: Microphone Icon */}
             <span style={{ fontSize: "1.2rem", marginRight: "8px" }}>🎤</span>
             <span>Voice Message</span>
           </div>
           <audio controls src={m.fileUrl} className={styles.audioPlayer} />
-          {/* Show duration or caption if it exists and isn't the default text */}
           {m.content && m.content !== "🎤 Voice Message" && (
             <p className={styles.messageCaption}>{m.content}</p>
           )}
@@ -303,7 +299,6 @@ export default function ChatPanel({
             m.sent ? styles.sent : styles.received
           }`}
         >
-          {/* PRODUCT HEADER */}
           <div className={styles.productRow}>
             {m.offer.imageUrl && (
               <img
@@ -312,25 +307,18 @@ export default function ChatPanel({
                 className={styles.productImage}
               />
             )}
-
             <div className={styles.productInfo}>
               <p className={styles.productTitle}>MacBook Pro 13&quot; 2021</p>
               <p className={styles.productPrice}>$967.00</p>
             </div>
           </div>
-
-          {/* OFFER AMOUNT */}
           <div className={styles.offerAmount}>
             Offer Amount{" "}
             <strong>
               {m.offer.currency} {m.offer.amount}
             </strong>
           </div>
-
-          {/* MESSAGE */}
           {m.content && <p className={styles.offerMessage}>{m.content}</p>}
-
-          {/* TIME (already from message meta outside) */}
         </div>
       );
     }
@@ -485,26 +473,6 @@ export default function ChatPanel({
 
       {/* MESSAGES */}
       <div className={styles.messagesArea} ref={messagesAreaRef}>
-        {/* {messages.length === 0 && (
-          <div className={styles.emptyConversation}>
-            <div className={styles.profileRing}>
-              {selectedUser.avatar ? (
-                <img src={selectedUser.avatar} className={styles.emptyAvatar} />
-              ) : (
-                <div className={styles.emptyInitials}>
-                  {getInitials(selectedUser.name)}
-                </div>
-              )}
-            </div>
-            <h3 className={styles.emptyTitle}>
-              You’re now connected with <span>{selectedUser.name}</span>
-            </h3>
-            <p className={styles.emptySubtitle}>
-              Say hello 👋 and start your conversation.
-            </p>
-          </div>
-        )} */}
-
         {isLoading && (
           <div className={styles.loadingWrapper}>
             <MessageSkeleton />
@@ -542,7 +510,6 @@ export default function ChatPanel({
 
           {messages.map((m) => {
             const isDropdownOpen = activeMessageId === m.id;
-            console.log(m, "messagesbeingrendered");
 
             return (
               <div
@@ -568,6 +535,7 @@ export default function ChatPanel({
                 >
                   <div className={styles.messageBubble}>
                     <p className={styles.senderNameUser}>{m.senderName}</p>
+                    
                     {/* ✨ DROPDOWN TRIGGER */}
                     <button
                       className={`${styles.optionsTrigger} ${
@@ -601,37 +569,61 @@ export default function ChatPanel({
                         >
                           <FiCopy /> Copy
                         </button>
+
+                        {/* 🔥 EDITED & DELETE BUTTONS (Only for me) */}
+                        {m.sent && (
+                          <>
+                            {m.type === "text" && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditClick(m);
+                                }}
+                              >
+                                <FiEdit2 /> Edit
+                              </button>
+                            )}
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteClick(m);
+                              }}
+                              style={{ color: "#ff4444" }}
+                            >
+                              <FiTrash /> Delete
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
 
                     {/* CONTENT */}
                     {renderMessageContent(m)}
 
+                    {/* 🔥 EDITED STATUS LABEL */}
+                    {/* (m as any) used to prevent TS error if Message interface isn't updated yet */}
+                    {(m as any).isEdited && (
+                      <span
+                        style={{
+                          fontSize: "0.65rem",
+                          color: "#8696a0",
+                          display: "block",
+                          textAlign: "right",
+                          fontStyle: "italic",
+                          marginTop: "2px",
+                          marginRight: "4px",
+                        }}
+                      >
+                        (edited)
+                      </span>
+                    )}
+
                     {/* META */}
                     <div className={styles.messageMeta}>
                       <span className={styles.messageTime}>{m.timestamp}</span>
                       {m.sent && getStatusIcon(m.status)}
                     </div>
-
-                    {/* {hoveredMessageId === m.id && (
-                      <div
-                        className={`${styles.reactionBar} ${
-                          m.sent ? styles.sentReaction : styles.receivedReaction
-                        }`}
-                        onMouseEnter={() => setHoveredMessageId(m.id)}
-                        onMouseLeave={() => setHoveredMessageId(null)}
-                      >
-                        {["👍", "❤️", "😂", "😮", "😢", "👏"].map((emoji) => (
-                          <button
-                            key={emoji}
-                            onClick={() => handleReaction(m.id, emoji)}
-                            className={styles.reactionEmoji}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
-                    )} */}
                   </div>
                 </div>
               </div>
