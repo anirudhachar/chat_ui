@@ -1283,7 +1283,7 @@ export default function ChatInterface() {
     try {
       // 3. Call API
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/message/delete`, {
-        method: "POST",
+        method: "DELETE",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${parentToken}`,
