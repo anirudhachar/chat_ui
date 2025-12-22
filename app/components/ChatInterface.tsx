@@ -361,11 +361,11 @@ export default function ChatInterface() {
                 ),
                 online: true,
                 // If chat is NOT open, increment unread count
-                unread:
-                  data.conversationId === conversationIdRef.current
-                    ? 0
-                    : (existingUser.unread || 0) + 1,
-              };
+             unread:
+      data.conversationId === conversationIdRef.current
+        ? 0
+        : existingUser.unread, 
+  };
 
               const others = prev.filter((_, idx) => idx !== existingIndex);
               return [updatedUser, ...others];
@@ -952,20 +952,20 @@ export default function ChatInterface() {
       }
 
       if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = null;
-    }
-    setIsTyping(false);
-    
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(
-        JSON.stringify({
-          action: "typing",
-          conversationId: cid,
-          isTyping: false,
-        })
-      );
-    }
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+      setIsTyping(false);
+
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(
+          JSON.stringify({
+            action: "typing",
+            conversationId: cid,
+            isTyping: false,
+          })
+        );
+      }
 
       const tempId = `temp-${Date.now()}`;
       const timeString = new Date().toLocaleTimeString("en-US", {
