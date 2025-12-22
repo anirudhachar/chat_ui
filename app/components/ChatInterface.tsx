@@ -279,8 +279,10 @@ export default function ChatInterface() {
                 ws.send(
                   JSON.stringify({
                     event: "ackRead",
-                    conversationId: data.conversationId,
-                    messageIds: [backendMessageKey],
+                    data: {
+                      conversationId: data.conversationId,
+                      messageIds: [backendMessageKey],
+                    },
                   })
                 );
               } else {
@@ -818,8 +820,10 @@ export default function ChatInterface() {
             wsRef.current.send(
               JSON.stringify({
                 event: "ackRead",
-                conversationId: cid,
-                messageIds: unreadMessageIds,
+                data: {
+                  conversationId: cid,
+                  messageIds: unreadMessageIds,
+                },
               })
             );
           }
@@ -1258,7 +1262,7 @@ export default function ChatInterface() {
 
   const handleTypingInput = useCallback(() => {
     const now = Date.now();
-    const THROTTLE_MS = 2500; // Block next "true" send for 2.5s
+    const THROTTLE_MS = 5000; // Block next "true" send for 2.5s
 
     // 1. Send TYPING = TRUE (Throttled)
     if (now - lastTypingSentTimeRef.current > THROTTLE_MS) {
