@@ -360,7 +360,7 @@ export default function ChatInterface() {
                   }
                 ),
                 online: true,
-               
+
                 unread:
                   data.conversationId === conversationIdRef.current
                     ? 0
@@ -1245,9 +1245,12 @@ export default function ChatInterface() {
     if (!conversationIdRef.current || !loggedInUserIdRef.current) return;
 
     const payload = {
-      event: "typing", // Ensure your backend expects 'action' or 'event'
-      conversationId: conversationIdRef.current,
-      isTyping: isTyping,
+      event: "typing",
+      data: {
+        conversationId: conversationIdRef.current,
+        isTyping,
+        context: "CONVERSATION",
+      },
     };
 
     wsRef.current.send(JSON.stringify(payload));
