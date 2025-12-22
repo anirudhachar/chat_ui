@@ -817,7 +817,7 @@ export default function ChatInterface() {
 
             wsRef.current.send(
               JSON.stringify({
-                action: "ackRead",
+                event: "ackRead",
                 conversationId: cid,
                 messageIds: unreadMessageIds,
               })
