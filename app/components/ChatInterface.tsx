@@ -1266,52 +1266,70 @@ export default function ChatInterface() {
     }
   };
 
-  const handleReaction = async (msg: Message, emoji: string) => {
-    if (!parentToken || !conversationIdRef.current || !msg.messageKey) return;
+const handleReaction = async (msg: Message, emoji: string) => {
+  if (!parentToken || !conversationIdRef.current || !msg.messageKey) return;
+  
+  const myId = loggedInUserId!; // Ensure we have the ID
 
-    setMessages((prev) =>
-      prev.map((m) => {
-        if (m.messageKey !== msg.messageKey) return m;
+  setMessages((prev) =>
+    prev.map((m) => {
+      // 1. Find the target message
+      if (m.messageKey !== msg.messageKey) return m;
 
-        const currentReactions = m.reactions || {};
-        const users = currentReactions[emoji] || [];
+      const currentReactions = m.reactions || {};
+      
+      // We will build a NEW reactions object
+      const newReactions: Record<string, string[]> = {};
+      let isTogglingOff = false;
 
-        const myId = loggedInUserId!;
-        const hasReacted = users.includes(myId);
+      // 2. Loop through ALL existing emojis to remove "Me" from everywhere
+      Object.keys(currentReactions).forEach((key) => {
+        const users = currentReactions[key];
+        
+        // Remove my ID from this emoji's list
+        const filteredUsers = users.filter((uid) => uid !== myId);
 
-        const newUsers = hasReacted
-          ? users.filter((uid) => uid !== myId)
-          : [...users, myId];
-
-        const newReactions = { ...currentReactions };
-
-        if (newUsers.length > 0) {
-          newReactions[emoji] = newUsers;
-        } else {
-          delete newReactions[emoji];
+        // Check: Did I just click the emoji I already had? 
+        // If yes, I am toggling it off.
+        if (key === emoji && users.includes(myId)) {
+          isTogglingOff = true;
         }
 
-        return { ...m, reactions: newReactions };
-      })
-    );
-
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/message/react`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${parentToken}`,
-        },
-        body: JSON.stringify({
-          conversationId: conversationIdRef.current,
-          messageKey: msg.messageKey,
-          emoji,
-        }),
+        // Keep this emoji key only if other users still have reactions on it
+        if (filteredUsers.length > 0) {
+          newReactions[key] = filteredUsers;
+        }
       });
-    } catch (err) {
-      console.error("Failed to react", err);
-    }
-  };
+
+      // 3. If I am NOT toggling off, add me to the specific emoji I clicked
+      if (!isTogglingOff) {
+        const currentUsersForEmoji = newReactions[emoji] || [];
+        newReactions[emoji] = [...currentUsersForEmoji, myId];
+      }
+
+      return { ...m, reactions: newReactions };
+    })
+  );
+
+  // 4. API Call
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/message/react`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${parentToken}`,
+      },
+      body: JSON.stringify({
+        conversationId: conversationIdRef.current,
+        messageKey: msg.messageKey,
+        emoji,
+      }),
+    });
+  } catch (err) {
+    console.error("Failed to react", err);
+    // Optional: Revert state if API fails
+  }
+};
 
   // ───────────────────────────────────────────────
   // RENDER

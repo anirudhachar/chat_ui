@@ -656,7 +656,6 @@ export default function ChatPanel({
     return (
       <div className={styles.emptyState}>
         <div className={styles.emptyCard}>
-         
           <div className={styles.emptyIconAnimated}>
             <Image
               src="/Frame 238021 (1).svg"
