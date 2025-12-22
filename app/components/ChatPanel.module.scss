@@ -144,27 +144,13 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  border: 3px solid #4a6cf7;
+ 
   position: relative;
   animation: pulse 2s infinite ease-in-out;
   margin: 0 auto var(--spacing-md);
 }
 
-/* Small chat bubble tail */
-.emptyIconAnimated::after {
-  content: "";
-  position: absolute;
-  bottom: -10px;
-  left: 28px;
-  width: 18px;
-  height: 18px;
-  background: #fff;
-  border: 3px solid #4a6cf7;
-  border-top: 0;
-  border-right: 0;
-  transform: rotate(-45deg);
-  border-bottom-left-radius: 4px;
-}
+
 
 /* Pulse animation */
 @keyframes pulse {
