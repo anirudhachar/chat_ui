@@ -410,7 +410,7 @@ const MessageRow = ({
       )}
 
       <div className={styles.bubbleContainer}>
-        {!isEditing && (
+       {!isEditing && !isDeleted && (
           <div
             className={`${styles.actionBar} ${
               isMine ? styles.actionLeft : styles.actionRight
@@ -539,7 +539,7 @@ const MessageRow = ({
         </div>
 
         {/* 😍 REACTION PILLS */}
-        {m.reactions && Object.keys(m.reactions).length > 0 && (
+       {!isDeleted && m.reactions && Object.keys(m.reactions).length > 0 && (
           <div className={styles.reactionRow}>
             {Object.entries(m.reactions).map(
               ([emoji, userIds]) =>
