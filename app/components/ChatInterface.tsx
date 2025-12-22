@@ -420,10 +420,25 @@ export default function ChatInterface() {
 
           case "messageDeleted": {
             setMessages((prev) =>
-              prev.filter(
-                (m) =>
-                  m.messageKey !== data.messageKey && m.id !== data.messageId
-              )
+              prev.map((m) => {
+                // Check if this is the deleted message
+                if (
+                  m.messageKey === data.messageKey ||
+                  m.id === data.messageId
+                ) {
+                  return {
+                    ...m,
+                    content: "This message was deleted",
+                    type: "text",
+                    fileUrl: undefined,
+                    linkUrl: undefined,
+                    offer: undefined,
+                    reactions: {},
+                    isDeleted: true, // Flag for UI styling
+                  };
+                }
+                return m;
+              })
             );
             break;
           }
@@ -1238,98 +1253,120 @@ export default function ChatInterface() {
   // ───────────────────────────────────────────────
   // 🗑️ DELETE MESSAGE API
   // ───────────────────────────────────────────────
+  // Inside ChatInterface.tsx
+
   const handleDeleteMessage = async (msg: Message) => {
-    if (!parentToken || !conversationIdRef.current) return;
+    if (!parentToken || !conversationIdRef.current || !msg.messageKey) return;
+
+    // 1. Snapshot for rollback
+    const previousMessages = messages;
+
+    // 2. 🔥 OPTIMISTIC UPDATE: Replace content with "This message was deleted"
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id === msg.id || m.messageKey === msg.messageKey) {
+          return {
+            ...m,
+            content: "This message was deleted",
+            type: "text", // Revert to simple text so images/offers disappear
+            fileUrl: undefined,
+            linkUrl: undefined,
+            offer: undefined,
+            reactions: {}, // Remove reactions
+            isDeleted: true, // Optional flag for styling
+          };
+        }
+        return m;
+      })
+    );
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/message/delete`,
-        {
-          method: "DELETE", // Check if your backend wants POST or DELETE
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${parentToken}`, // 🔥 Token passed here
-          },
-          body: JSON.stringify({
-            conversationId: conversationIdRef.current,
-            messageKey: msg.messageKey, // Sends the Composite Key
-          }),
-        }
-      );
+      // 3. Call API
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/message/delete`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${parentToken}`,
+        },
+        body: JSON.stringify({
+          conversationId: conversationIdRef.current,
+          messageKey: msg.messageKey,
+        }),
+      });
 
-      if (!res.ok) throw new Error("Failed to delete message");
-
-      // Note: We wait for the "messageDeleted" WebSocket event to remove it from UI.
-    } catch (error) {
-      console.error("❌ Error deleting message:", error);
-      alert("Could not delete message");
+      // Success: The optimistic state stays.
+    } catch (err) {
+      console.error("Delete failed", err);
+      // 4. Rollback if API fails
+      setMessages(previousMessages);
+      alert("Failed to delete message");
     }
   };
 
-const handleReaction = async (msg: Message, emoji: string) => {
-  if (!parentToken || !conversationIdRef.current || !msg.messageKey) return;
-  
-  const myId = loggedInUserId!; // Ensure we have the ID
+  const handleReaction = async (msg: Message, emoji: string) => {
+    if (!parentToken || !conversationIdRef.current || !msg.messageKey) return;
 
-  setMessages((prev) =>
-    prev.map((m) => {
-      // 1. Find the target message
-      if (m.messageKey !== msg.messageKey) return m;
+    const myId = loggedInUserId!; // Ensure we have the ID
 
-      const currentReactions = m.reactions || {};
-      
-      // We will build a NEW reactions object
-      const newReactions: Record<string, string[]> = {};
-      let isTogglingOff = false;
+    setMessages((prev) =>
+      prev.map((m) => {
+        // 1. Find the target message
+        if (m.messageKey !== msg.messageKey) return m;
 
-      // 2. Loop through ALL existing emojis to remove "Me" from everywhere
-      Object.keys(currentReactions).forEach((key) => {
-        const users = currentReactions[key];
-        
-        // Remove my ID from this emoji's list
-        const filteredUsers = users.filter((uid) => uid !== myId);
+        const currentReactions = m.reactions || {};
 
-        // Check: Did I just click the emoji I already had? 
-        // If yes, I am toggling it off.
-        if (key === emoji && users.includes(myId)) {
-          isTogglingOff = true;
+        // We will build a NEW reactions object
+        const newReactions: Record<string, string[]> = {};
+        let isTogglingOff = false;
+
+        // 2. Loop through ALL existing emojis to remove "Me" from everywhere
+        Object.keys(currentReactions).forEach((key) => {
+          const users = currentReactions[key];
+
+          // Remove my ID from this emoji's list
+          const filteredUsers = users.filter((uid) => uid !== myId);
+
+          // Check: Did I just click the emoji I already had?
+          // If yes, I am toggling it off.
+          if (key === emoji && users.includes(myId)) {
+            isTogglingOff = true;
+          }
+
+          // Keep this emoji key only if other users still have reactions on it
+          if (filteredUsers.length > 0) {
+            newReactions[key] = filteredUsers;
+          }
+        });
+
+        // 3. If I am NOT toggling off, add me to the specific emoji I clicked
+        if (!isTogglingOff) {
+          const currentUsersForEmoji = newReactions[emoji] || [];
+          newReactions[emoji] = [...currentUsersForEmoji, myId];
         }
 
-        // Keep this emoji key only if other users still have reactions on it
-        if (filteredUsers.length > 0) {
-          newReactions[key] = filteredUsers;
-        }
+        return { ...m, reactions: newReactions };
+      })
+    );
+
+    // 4. API Call
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/message/react`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${parentToken}`,
+        },
+        body: JSON.stringify({
+          conversationId: conversationIdRef.current,
+          messageKey: msg.messageKey,
+          emoji,
+        }),
       });
-
-      // 3. If I am NOT toggling off, add me to the specific emoji I clicked
-      if (!isTogglingOff) {
-        const currentUsersForEmoji = newReactions[emoji] || [];
-        newReactions[emoji] = [...currentUsersForEmoji, myId];
-      }
-
-      return { ...m, reactions: newReactions };
-    })
-  );
-
-  // 4. API Call
-  try {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/message/react`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${parentToken}`,
-      },
-      body: JSON.stringify({
-        conversationId: conversationIdRef.current,
-        messageKey: msg.messageKey,
-        emoji,
-      }),
-    });
-  } catch (err) {
-    console.error("Failed to react", err);
-    // Optional: Revert state if API fails
-  }
-};
+    } catch (err) {
+      console.error("Failed to react", err);
+      // Optional: Revert state if API fails
+    }
+  };
 
   // ───────────────────────────────────────────────
   // RENDER

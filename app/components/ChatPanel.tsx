@@ -25,6 +25,7 @@ import MessageSkeleton from "./MessageSkeleton/MessageSkeleton";
 
 // ───────────────────────────────────────────────
 // TYPES
+
 // ───────────────────────────────────────────────
 interface ChatPanelProps {
   selectedUser: User | null;
@@ -76,6 +77,7 @@ const MessageRow = ({
 
   const menuRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
+  const isDeleted = m.content === "This message was deleted" || (m as any).isDeleted;
 
   // Close popups on click outside
   useEffect(() => {
@@ -181,6 +183,20 @@ const MessageRow = ({
             </button>
           </div>
         </div>
+      );
+    }
+    if (isDeleted) {
+      return (
+        <p style={{ 
+          fontStyle: "italic", 
+          color: "#888", 
+          fontSize: "0.95rem", 
+          display: "flex", 
+          alignItems: "center",
+          gap: "6px"
+        }}>
+          <FiX size={14} /> This message was deleted
+        </p>
       );
     }
 
