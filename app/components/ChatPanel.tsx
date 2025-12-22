@@ -656,7 +656,7 @@ export default function ChatPanel({
     return (
       <div className={styles.emptyState}>
         <div className={styles.emptyCard}>
-          {/* ICON HEADER */}
+         
           <div className={styles.emptyIconAnimated}>
             <Image
               src="/Frame 238021 (1).svg"
@@ -723,7 +723,7 @@ export default function ChatPanel({
         </div>
         <div className={styles.userInfo}>
           <h2 className={styles.userName}>{selectedUser.name}</h2>
-          <p className={styles.userStatus}>Online</p>
+          <p className={styles.userStatus}>Stanford University</p>
         </div>
         <button className={styles.moreButton}>
           <FiMoreVertical />
