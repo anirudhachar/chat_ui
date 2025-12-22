@@ -394,7 +394,6 @@ const MessageRow = ({
       )}
 
       <div className={styles.bubbleContainer}>
-     
         {!isEditing && (
           <div
             className={`${styles.actionBar} ${
@@ -502,13 +501,13 @@ const MessageRow = ({
 
         {/* 📨 MESSAGE BUBBLE */}
         <div className={styles.messageBubble}>
-             <div
-          className={`${styles.senderNameLabel} ${
-            isMine ? styles.textRight : styles.textLeft
-          }`}
-        >
-          {isMine ? "You" : m.senderName || "User"}
-        </div>
+          <div
+            className={`${styles.senderNameLabel} ${
+              isMine ? styles.textRight : styles.textLeft
+            }`}
+          >
+            {isMine ? "You" : m.senderName || "User"}
+          </div>
           {renderContent()}
 
           {/* Metadata: Hide while editing to keep it clean */}
@@ -657,14 +656,44 @@ export default function ChatPanel({
     return (
       <div className={styles.emptyState}>
         <div className={styles.emptyCard}>
-          <Image
-            src="/Frame 238021 (1).svg"
-            alt="Chat"
-            width={90}
-            height={90}
-          />
-          <h2 className={styles.title}>Let’s start chatting</h2>
-          <p className={styles.subtitle}>Search for a person to start.</p>
+          {/* ICON HEADER */}
+          <div className={styles.emptyIconAnimated}>
+            <Image
+              src="/Frame 238021 (1).svg"
+              alt="Chat"
+              width={90}
+              height={90}
+            />
+          </div>
+
+          {/* TEXT */}
+          <h2 className={styles.title}>Let's start chatting</h2>
+
+          <p className={styles.subtitle}>
+            Search a person from the left sidebar to start a conversation.
+            Connect with students, professors, and peers instantly.
+          </p>
+
+          {/* FEATURES */}
+          <ul className={styles.features}>
+            <li className={styles.realtime}>
+              <span className={styles.icon}>✨</span>
+              Real-time
+            </li>
+
+            <li className={styles.secure}>
+              <span className={styles.icon}>🔒</span>
+              Secure
+            </li>
+
+            <li className={styles.files}>
+              <span className={styles.icon}>📁</span>
+              File Sharing
+            </li>
+          </ul>
+
+          {/* FOOTER HINT */}
+          <div className={styles.hint}>Search a user • Start Typing</div>
         </div>
       </div>
     );

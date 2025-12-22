@@ -428,35 +428,34 @@ export default function ChatInterface() {
             break;
           }
 
-        case "messageReactionUpdated": {
-  setMessages((prev) =>
-    prev.map((m) => {
-      const isMatch =
-        m.messageKey === data.messageKey || m.id === data.messageId;
+          case "messageReactionUpdated": {
+            setMessages((prev) =>
+              prev.map((m) => {
+                const isMatch =
+                  m.messageKey === data.messageKey || m.id === data.messageId;
 
-      if (!isMatch) return m;
+                if (!isMatch) return m;
 
-      // 🔥 Preserve optimistic reactions
-      const existing = m.reactions || {};
+                // 🔥 Preserve optimistic reactions
+                const existing = m.reactions || {};
 
-      // 🔥 Normalize backend → UI shape
-      const normalized = normalizeReactions(
-        data.reactions,
-        loggedInUserIdRef.current!
-      );
+                // 🔥 Normalize backend → UI shape
+                const normalized = normalizeReactions(
+                  data.reactions,
+                  loggedInUserIdRef.current!
+                );
 
-      return {
-        ...m,
-        reactions: {
-          ...existing,   // 👈 keep optimistic
-          ...normalized, // 👈 apply backend confirmation
-        },
-      };
-    })
-  );
-  break;
-}
-
+                return {
+                  ...m,
+                  reactions: {
+                    ...existing, // 👈 keep optimistic
+                    ...normalized, // 👈 apply backend confirmation
+                  },
+                };
+              })
+            );
+            break;
+          }
 
           // ─────────────────────────────
           // SIDEBAR UPDATE (Conversation Updated)
@@ -1267,53 +1266,52 @@ export default function ChatInterface() {
     }
   };
 
-const handleReaction = async (msg: Message, emoji: string) => {
-  if (!parentToken || !conversationIdRef.current || !msg.messageKey) return;
+  const handleReaction = async (msg: Message, emoji: string) => {
+    if (!parentToken || !conversationIdRef.current || !msg.messageKey) return;
 
- 
-  setMessages((prev) =>
-    prev.map((m) => {
-      if (m.messageKey !== msg.messageKey) return m;
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.messageKey !== msg.messageKey) return m;
 
-      const currentReactions = m.reactions || {};
-      const users = currentReactions[emoji] || [];
+        const currentReactions = m.reactions || {};
+        const users = currentReactions[emoji] || [];
 
-      const myId = loggedInUserId!;
-      const hasReacted = users.includes(myId);
+        const myId = loggedInUserId!;
+        const hasReacted = users.includes(myId);
 
-      const newUsers = hasReacted
-        ? users.filter((uid) => uid !== myId)
-        : [...users, myId];
+        const newUsers = hasReacted
+          ? users.filter((uid) => uid !== myId)
+          : [...users, myId];
 
-      const newReactions = { ...currentReactions };
+        const newReactions = { ...currentReactions };
 
-      if (newUsers.length > 0) {
-        newReactions[emoji] = newUsers;
-      } else {
-        delete newReactions[emoji];
-      }
+        if (newUsers.length > 0) {
+          newReactions[emoji] = newUsers;
+        } else {
+          delete newReactions[emoji];
+        }
 
-      return { ...m, reactions: newReactions };
-    })
-  );
+        return { ...m, reactions: newReactions };
+      })
+    );
 
-  try {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/message/react`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${parentToken}`,
-      },
-      body: JSON.stringify({
-        conversationId: conversationIdRef.current,
-        messageKey: msg.messageKey,
-        emoji,
-      }),
-    });
-  } catch (err) {
-    console.error("Failed to react", err);
-  }
-};
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/message/react`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${parentToken}`,
+        },
+        body: JSON.stringify({
+          conversationId: conversationIdRef.current,
+          messageKey: msg.messageKey,
+          emoji,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to react", err);
+    }
+  };
 
   // ───────────────────────────────────────────────
   // RENDER
