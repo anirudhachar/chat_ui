@@ -1245,7 +1245,7 @@ export default function ChatInterface() {
     if (!conversationIdRef.current || !loggedInUserIdRef.current) return;
 
     const payload = {
-      action: "typing", // Ensure your backend expects 'action' or 'event'
+      event: "typing", // Ensure your backend expects 'action' or 'event'
       conversationId: conversationIdRef.current,
       isTyping: isTyping,
     };
