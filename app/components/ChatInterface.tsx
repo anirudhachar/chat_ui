@@ -1245,9 +1245,7 @@ export default function ChatInterface() {
     if (!conversationIdRef.current || !loggedInUserIdRef.current) return;
 
     const payload = {
-        action: "typing",
       event: "typing",
-    
       data: {
         conversationId: conversationIdRef.current,
         isTyping,
