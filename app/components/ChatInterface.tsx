@@ -278,7 +278,7 @@ export default function ChatInterface() {
                 );
                 ws.send(
                   JSON.stringify({
-                    action: "ackRead",
+                    event: "ackRead",
                     conversationId: data.conversationId,
                     messageIds: [backendMessageKey],
                   })
@@ -360,12 +360,12 @@ export default function ChatInterface() {
                   }
                 ),
                 online: true,
-                // If chat is NOT open, increment unread count
-             unread:
-      data.conversationId === conversationIdRef.current
-        ? 0
-        : existingUser.unread, 
-  };
+               
+                unread:
+                  data.conversationId === conversationIdRef.current
+                    ? 0
+                    : existingUser.unread,
+              };
 
               const others = prev.filter((_, idx) => idx !== existingIndex);
               return [updatedUser, ...others];
@@ -960,7 +960,7 @@ export default function ChatInterface() {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(
           JSON.stringify({
-            action: "typing",
+            event: "typing",
             conversationId: cid,
             isTyping: false,
           })
