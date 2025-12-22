@@ -19,6 +19,8 @@ interface MessageInputProps {
     type?: "text" | "image" | "document" | "link" | "audio",
     file?: { name: string; url: string; image?: string; description?: string }
   ) => void;
+  onTyping?: () => void;
+  onInputBlur?: () => void;
 }
 
 const extractURL = (text: string) => {
@@ -34,7 +36,11 @@ const formatTime = (seconds: number) => {
   return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
 };
 
-export default function MessageInput({ onSendMessage }: MessageInputProps) {
+export default function MessageInput({
+  onSendMessage,
+  onTyping,
+  onInputBlur,
+}: MessageInputProps) {
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -398,7 +404,14 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
               className={styles.textInput}
               placeholder="Type a message"
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={(e) => {
+                setMessage(e.target.value);
+                if (onTyping) onTyping(); // Trigger parent logic
+              }}
+              // 🔥 ADD onBlur:
+              onBlur={() => {
+                if (onInputBlur) onInputBlur(); // Stop typing immediately on click away
+              }}
               onKeyDown={handleKeyDown}
             />
 

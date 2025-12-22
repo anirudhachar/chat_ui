@@ -46,6 +46,9 @@ interface ChatPanelProps {
   onEditMessage?: (message: Message, newContent: string) => void;
   onDeleteMessage?: (message: Message) => void;
   onReact: (message: Message, emoji: string) => void;
+  isPartnerTyping: boolean;
+  onTyping: () => void;
+  onInputBlur: () => void;
 }
 
 // ───────────────────────────────────────────────
@@ -77,7 +80,8 @@ const MessageRow = ({
 
   const menuRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
-  const isDeleted = m.content === "This message was deleted" || (m as any).isDeleted;
+  const isDeleted =
+    m.content === "This message was deleted" || (m as any).isDeleted;
 
   // Close popups on click outside
   useEffect(() => {
@@ -187,14 +191,16 @@ const MessageRow = ({
     }
     if (isDeleted) {
       return (
-        <p style={{ 
-          fontStyle: "italic", 
-          color: "#888", 
-          fontSize: "0.95rem", 
-          display: "flex", 
-          alignItems: "center",
-          gap: "6px"
-        }}>
+        <p
+          style={{
+            fontStyle: "italic",
+            color: "#888",
+            fontSize: "0.95rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+        >
           <FiX size={14} /> This message was deleted
         </p>
       );
@@ -410,7 +416,7 @@ const MessageRow = ({
       )}
 
       <div className={styles.bubbleContainer}>
-       {!isEditing && !isDeleted && (
+        {!isEditing && !isDeleted && (
           <div
             className={`${styles.actionBar} ${
               isMine ? styles.actionLeft : styles.actionRight
@@ -539,7 +545,7 @@ const MessageRow = ({
         </div>
 
         {/* 😍 REACTION PILLS */}
-       {!isDeleted && m.reactions && Object.keys(m.reactions).length > 0 && (
+        {!isDeleted && m.reactions && Object.keys(m.reactions).length > 0 && (
           <div className={styles.reactionRow}>
             {Object.entries(m.reactions).map(
               ([emoji, userIds]) =>
@@ -579,6 +585,9 @@ export default function ChatPanel({
   onEditMessage,
   onDeleteMessage,
   onReact,
+  isPartnerTyping,
+  onTyping,
+  onInputBlur,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
@@ -793,6 +802,36 @@ export default function ChatPanel({
             />
           ))}
 
+          {isPartnerTyping && (
+            <div className={`${styles.messageRow} ${styles.theirRow}`}>
+              <div className={styles.avatarCol}>
+                {selectedUser.avatar ? (
+                  <img
+                    src={selectedUser.avatar}
+                    alt="typing..."
+                    className={styles.messageAvatar}
+                  />
+                ) : (
+                  <div className={styles.defaultAvatar}>
+                    {selectedUser.name?.charAt(0)}
+                  </div>
+                )}
+              </div>
+              <div className={styles.bubbleContainer}>
+                <div
+                  className={styles.messageBubble}
+                  style={{ width: "fit-content" }}
+                >
+                  <div className={styles.typingIndicator}>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
       </div>
@@ -828,7 +867,7 @@ export default function ChatPanel({
       )}
 
       {/* INPUT */}
-      <MessageInput onSendMessage={handleInternalSendMessage} />
+      <MessageInput onSendMessage={handleInternalSendMessage} onTyping={onTyping} />
     </div>
   );
 }

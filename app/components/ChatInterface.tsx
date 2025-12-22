@@ -90,6 +90,8 @@ export default function ChatInterface() {
   const [isSearching, setIsSearching] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+  const [isPartnerTyping, setIsPartnerTyping] = useState(false);
+  const lastTypingSentTimeRef = useRef<number>(0);
 
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -382,6 +384,27 @@ export default function ChatInterface() {
                   : m
               )
             );
+            break;
+          }
+
+          // Inside ws.onmessage switch (payload.event)
+
+          case "typing": {
+            const {
+              conversationId: typingCid,
+              userId: typingUserId,
+              isTyping,
+            } = data;
+
+            // Only show typing if:
+            // 1. It is for the current open conversation
+            // 2. It is NOT me typing (echo check)
+            if (
+              typingCid === conversationIdRef.current &&
+              typingUserId !== loggedInUserIdRef.current
+            ) {
+              setIsPartnerTyping(isTyping);
+            }
             break;
           }
 
@@ -928,6 +951,22 @@ export default function ChatInterface() {
         setConversationId(cid);
       }
 
+      if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    setIsTyping(false);
+    
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(
+        JSON.stringify({
+          action: "typing",
+          conversationId: cid,
+          isTyping: false,
+        })
+      );
+    }
+
       const tempId = `temp-${Date.now()}`;
       const timeString = new Date().toLocaleTimeString("en-US", {
         hour: "numeric",
@@ -1201,12 +1240,40 @@ export default function ChatInterface() {
     fetchMessages,
   ]);
 
-  // ───────────────────────────────────────────────
-  // ✏️ EDIT MESSAGE API
-  // ───────────────────────────────────────────────
-  // ───────────────────────────────────────────────
-  // ✏️ EDIT MESSAGE API
-  // ───────────────────────────────────────────────
+  const sendTypingEvent = useCallback((isTyping: boolean) => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    if (!conversationIdRef.current || !loggedInUserIdRef.current) return;
+
+    const payload = {
+      action: "typing", // Ensure your backend expects 'action' or 'event'
+      conversationId: conversationIdRef.current,
+      isTyping: isTyping,
+    };
+
+    wsRef.current.send(JSON.stringify(payload));
+  }, []);
+
+  const handleTypingInput = useCallback(() => {
+    const now = Date.now();
+    const THROTTLE_MS = 2500; // Block next "true" send for 2.5s
+
+    // 1. Send TYPING = TRUE (Throttled)
+    if (now - lastTypingSentTimeRef.current > THROTTLE_MS) {
+      sendTypingEvent(true);
+      lastTypingSentTimeRef.current = now;
+    }
+
+    // 2. Clear existing timeout to reset the "stop" timer
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // 3. Set new timeout to send TYPING = FALSE after inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      sendTypingEvent(false);
+      lastTypingSentTimeRef.current = 0; // Reset throttle so next keypress sends true immediately
+    }, 3000);
+  }, [sendTypingEvent]);
   const handleEditMessage = async (msg: Message, newContent: string) => {
     if (!parentToken || !conversationIdRef.current) return;
 
@@ -1410,6 +1477,9 @@ export default function ChatInterface() {
           onEditMessage={handleEditMessage}
           onDeleteMessage={handleDeleteMessage}
           onReact={handleReaction}
+          isPartnerTyping={isPartnerTyping} // To display the UI bubble
+          onTyping={handleTypingInput} // To trigger the logic on keypress
+          onInputBlur={() => sendTypingEvent(false)} // To stop typing when they click away
         />
       </div>
     </div>
