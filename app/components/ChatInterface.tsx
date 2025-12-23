@@ -724,7 +724,7 @@ export default function ChatInterface() {
 
         // 🔥 MAP BACKEND → UI SHAPE (NO STATE ACCESS HERE)
         const mappedMessages: Message[] = apiMessages.map((msg: any) => {
-          console.log(msg,"messgesrecieved")
+          console.log(msg, "messgesrecieved");
           let parsedOffer = null;
 
           try {
@@ -777,13 +777,12 @@ export default function ChatInterface() {
             // 🔥 NORMALIZED REACTIONS
             reactions: normalizeReactions(msg.reactions, myUserId),
 
-            
             status:
-              msg.senderUserId === myUserId
-                ? msg.deliveryStatus === "READ"
-                  ? "read"
-                  : "delivered"
-                : "SENT",
+              msg.deliveryStatus === "READ"
+                ? "read"
+                : msg.deliveryStatus === "DELIVERED"
+                ? "delivered"
+                : "sent",
           };
         });
 
