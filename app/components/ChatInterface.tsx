@@ -293,9 +293,11 @@ export default function ChatInterface() {
                 );
                 ws.send(
                   JSON.stringify({
-                    action: "ackDelivered",
-                    conversationId: data.conversationId,
-                    messageIds: [backendMessageKey],
+                    event: "ackDelivered",
+                    data: {
+                      conversationId: data.conversationId,
+                      messageIds: [backendMessageKey],
+                    },
                   })
                 );
               }
@@ -630,7 +632,7 @@ export default function ChatInterface() {
       // assume they stopped or the connection lagged.
       safetyTimeout = setTimeout(() => {
         setIsPartnerTyping(false);
-      }, 5000); 
+      }, 5000);
     }
 
     return () => {
