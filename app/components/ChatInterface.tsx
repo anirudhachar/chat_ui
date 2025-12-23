@@ -622,9 +622,21 @@ export default function ChatInterface() {
     fetchSearchResults();
   }, [searchQuery, parentToken, cursor]);
 
-  // ───────────────────────────────────────────────
-  // GET OR CREATE CONVERSATION
-  // ───────────────────────────────────────────────
+  useEffect(() => {
+    let safetyTimeout: NodeJS.Timeout;
+
+    if (isPartnerTyping) {
+      // If we haven't received a new "typing" event in 5 seconds,
+      // assume they stopped or the connection lagged.
+      safetyTimeout = setTimeout(() => {
+        setIsPartnerTyping(false);
+      }, 5000); 
+    }
+
+    return () => {
+      if (safetyTimeout) clearTimeout(safetyTimeout);
+    };
+  }, [isPartnerTyping]);
   const getConversationId = async (targetUserId: string, token: string) => {
     try {
       const res = await fetch(
