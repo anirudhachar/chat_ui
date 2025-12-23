@@ -266,14 +266,26 @@ export default function ChatInterface() {
             // 🛑 ACKNOWLEDGEMENT LOGIC (Fixed to prevent 500 Errors)
             // ─────────────────────────────────────────────────────────
             if (!isMine) {
+              const backendMessageKey = data.messageKey || data.messageId;
               const isChatOpen =
                 data.conversationId === conversationIdRef.current;
 
+              // 1️⃣ ALWAYS send DELIVERED first
+              console.log("📨 Sending ackDelivered:", backendMessageKey);
+              ws.send(
+                JSON.stringify({
+                  event: "ackDelivered",
+                  data: {
+                    conversationId: data.conversationId,
+                    messageIds: [backendMessageKey],
+                  },
+                })
+              );
+
+              // 2️⃣ If chat is open → immediately send READ
               if (isChatOpen) {
-                // Case A: User is looking at the chat -> Send READ immediately.
-                // (Sending 'ackRead' implies it was delivered, so we skip 'ackDelivered' to avoid race conditions)
                 console.log(
-                  "👀 Chat open, sending ackRead for:",
+                  "👀 Chat open, sending ackRead:",
                   backendMessageKey
                 );
                 ws.send(
@@ -285,23 +297,9 @@ export default function ChatInterface() {
                     },
                   })
                 );
-              } else {
-                // Case B: User is in another chat/menu -> Send DELIVERED.
-                console.log(
-                  "📨 Chat closed, sending ackDelivered for:",
-                  backendMessageKey
-                );
-                ws.send(
-                  JSON.stringify({
-                    event: "ackDelivered",
-                    data: {
-                      conversationId: data.conversationId,
-                      messageIds: [backendMessageKey],
-                    },
-                  })
-                );
               }
             }
+
             // ─────────────────────────────────────────────────────────
 
             // 2. Update Chat Panel (ONLY if this conversation is open)
