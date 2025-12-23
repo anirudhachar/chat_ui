@@ -307,8 +307,7 @@ export default function ChatInterface() {
               setMessages((prev) => [
                 ...prev,
                 {
-                  id: data.messageId, 
-                   messageKey: backendMessageKey,// Keep using messageId for React 'key' if that's what your UI uses
+                  id: data.messageId, // Keep using messageId for React 'key' if that's what your UI uses
                   content: parsedOffer?.text || data.content,
                   timestamp: new Date(data.createdAt).toLocaleTimeString(
                     "en-US",
@@ -333,7 +332,6 @@ export default function ChatInterface() {
                     : undefined,
                   linkUrl: detectedUrl ?? undefined,
                   status: isMine ? "sent" : "read", // If I'm seeing it arrive, it's effectively read
-                  reactions: {},    
                 },
               ]);
 
@@ -478,6 +476,10 @@ export default function ChatInterface() {
 
                 if (!isMatch) return m;
 
+                // 🔥 Preserve optimistic reactions
+                const existing = m.reactions || {};
+
+                // 🔥 Normalize backend → UI shape
                 const normalized = normalizeReactions(
                   data.reactions,
                   loggedInUserIdRef.current!
@@ -485,7 +487,10 @@ export default function ChatInterface() {
 
                 return {
                   ...m,
-                  reactions: normalized, // 👈 server is source of truth
+                  reactions: {
+                    ...existing, // 👈 keep optimistic
+                    ...normalized, // 👈 apply backend confirmation
+                  },
                 };
               })
             );
@@ -625,7 +630,7 @@ export default function ChatInterface() {
       // assume they stopped or the connection lagged.
       safetyTimeout = setTimeout(() => {
         setIsPartnerTyping(false);
-      }, 5000);
+      }, 5000); 
     }
 
     return () => {
