@@ -304,7 +304,6 @@ export default function ChatInterface() {
               }
             }
 
-            
             if (data.conversationId === conversationIdRef.current) {
               setMessages((prev) => [
                 ...prev,
@@ -333,7 +332,7 @@ export default function ChatInterface() {
                       }
                     : undefined,
                   linkUrl: detectedUrl ?? undefined,
-                  status: isMine ? "sent" : "read", // If I'm seeing it arrive, it's effectively read
+                  status: isMine ? undefined : "read",
                 },
               ]);
 
@@ -377,13 +376,10 @@ export default function ChatInterface() {
 
             break;
           }
-
           case "messageRead": {
-            // The payload.data should contain messageKey/messageId
             setMessages((prev) =>
               prev.map((m) =>
-                // Match against either ID type to be safe
-                m.id === data.messageKey || m.id === data.messageId
+                m.messageKey === data.messageKey || m.id === data.messageId
                   ? { ...m, status: "read" }
                   : m
               )
@@ -415,7 +411,7 @@ export default function ChatInterface() {
           case "messageDelivered": {
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === data.messageKey || m.id === data.messageId
+                m.messageKey === data.messageKey || m.id === data.messageId
                   ? { ...m, status: "delivered" }
                   : m
               )
