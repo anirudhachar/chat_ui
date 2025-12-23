@@ -780,10 +780,10 @@ export default function ChatInterface() {
             
             status:
               msg.senderUserId === myUserId
-                ? msg.readAt
+                ? msg.deliveryStatus === "READ"
                   ? "read"
                   : "delivered"
-                : "read",
+                : "SENT",
           };
         });
 
