@@ -724,6 +724,7 @@ export default function ChatInterface() {
 
         // 🔥 MAP BACKEND → UI SHAPE (NO STATE ACCESS HERE)
         const mappedMessages: Message[] = apiMessages.map((msg: any) => {
+          console.log(msg,"messgesrecieved")
           let parsedOffer = null;
 
           try {
@@ -776,7 +777,7 @@ export default function ChatInterface() {
             // 🔥 NORMALIZED REACTIONS
             reactions: normalizeReactions(msg.reactions, myUserId),
 
-            // 🔥 STATUS
+            
             status:
               msg.senderUserId === myUserId
                 ? msg.readAt
