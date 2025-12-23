@@ -282,12 +282,7 @@ export default function ChatInterface() {
                 })
               );
 
-              // 2️⃣ If chat is open → immediately send READ
               if (isChatOpen) {
-                console.log(
-                  "👀 Chat open, sending ackRead:",
-                  backendMessageKey
-                );
                 ws.send(
                   JSON.stringify({
                     event: "ackRead",
@@ -296,6 +291,15 @@ export default function ChatInterface() {
                       messageIds: [backendMessageKey],
                     },
                   })
+                );
+
+                // ✅ Optimistically mark as read (blue tick)
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === backendMessageKey || m.id === data.messageId
+                      ? { ...m, status: "read" }
+                      : m
+                  )
                 );
               }
             }
@@ -376,18 +380,18 @@ export default function ChatInterface() {
             break;
           }
 
-          case "messageRead": {
-            // The payload.data should contain messageKey/messageId
-            setMessages((prev) =>
-              prev.map((m) =>
-                // Match against either ID type to be safe
-                m.id === data.messageKey || m.id === data.messageId
-                  ? { ...m, status: "read" }
-                  : m
-              )
-            );
-            break;
-          }
+          // case "messageRead": {
+          //   // The payload.data should contain messageKey/messageId
+          //   setMessages((prev) =>
+          //     prev.map((m) =>
+          //       // Match against either ID type to be safe
+          //       m.id === data.messageKey || m.id === data.messageId
+          //         ? { ...m, status: "read" }
+          //         : m
+          //     )
+          //   );
+          //   break;
+          // }
 
           // Inside ws.onmessage switch (payload.event)
 

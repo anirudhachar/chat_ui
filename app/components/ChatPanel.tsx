@@ -379,6 +379,7 @@ const MessageRow = ({
   };
 
   const getStatusIcon = (status?: string) => {
+    
     if (!status) return null;
     if (status === "sending") return <FiClock className={styles.sendingIcon} />;
     if (status === "failed") return <span>❌</span>;
