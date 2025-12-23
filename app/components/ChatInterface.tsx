@@ -304,9 +304,7 @@ export default function ChatInterface() {
               }
             }
 
-            // ─────────────────────────────────────────────────────────
-
-            // 2. Update Chat Panel (ONLY if this conversation is open)
+            
             if (data.conversationId === conversationIdRef.current) {
               setMessages((prev) => [
                 ...prev,
