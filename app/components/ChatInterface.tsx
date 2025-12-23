@@ -378,18 +378,18 @@ export default function ChatInterface() {
             break;
           }
 
-          // case "messageRead": {
-          //   // The payload.data should contain messageKey/messageId
-          //   setMessages((prev) =>
-          //     prev.map((m) =>
-          //       // Match against either ID type to be safe
-          //       m.id === data.messageKey || m.id === data.messageId
-          //         ? { ...m, status: "read" }
-          //         : m
-          //     )
-          //   );
-          //   break;
-          // }
+          case "messageRead": {
+            // The payload.data should contain messageKey/messageId
+            setMessages((prev) =>
+              prev.map((m) =>
+                // Match against either ID type to be safe
+                m.id === data.messageKey || m.id === data.messageId
+                  ? { ...m, status: "read" }
+                  : m
+              )
+            );
+            break;
+          }
 
           // Inside ws.onmessage switch (payload.event)
 

@@ -379,7 +379,7 @@ const MessageRow = ({
   };
 
   const getStatusIcon = (status?: string) => {
-    console.log("Message status:", status);
+    console.log("Messagestatus:", status);
     
     if (!status) return null;
     if (status === "sending") return <FiClock className={styles.sendingIcon} />;
