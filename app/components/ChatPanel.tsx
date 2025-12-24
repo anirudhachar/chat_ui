@@ -14,7 +14,7 @@ import {
   FiTrash,
   FiSmile,
 } from "react-icons/fi";
-import { BsCheck, BsCheckAll } from "react-icons/bs";
+import { BsCheck, BsCheck2All, BsCheckAll } from "react-icons/bs";
 import Image from "next/image";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 
@@ -385,9 +385,9 @@ const MessageRow = ({
     if (status === "sending") return <FiClock className={styles.sendingIcon} />;
     if (status === "failed") return <span>❌</span>;
     if (status === "read")
-      return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
+      return <BsCheck2All className={`${styles.tickIcon} ${styles.read}`} />;
     if (status === "delivered")
-      return <BsCheckAll className={styles.tickIcon} />;
+      return <BsCheck2All className={styles.tickIcon} />;
     return <BsCheck className={styles.tickIcon} />;
   };
 

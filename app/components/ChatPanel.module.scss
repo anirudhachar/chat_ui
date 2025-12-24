@@ -878,15 +878,19 @@
 }
 
 .tickIcon {
-  font-size: 16px;
-  color: #9aa0a6;
-  margin-left: 2px;
+  font-size: 18px; // Slightly larger for clarity
+  color: #8696a0; // WhatsApp's neutral gray
+  margin-left: 3px;
   vertical-align: middle;
-  transform: translateY(1px);
-  transition: color 0.15s ease;
+  display: inline-flex;
+  transition: color 0.2s ease-in-out;
+
+  // This makes the icon lines a bit thicker/cleaner
+  stroke-width: 0.5px;
+  stroke: currentColor;
 
   &.read {
-    color: #53bdeb;
+    color: #53bdeb; // Classic WhatsApp Blue
   }
 }
 
