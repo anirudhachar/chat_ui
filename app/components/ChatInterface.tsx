@@ -308,7 +308,8 @@ export default function ChatInterface() {
               setMessages((prev) => [
                 ...prev,
                 {
-                  id: data.messageId, // Keep using messageId for React 'key' if that's what your UI uses
+                  id: data.messageId,
+                  messageKey: data.messageKey, // Keep using messageId for React 'key' if that's what your UI uses
                   content: parsedOffer?.text || data.content,
                   timestamp: new Date(data.createdAt).toLocaleTimeString(
                     "en-US",
@@ -333,6 +334,7 @@ export default function ChatInterface() {
                     : undefined,
                   linkUrl: detectedUrl ?? undefined,
                   status: isMine ? undefined : "read",
+                  reactions: {},
                 },
               ]);
 
@@ -469,15 +471,9 @@ export default function ChatInterface() {
           case "messageReactionUpdated": {
             setMessages((prev) =>
               prev.map((m) => {
-                const isMatch =
-                  m.messageKey === data.messageKey || m.id === data.messageId;
+                if (m.messageKey !== data.messageKey) return m;
 
-                if (!isMatch) return m;
-
-                // 🔥 Preserve optimistic reactions
                 const existing = m.reactions || {};
-
-                // 🔥 Normalize backend → UI shape
                 const normalized = normalizeReactions(
                   data.reactions,
                   loggedInUserIdRef.current!
@@ -486,8 +482,8 @@ export default function ChatInterface() {
                 return {
                   ...m,
                   reactions: {
-                    ...existing, // 👈 keep optimistic
-                    ...normalized, // 👈 apply backend confirmation
+                    ...existing,
+                    ...normalized,
                   },
                 };
               })
