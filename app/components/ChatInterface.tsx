@@ -497,6 +497,7 @@ export default function ChatInterface() {
                   console.log("Skipping update (my own message)");
                   return m;
                 }
+console.log("RAW backend reactions:", data.reactions);
 
                 const normalizedReactions = normalizeReactions(
                   data.reactions,
