@@ -51,9 +51,14 @@ export interface Message {
   replyTo?: Message;
 }
 
-// ───────────────────────────────────────────────
-// DECODE TOKEN
-// ───────────────────────────────────────────────
+const STATUS_PRIORITY: Record<NonNullable<Message["status"]>, number> = {
+  sending: 0,
+  sent: 1,
+  delivered: 2,
+  read: 3,
+  failed: -1,
+};
+
 const decodeToken = (token: string) => {
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
@@ -416,11 +421,24 @@ export default function ChatInterface() {
 
           case "messageDelivered": {
             setMessages((prev) =>
-              prev.map((m) =>
-                m.messageKey === data.messageKey || m.id === data.messageId
-                  ? { ...m, status: "delivered" }
-                  : m
-              )
+              prev.map((m) => {
+                if (
+                  m.messageKey !== data.messageKey &&
+                  m.id !== data.messageId
+                ) {
+                  return m;
+                }
+
+                // ⛔ Do NOT downgrade READ → DELIVERED
+                if (
+                  STATUS_PRIORITY[m.status ?? "sent"] >
+                  STATUS_PRIORITY["delivered"]
+                ) {
+                  return m;
+                }
+
+                return { ...m, status: "delivered" };
+              })
             );
             break;
           }
@@ -653,14 +671,14 @@ export default function ChatInterface() {
   }, [isPartnerTyping]);
 
   useEffect(() => {
-  if (!selectedUser) return;
+    if (!selectedUser) return;
 
-  setUsers((prev) =>
-    prev.map((u) =>
-      u.id === selectedUser.id ? { ...u, isTyping: false } : u
-    )
-  );
-}, [selectedUser]);
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === selectedUser.id ? { ...u, isTyping: false } : u
+      )
+    );
+  }, [selectedUser]);
 
   const getConversationId = async (targetUserId: string, token: string) => {
     try {
@@ -827,6 +845,11 @@ export default function ChatInterface() {
             return {
               ...prevMsg,
               ...msg,
+              status:
+                STATUS_PRIORITY[msg.status ?? "sent"] >
+                STATUS_PRIORITY[prevMsg?.status ?? "sent"]
+                  ? msg.status
+                  : prevMsg?.status,
               reactions: msg.reactions ?? prevMsg?.reactions ?? {},
             };
           });
