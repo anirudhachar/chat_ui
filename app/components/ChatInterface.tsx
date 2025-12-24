@@ -489,7 +489,8 @@ export default function ChatInterface() {
 
                 console.log("Matched message for reaction update:", m);
 
-                const isMine = m.sent === true;
+              const isMine = m.senderId === loggedInUserIdRef.current;
+
 
                 // 🔥 sender keeps optimistic reactions
                 if (isMine) {
