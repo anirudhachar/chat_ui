@@ -197,7 +197,14 @@ export default function UserSidebar({
                     <StatusIcon status={user.lastMessageStatus} />
                   )}
 
-                  <p className={styles.lastMessage}>{user.lastMessage}</p>
+                  <p
+                    className={`${styles.lastMessage} ${
+                      user.isTyping ? styles.typingText : ""
+                    }`}
+                  >
+                    {user.isTyping ? "Typing…" : user.lastMessage}
+                  </p>
+
                   {Number(user.unread) > 0 && (
                     <span className={styles.unreadBadge}>{user.unread}</span>
                   )}

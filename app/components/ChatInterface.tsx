@@ -17,6 +17,7 @@ export interface User {
   online: boolean;
   unread?: number;
   lastMessageStatus?: "sent" | "delivered" | "read";
+  isTyping?: boolean;
 }
 
 export interface Message {
@@ -398,15 +399,19 @@ export default function ChatInterface() {
               isTyping,
             } = data;
 
-            // Only show typing if:
-            // 1. It is for the current open conversation
-            // 2. It is NOT me typing (echo check)
+            // 1️⃣ Update ChatPanel typing bubble
             if (
               typingCid === conversationIdRef.current &&
               typingUserId !== loggedInUserIdRef.current
             ) {
               setIsPartnerTyping(isTyping);
             }
+
+            // 2️⃣ 🔥 Update SIDEBAR typing state
+            setUsers((prev) =>
+              prev.map((u) => (u.id === typingUserId ? { ...u, isTyping } : u))
+            );
+
             break;
           }
 
@@ -647,6 +652,17 @@ export default function ChatInterface() {
       if (safetyTimeout) clearTimeout(safetyTimeout);
     };
   }, [isPartnerTyping]);
+
+  useEffect(() => {
+  if (!selectedUser) return;
+
+  setUsers((prev) =>
+    prev.map((u) =>
+      u.id === selectedUser.id ? { ...u, isTyping: false } : u
+    )
+  );
+}, [selectedUser]);
+
   const getConversationId = async (targetUserId: string, token: string) => {
     try {
       const res = await fetch(
