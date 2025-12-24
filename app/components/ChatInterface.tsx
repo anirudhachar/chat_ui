@@ -469,52 +469,43 @@ export default function ChatInterface() {
           }
 
           case "messageReactionUpdated": {
-            console.log("Reaction event received:", data);
+            const { messageKey, emoji, action, reactedBy } = data;
 
-            setMessages((prev) => {
-              console.log("Previous messages:", prev);
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (m.messageKey !== messageKey) return m;
 
-              return prev.map((m) => {
-                const isMatch =
-                  m.messageKey === data.messageKey || m.id === data.messageId;
+                const currentReactions = m.reactions || {};
+                const usersForEmoji = currentReactions[emoji] || [];
 
-                console.log("🔍 Checking message", {
-                  messageId: m.id,
-                  messageKey: m.messageKey,
-                  isMatch,
-                  sentByMe: m.sent,
-                });
+                let updatedUsers: string[];
 
-                if (!isMatch) return m;
-
-                console.log("Matched message for reaction update:", m);
-
-              const isMine = m.senderId === loggedInUserIdRef.current;
-
-
-                // 🔥 sender keeps optimistic reactions
-                if (isMine) {
-                  console.log("Skipping update (my own message)");
+                if (action === "ADDED") {
+                  // avoid duplicates
+                  if (usersForEmoji.includes(reactedBy)) {
+                    return m;
+                  }
+                  updatedUsers = [...usersForEmoji, reactedBy];
+                } else if (action === "REMOVED") {
+                  updatedUsers = usersForEmoji.filter((u) => u !== reactedBy);
+                } else {
                   return m;
                 }
-console.log("RAW backend reactions:", data.reactions);
 
-                const normalizedReactions = normalizeReactions(
-                  data.reactions,
-                  loggedInUserIdRef.current!
-                );
+                const updatedReactions = { ...currentReactions };
 
-                console.log("Updating reactions:", {
-                  before: m.reactions,
-                  after: normalizedReactions,
-                });
+                if (updatedUsers.length > 0) {
+                  updatedReactions[emoji] = updatedUsers;
+                } else {
+                  delete updatedReactions[emoji];
+                }
 
                 return {
                   ...m,
-                  reactions: normalizedReactions,
+                  reactions: updatedReactions,
                 };
-              });
-            });
+              })
+            );
 
             break;
           }
