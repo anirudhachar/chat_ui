@@ -469,38 +469,29 @@ export default function ChatInterface() {
           }
 
           case "messageReactionUpdated": {
-            console.log("🔥 Reaction WS received", {
-              messageKey: data.messageKey,
-              reactions: data.reactions,
-              myUserId: loggedInUserIdRef.current,
-            });
+            console.log("🔥 Reaction WS received", data);
 
             setMessages((prev) =>
               prev.map((m) => {
-                if (m.messageKey !== data.messageKey) return m;
+                const isMatch =
+                  m.messageKey === data.messageKey || m.id === data.messageId;
+
+                if (!isMatch) return m;
 
                 const backend = normalizeReactions(
                   data.reactions,
                   loggedInUserIdRef.current!
                 );
 
-                const optimistic = m.reactions || {};
-
                 return {
                   ...m,
-                  reactions: {
-                    ...backend,
-                    ...optimistic,
-                  },
+                  reactions: backend,
                 };
               })
             );
             break;
           }
 
-          // ─────────────────────────────
-          // SIDEBAR UPDATE (Conversation Updated)
-          // ─────────────────────────────
           case "conversationUpdated": {
             setUsers((prev) => {
               // Find the user to update
