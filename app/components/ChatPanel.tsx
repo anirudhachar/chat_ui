@@ -869,7 +869,7 @@ export default function ChatPanel({
       )}
 
       {/* INPUT */}
-      <MessageInput onSendMessage={handleInternalSendMessage} onTyping={onTyping} />
+      <MessageInput onSendMessage={handleInternalSendMessage} onTyping={onTyping}  onInputBlur={onInputBlur}/>
     </div>
   );
 }

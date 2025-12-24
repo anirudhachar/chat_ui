@@ -310,7 +310,6 @@ export default function ChatInterface() {
                 ...prev,
                 {
                   id: data.messageId,
-                  messageKey: data.messageKey, // Keep using messageId for React 'key' if that's what your UI uses
                   content: parsedOffer?.text || data.content,
                   timestamp: new Date(data.createdAt).toLocaleTimeString(
                     "en-US",
