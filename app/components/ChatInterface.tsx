@@ -235,7 +235,6 @@ export default function ChatInterface() {
       try {
         const payload = JSON.parse(event.data);
         const { event: eventType, data } = payload;
-        const typingHideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
         console.log("WS event:", eventType, data);
 
@@ -399,28 +398,15 @@ export default function ChatInterface() {
               isTyping,
             } = data;
 
+            // Only show typing if:
+            // 1. It is for the current open conversation
+            // 2. It is NOT me typing (echo check)
             if (
-              typingCid !== conversationIdRef.current ||
-              typingUserId === loggedInUserIdRef.current
+              typingCid === conversationIdRef.current &&
+              typingUserId !== loggedInUserIdRef.current
             ) {
-              return;
+              setIsPartnerTyping(isTyping);
             }
-
-            if (isTyping) {
-              // Show immediately
-              setIsPartnerTyping(true);
-
-              // Reset hide timer
-              if (typingHideTimeoutRef.current) {
-                clearTimeout(typingHideTimeoutRef.current);
-              }
-
-              typingHideTimeoutRef.current = setTimeout(() => {
-                setIsPartnerTyping(false);
-              }, 2000);
-            }
-
-            // ❌ DO NOTHING for isTyping === false
             break;
           }
 
@@ -1295,24 +1281,28 @@ export default function ChatInterface() {
 
     wsRef.current.send(JSON.stringify(payload));
   }, []);
+
   const handleTypingInput = useCallback(() => {
     const now = Date.now();
-    const THROTTLE_MS = 1000;
+    const THROTTLE_MS = 5000; // Block next "true" send for 2.5s
 
+    // 1. Send TYPING = TRUE (Throttled)
     if (now - lastTypingSentTimeRef.current > THROTTLE_MS) {
       sendTypingEvent(true);
       lastTypingSentTimeRef.current = now;
     }
 
+    // 2. Clear existing timeout to reset the "stop" timer
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
 
+    // 3. Set new timeout to send TYPING = FALSE after inactivity
     typingTimeoutRef.current = setTimeout(() => {
-      sendTypingEvent(false); // optional, backend hint only
+      sendTypingEvent(false);
+      lastTypingSentTimeRef.current = 0; // Reset throttle so next keypress sends true immediately
     }, 3000);
   }, [sendTypingEvent]);
-
   const handleEditMessage = async (msg: Message, newContent: string) => {
     if (!parentToken || !conversationIdRef.current) return;
 
