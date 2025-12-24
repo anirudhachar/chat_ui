@@ -468,34 +468,33 @@ export default function ChatInterface() {
             break;
           }
 
-      case "messageReactionUpdated": {
-  setMessages((prev) =>
-    prev.map((m) => {
-      const isMatch =
-        m.messageKey === data.messageKey || m.id === data.messageId;
+          case "messageReactionUpdated": {
+            setMessages((prev) =>
+              prev.map((m) => {
+                const isMatch =
+                  m.messageKey === data.messageKey || m.id === data.messageId;
 
-      if (!isMatch) return m;
+                if (!isMatch) return m;
 
-      const isMine = m.sent === true;
+                const isMine = m.sent === true;
 
-      // 🔥 IMPORTANT: sender keeps optimistic reactions
-      if (isMine) {
-        return m;
-      }
+                // 🔥 IMPORTANT: sender keeps optimistic reactions
+                if (isMine) {
+                  return m;
+                }
 
-      // Receiver uses backend state
-      return {
-        ...m,
-        reactions: normalizeReactions(
-          data.reactions,
-          loggedInUserIdRef.current!
-        ),
-      };
-    })
-  );
-  break;
-}
-
+                // Receiver uses backend state
+                return {
+                  ...m,
+                  reactions: normalizeReactions(
+                    data.reactions,
+                    loggedInUserIdRef.current!
+                  ),
+                };
+              })
+            );
+            break;
+          }
 
           case "conversationUpdated": {
             setUsers((prev) => {
