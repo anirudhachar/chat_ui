@@ -468,22 +468,31 @@ export default function ChatInterface() {
             break;
           }
 
-          case "messageReactionUpdated": {
-            setMessages((prev) =>
-              prev.map((m) => {
-                if (m.messageKey !== data.messageKey) return m;
+    case "messageReactionUpdated": {
+  setMessages((prev) =>
+    prev.map((m) => {
+      if (m.messageKey !== data.messageKey) return m;
 
-                return {
-                  ...m,
-                  reactions: normalizeReactions(
-                    data.reactions,
-                    loggedInUserIdRef.current!
-                  ),
-                };
-              })
-            );
-            break;
-          }
+      const backend = normalizeReactions(
+        data.reactions,
+        loggedInUserIdRef.current!
+      );
+
+      const optimistic = m.reactions || {};
+
+      return {
+        ...m,
+        reactions: {
+          ...backend,
+          ...optimistic, // 👈 sender never loses their click
+        },
+      };
+    })
+  );
+  break;
+}
+
+
 
           // ─────────────────────────────
           // SIDEBAR UPDATE (Conversation Updated)
