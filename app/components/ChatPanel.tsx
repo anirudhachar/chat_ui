@@ -22,6 +22,7 @@ import { User, Message } from "./ChatInterface";
 import MessageInput from "./MessageInput";
 import styles from "./ChatPanel.module.scss";
 import MessageSkeleton from "./MessageSkeleton/MessageSkeleton";
+import { IoAlertCircle, IoCheckmark, IoCheckmarkDone, IoTimeOutline } from "react-icons/io5";
 
 // ───────────────────────────────────────────────
 // TYPES
@@ -378,18 +379,31 @@ const MessageRow = ({
     return wrapWithReply(<p className={styles.messageText}>{m.content}</p>);
   };
 
-  const getStatusIcon = (status?: string) => {
-    console.log("Messagestatus:", status);
+ const getStatusIcon = (status?: string) => {
+  console.log("Message status:", status);
+
+  if (!status) return null;
+
+  switch (status) {
+    case "sending":
+      return <IoTimeOutline className={styles.sendingIcon} />;
     
-    if (!status) return null;
-    if (status === "sending") return <FiClock className={styles.sendingIcon} />;
-    if (status === "failed") return <span>❌</span>;
-    if (status === "read")
-      return <BsCheck2All className={`${styles.tickIcon} ${styles.read}`} />;
-    if (status === "delivered")
-      return <BsCheck2All className={styles.tickIcon} />;
-    return <BsCheck className={styles.tickIcon} />;
-  };
+    case "failed":
+      // Using an icon instead of an emoji for a more professional look
+      return <IoAlertCircle className={styles.failedIcon} />;
+    
+    case "read":
+      // io5 icons don't "intersect" as much as Bootstrap ones
+      return <IoCheckmarkDone className={`${styles.tickIcon} ${styles.read}`} />;
+    
+    case "delivered":
+      return <IoCheckmarkDone className={styles.tickIcon} />;
+    
+    case "sent":
+    default:
+      return <IoCheckmark className={styles.tickIcon} />;
+  }
+};
 
   // LinkedIn Style: 5 quick emojis
   const QUICK_REACTIONS = ["👍", "👏", "😄", "🤔", "❤️"];

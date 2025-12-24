@@ -877,26 +877,39 @@
   color: var(--color-text-lighter);
 }
 
-.tickIcon {
-  font-size: 18px; // Slightly larger for clarity
-  color: #8696a0; // WhatsApp's neutral gray
-  margin-left: 3px;
-  vertical-align: middle;
+.tickWrapper {
   display: inline-flex;
-  transition: color 0.2s ease-in-out;
+  align-items: center;
+  margin-left: 4px;
+}
 
-  // This makes the icon lines a bit thicker/cleaner
-  stroke-width: 0.5px;
+.tickIcon {
+  font-size: 18px; 
+  color: #8696a0; // WhatsApp neutral gray
+  vertical-align: middle;
+  margin-left: 2px;
+  
+  /* Fixes the "blurry/thin" look */
   stroke: currentColor;
+  stroke-width: 0.5px; 
 
   &.read {
-    color: #53bdeb; // Classic WhatsApp Blue
+    color: #53bdeb; // WhatsApp Cyan
   }
 }
 
 .sendingIcon {
-  font-size: 13px;
-  color: #9aa0a6;
+  font-size: 14px;
+  color: #8696a0;
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
+.failedIcon {
+  font-size: 16px;
+  color: #ef4444;
+  vertical-align: middle;
+  margin-left: 2px;
 }
 
 /* ---------------------------------------------------- */
