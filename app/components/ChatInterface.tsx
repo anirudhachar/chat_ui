@@ -469,30 +469,51 @@ export default function ChatInterface() {
           }
 
           case "messageReactionUpdated": {
-            setMessages((prev) =>
-              prev.map((m) => {
+            console.log("Reaction event received:", data);
+
+            setMessages((prev) => {
+              console.log("Previous messages:", prev);
+
+              return prev.map((m) => {
                 const isMatch =
                   m.messageKey === data.messageKey || m.id === data.messageId;
 
+                console.log("🔍 Checking message", {
+                  messageId: m.id,
+                  messageKey: m.messageKey,
+                  isMatch,
+                  sentByMe: m.sent,
+                });
+
                 if (!isMatch) return m;
+
+                console.log("Matched message for reaction update:", m);
 
                 const isMine = m.sent === true;
 
-                // 🔥 IMPORTANT: sender keeps optimistic reactions
+                // 🔥 sender keeps optimistic reactions
                 if (isMine) {
+                  console.log("Skipping update (my own message)");
                   return m;
                 }
 
-                // Receiver uses backend state
+                const normalizedReactions = normalizeReactions(
+                  data.reactions,
+                  loggedInUserIdRef.current!
+                );
+
+                console.log("Updating reactions:", {
+                  before: m.reactions,
+                  after: normalizedReactions,
+                });
+
                 return {
                   ...m,
-                  reactions: normalizeReactions(
-                    data.reactions,
-                    loggedInUserIdRef.current!
-                  ),
+                  reactions: normalizedReactions,
                 };
-              })
-            );
+              });
+            });
+
             break;
           }
 
