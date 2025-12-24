@@ -475,35 +475,26 @@ export default function ChatInterface() {
               myUserId: loggedInUserIdRef.current,
             });
 
-            setMessages((prev) => {
-              console.log(
-                "Messages in state:",
-                prev.map((m) => ({
-                  id: m.id,
-                  messageKey: m.messageKey,
-                  reactions: m.reactions,
-                }))
-              );
-
-              return prev.map((m) => {
+            setMessages((prev) =>
+              prev.map((m) => {
                 if (m.messageKey !== data.messageKey) return m;
 
-                console.log("MATCHED MESSAGE", m.messageKey);
-
-                const normalized = normalizeReactions(
+                const backend = normalizeReactions(
                   data.reactions,
                   loggedInUserIdRef.current!
                 );
 
-                console.log("🧪 Normalized reactions:", normalized);
+                const optimistic = m.reactions || {};
 
                 return {
                   ...m,
-                  reactions: normalized,
+                  reactions: {
+                    ...backend,
+                    ...optimistic,
+                  },
                 };
-              });
-            });
-
+              })
+            );
             break;
           }
 
