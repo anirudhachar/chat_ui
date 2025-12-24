@@ -473,18 +473,12 @@ export default function ChatInterface() {
               prev.map((m) => {
                 if (m.messageKey !== data.messageKey) return m;
 
-                const existing = m.reactions || {};
-                const normalized = normalizeReactions(
-                  data.reactions,
-                  loggedInUserIdRef.current!
-                );
-
                 return {
                   ...m,
-                  reactions: {
-                    ...existing,
-                    ...normalized,
-                  },
+                  reactions: normalizeReactions(
+                    data.reactions,
+                    loggedInUserIdRef.current!
+                  ),
                 };
               })
             );
@@ -993,7 +987,7 @@ export default function ChatInterface() {
         sent: true,
         type: detectedUrl ? "link" : type,
         status: "sending",
-
+        reactions: {},
         fileName: file?.name,
         fileUrl: file?.url,
         senderAvatar: myAvatar, // Ensure myAvatar is defined in your component
