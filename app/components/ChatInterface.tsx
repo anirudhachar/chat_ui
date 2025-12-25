@@ -848,10 +848,11 @@ export default function ChatInterface() {
               ...prevMsg,
               ...msg,
               status:
-                STATUS_PRIORITY[msg.status ?? "sent"] >
+                STATUS_PRIORITY[msg.status ?? "sent"] >=
                 STATUS_PRIORITY[prevMsg?.status ?? "sent"]
-                  ? msg.status
-                  : prevMsg?.status,
+                  ? msg.status ?? prevMsg?.status ?? "sent"
+                  : prevMsg?.status ?? msg.status ?? "sent",
+
               reactions: msg.reactions ?? prevMsg?.reactions ?? {},
             };
           });
