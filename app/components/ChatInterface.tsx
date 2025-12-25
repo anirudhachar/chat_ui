@@ -269,9 +269,11 @@ export default function ChatInterface() {
               : usersRef.current.find((u) => u.id === data.senderUserId)
                   ?.avatar;
 
-            // ─────────────────────────────────────────────────────────
-            // 🛑 ACKNOWLEDGEMENT LOGIC (Fixed to prevent 500 Errors)
-            // ─────────────────────────────────────────────────────────
+            const realSenderName = isMine
+              ? "You"
+              : selectedUserRef.current?.id === data.senderUserId
+              ? selectedUserRef.current?.name
+              : "User";
             if (!isMine) {
               const backendMessageKey = data.messageKey || data.messageId;
               const isChatOpen =
@@ -325,6 +327,7 @@ export default function ChatInterface() {
                     }
                   ),
                   sent: isMine,
+                  senderName: realSenderName,
                   senderAvatar,
                   type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
                   offer: parsedOffer
@@ -349,9 +352,11 @@ export default function ChatInterface() {
                         content: data.replyTo.snippet,
                         senderId: data.replyTo.senderUserId,
                         // Try to find name in current users list, or fallback
-                        senderName: usersRef.current.find(
-                          (u) => u.id === data.replyTo.senderUserId
-                        )?.name,
+                        senderName:
+                          data.replyTo.senderUserId ===
+                          loggedInUserIdRef.current
+                            ? "You"
+                            : selectedUserRef.current?.name,
                         type: data.replyTo.type || "text",
                         // Required Message types (fill with dummies for reply preview)
                         timestamp: "",
