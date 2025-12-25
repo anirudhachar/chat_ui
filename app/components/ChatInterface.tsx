@@ -100,7 +100,6 @@ export default function ChatInterface() {
   const lastTypingSentTimeRef = useRef<number>(0);
   const [enableInfiniteScroll, setEnableInfiniteScroll] = useState(true);
 
-
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const extractUrl = (text: string) => {
@@ -340,7 +339,8 @@ export default function ChatInterface() {
                       }
                     : undefined,
                   linkUrl: detectedUrl ?? undefined,
-                  status: isMine ? undefined : "read",
+                  status: isMine ? "sent" : "read",
+
                   reactions: {},
                 },
               ]);
@@ -942,61 +942,59 @@ export default function ChatInterface() {
     }
   };
 
- const handleUserSelect = async (user: User) => {
-  if (!parentToken || !loggedInUserId) return;
+  const handleUserSelect = async (user: User) => {
+    if (!parentToken || !loggedInUserId) return;
 
-  conversationIdRef.current = null;
+    conversationIdRef.current = null;
 
-  // 🔥 START LOADING FIRST
-  setIsMessagesLoading(true);
-  setMessages([]);
+    // 🔥 START LOADING FIRST
+    setIsMessagesLoading(true);
+    setMessages([]);
 
-  // 🔥 Disable sidebar mutations on mobile
-  if (window.innerWidth < 768) {
-    setEnableInfiniteScroll(false);
-    setShowSidebar(false);
-  }
-
-  // 🔥 Defer heavy ChatPanel mount by 1 frame
-  setSelectedUser(null);
-  requestAnimationFrame(() => {
-    setSelectedUser(user);
-  });
-
-  // reset pagination
-  setMessageCursor(null);
-  setHasMoreMessages(true);
-
-  // reset unread
-  setUsers((prev) =>
-    prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
-  );
-
-  try {
-    // 🔁 CREATE / GET CONVERSATION
-    const cid = await getConversationId(user.id, parentToken);
-
-    if (!cid) {
-      setIsMessagesLoading(false);
-      return;
+    // 🔥 Disable sidebar mutations on mobile
+    if (window.innerWidth < 768) {
+      setEnableInfiniteScroll(false);
+      setShowSidebar(false);
     }
 
-    // 📥 FETCH MESSAGES
-    await fetchMessages(cid, parentToken, loggedInUserId, null);
-  } catch (e) {
-    console.error(e);
-    setIsMessagesLoading(false);
-  }
-};
+    // 🔥 Defer heavy ChatPanel mount by 1 frame
+    setSelectedUser(null);
+    requestAnimationFrame(() => {
+      setSelectedUser(user);
+    });
 
+    // reset pagination
+    setMessageCursor(null);
+    setHasMoreMessages(true);
 
-useEffect(() => {
-  if (!showSidebar && window.innerWidth < 768) {
-    // sidebar hidden → safe to re-enable
-    setEnableInfiniteScroll(true);
-  }
-}, [showSidebar]);
+    // reset unread
+    setUsers((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
+    );
 
+    try {
+      // 🔁 CREATE / GET CONVERSATION
+      const cid = await getConversationId(user.id, parentToken);
+
+      if (!cid) {
+        setIsMessagesLoading(false);
+        return;
+      }
+
+      // 📥 FETCH MESSAGES
+      await fetchMessages(cid, parentToken, loggedInUserId, null);
+    } catch (e) {
+      console.error(e);
+      setIsMessagesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!showSidebar && window.innerWidth < 768) {
+      // sidebar hidden → safe to re-enable
+      setEnableInfiniteScroll(true);
+    }
+  }, [showSidebar]);
 
   // ───────────────────────────────────────────────
   // SEND MESSAGE HANDLER
@@ -1536,8 +1534,8 @@ useEffect(() => {
           onUserSelect={handleUserSelect}
           onSearch={setSearchQuery}
           searchQuery={searchQuery}
-         onLoadMore={enableInfiniteScroll ? loadMoreUsers : undefined}
-  hasMore={enableInfiniteScroll && hasMoreUsers && !isSearchActive}
+          onLoadMore={enableInfiniteScroll ? loadMoreUsers : undefined}
+          hasMore={enableInfiniteScroll && hasMoreUsers && !isSearchActive}
           isSearching={isSearching}
           isUsersLoading={isUsersLoading}
         />
