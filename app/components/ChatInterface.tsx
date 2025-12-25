@@ -342,6 +342,22 @@ export default function ChatInterface() {
                   status: isMine ? "sent" : "read",
 
                   reactions: {},
+
+                  replyTo: data.replyTo
+                    ? {
+                        id: data.replyTo.messageKey, // Or messageId
+                        content: data.replyTo.snippet,
+                        senderId: data.replyTo.senderUserId,
+                        // Try to find name in current users list, or fallback
+                        senderName: usersRef.current.find(
+                          (u) => u.id === data.replyTo.senderUserId
+                        )?.name,
+                        type: data.replyTo.type || "text",
+                        // Required Message types (fill with dummies for reply preview)
+                        timestamp: "",
+                        sent: false,
+                      }
+                    : undefined,
                 },
               ]);
 
