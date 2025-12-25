@@ -605,6 +605,7 @@ export default function ChatPanel({
   onTyping,
   onInputBlur,
 }: ChatPanelProps) {
+  console.log(messages,"messagesbeingsent")
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
   const topMessageSentinelRef = useRef<HTMLDivElement>(null);
