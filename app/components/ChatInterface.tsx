@@ -164,7 +164,7 @@ export default function ChatInterface() {
             name: `${c.user?.firstName ?? ""} ${c.user?.lastName ?? ""}`.trim(),
             avatar: c.user?.avatarUrl
               ? `https://d34wmjl2ccaffd.cloudfront.net${c.user.avatarUrl}`
-              : "/user.png",
+              : undefined,
 
             lastMessage: c.lastMessagePreview ?? "",
             lastMessageTime: c.lastMessageAt
@@ -638,7 +638,7 @@ export default function ChatInterface() {
             name: `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim(),
             avatar: u.profile_photo_url
               ? `https://d34wmjl2ccaffd.cloudfront.net${u.profile_photo_url}`
-              : "/user.png",
+              : undefined,
             lastMessage: "",
             lastMessageTime: "",
             online: false,
@@ -1219,7 +1219,7 @@ useEffect(() => {
             }`.trim(),
             avatar: incomingUser.profilePhoto
               ? `https://d34wmjl2ccaffd.cloudfront.net${incomingUser.profilePhoto}`
-              : "/user.png",
+              : undefined,
             lastMessage: "",
             lastMessageTime: "Now",
             online: true,
