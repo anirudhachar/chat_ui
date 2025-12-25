@@ -146,7 +146,7 @@
   border-radius: 50%;
 
   position: relative;
-  animation: pulse 2s infinite ease-in-out;
+
   margin: 0 auto var(--spacing-md);
 }
 
@@ -1592,4 +1592,18 @@
     transform: scale(1);
     opacity: 1;
   }
+}
+
+.headerInitials {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5b9df9, #3b82f6);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
 }
