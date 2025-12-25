@@ -162,6 +162,7 @@
 .lastMessageWrapper {
   display: flex;
   align-items: center;
+  gap:2px;
 }
 
 .lastMessage {
@@ -181,7 +182,7 @@
 }
 
 .tickIcon {
-  font-size: 13px;
+  font-size: 15px;
   color: #9aa0a6;
 }
 

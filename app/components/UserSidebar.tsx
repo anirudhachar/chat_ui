@@ -15,7 +15,7 @@ interface UserSidebarProps {
   onUserSelect: (user: User) => void;
   onSearch: (query: string) => void;
   searchQuery: string;
-  onLoadMore: () => void;
+  onLoadMore?: () => void;
   hasMore: boolean;
   isSearching: boolean;
   isUsersLoading: boolean;
@@ -61,8 +61,7 @@ export default function UserSidebar({
 
   /* Infinite scroll (disabled during search) */
   useEffect(() => {
-    if (!hasMore || searchQuery.length >= 2) return;
-
+if (!onLoadMore || !hasMore || searchQuery.length >= 2) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
