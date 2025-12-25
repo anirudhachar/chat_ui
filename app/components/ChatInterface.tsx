@@ -16,7 +16,7 @@ export interface User {
   lastMessageTime: string;
   online: boolean;
   unread?: number;
-  lastMessageStatus?: "sent" | "delivered" | "read";
+  lastMessageStatus?: "sent" | "delivered" | "read" | "sending" | "failed";
   isTyping?: boolean;
 }
 

@@ -175,30 +175,26 @@
 }
 
 .statusIcons {
-  display: flex;
-  position: relative;
-  width: 14px;
-  height: 14px;
-  color: var(--color-icon-sent, #667781);
-
-  svg {
-    position: absolute;
-    top: 0;
-    left: 0;
-  }
-
-  // Second checkmark offset for the double tick (Delivered/Read)
-  .secondCheck {
-    left: 4px;
-  }
-
-  // Read status: change color to blue
-  &.readStatus {
-    color: var(--color-primary-light, #4fc3f7);
-  }
-
-  flex-shrink: 0; // Prevents the icon from being squeezed
+  display: inline-flex;
+  align-items: center;
+  margin-right: 4px;
 }
+
+.tickIcon {
+  font-size: 13px;
+  color: #9aa0a6;
+}
+
+.read {
+  color: #34B7F1;
+}
+
+.sendingIcon {
+  font-size: 12px;
+  color: #9aa0a6;
+  opacity: 0.7;
+}
+
 .unreadBadge {
   display: inline-flex;
   align-items: center;
@@ -221,7 +217,6 @@
   object-fit: cover;
 }
 
-
 .typingText {
   color: #00a884; // WhatsApp green
   font-style: italic;
@@ -233,7 +228,13 @@
 }
 
 @keyframes dots {
-  0% { content: "."; }
-  33% { content: ".."; }
-  66% { content: "..."; }
+  0% {
+    content: ".";
+  }
+  33% {
+    content: "..";
+  }
+  66% {
+    content: "...";
+  }
 }

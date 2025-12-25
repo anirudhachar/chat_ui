@@ -7,6 +7,7 @@ import { FiSearch, FiCheck } from "react-icons/fi";
 import { User } from "./ChatInterface";
 import styles from "./UserSidebar.module.scss";
 import UserSidebarSkeleton from "./UserSidebarSkeleton/UserSidebarSkeleton";
+import { IoCheckmark, IoCheckmarkDone, IoTimeOutline } from "react-icons/io5";
 
 interface UserSidebarProps {
   users: User[];
@@ -26,30 +27,23 @@ interface UserSidebarProps {
 const StatusIcon = ({ status }: { status?: User["lastMessageStatus"] }) => {
   if (!status) return null;
 
-  const isRead = status === "read";
+  switch (status) {
+    case "sending":
+      return <IoTimeOutline className={styles.sendingIcon} />;
 
-  // Renders the tick icons for sent messages (sent, delivered, read)
-  return (
-    <div
-      className={`${styles.statusIcons} ${isRead ? styles.readStatus : ""}`}
-      // Note: In a real app, 'delivered' and 'sent' might have different icon logic/color.
-      // Here, we use single/double tick pattern:
-      // - Sent: Single check
-      // - Delivered/Read: Double check
-    >
-      {/* Base/First checkmark */}
-      <FiCheck size={14} className={styles.firstCheck} />
+    case "sent":
+      return <IoCheckmark className={styles.tickIcon} />;
 
-      {/* Second checkmark for delivered/read */}
-      {["delivered", "read"].includes(status) && (
-        <FiCheck size={14} className={styles.secondCheck} />
-      )}
-    </div>
-  );
+    case "delivered":
+      return <IoCheckmarkDone className={styles.tickIcon} />;
+
+    case "read":
+      return <IoCheckmarkDone className={`${styles.tickIcon} ${styles.read}`} />;
+
+    default:
+      return null;
+  }
 };
-// ───────────────────────────────────────────────
-// USER SIDEBAR COMPONENT
-// ───────────────────────────────────────────────
 
 export default function UserSidebar({
   users,
@@ -193,7 +187,7 @@ export default function UserSidebar({
                 </div>
                 <div className={styles.lastMessageWrapper}>
                   {/* 🔥 NEW: Render Status Icon */}
-                  {user.lastMessageStatus && (
+                  {!user.isTyping && user.lastMessageStatus && (
                     <StatusIcon status={user.lastMessageStatus} />
                   )}
 
