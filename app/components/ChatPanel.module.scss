@@ -348,7 +348,7 @@
 .avatarCol {
   width: 38px;
   flex-shrink: 0;
-  margin-right: 8px;
+  margin-right: 3px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end; /* Align avatar to bottom of message group? Or top. Standard is top. */
@@ -713,7 +713,7 @@
   }
 
   @media (max-width: 767px) {
-    max-width: 85%;
+    max-width: 90%;
   }
 }
 
