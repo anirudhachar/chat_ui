@@ -664,54 +664,49 @@
 
 .messageBubble {
   position: relative;
+  display: inline-flex;
+  flex-direction: column;
+
   padding: 8px 12px;
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  min-width: 60px;
+
   background-color: #fff;
-  margin: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 
-  .sent & {
-    background-color: #e0f2fe; /* Light Blue for me */
-    color: #111;
-    border-bottom-right-radius: 2px;
-  }
+  /* ✅ Width control */
+  max-width: 65%;
+  width: fit-content;
 
-  .received & {
-    background-color: #ffffff;
-    color: #111;
-    border-bottom-left-radius: 2px;
-  }
-}
+  /* ✅ Text behavior */
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
 
-.messageBubble {
-  // max-width: 65%;
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  position: relative;
+  line-height: 1.4;
 
-  /* CRITICAL CHANGE: Allow flexible content stacking */
-  display: flex;
-  flex-direction: column;
-  position: relative;
-
+  /* Hover options */
   &:hover .optionsTrigger,
   .optionsTrigger.active {
     opacity: 1;
     visibility: visible;
   }
 
+  /* Sent */
   .sent & {
-    background-color: #fff;
+    background-color: #e0f2fe;
+    color: #111;
     border-bottom-right-radius: 2px;
   }
 
+  /* Received */
   .received & {
-    background-color: var(--color-message-received);
+    background-color: #ffffff;
+    color: #111;
     border-bottom-left-radius: 2px;
   }
 
+  /* 📱 Mobile fixes */
   @media (max-width: 767px) {
     max-width: 85%;
   }
