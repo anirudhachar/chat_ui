@@ -9,6 +9,12 @@
    border-bottom-left-radius: 26px;
 }
 
+@media (max-width: 767px) {
+  .chatInterface {
+    border-radius: 0;
+  }
+}
+
 .sidebarWrapper,
 .chatWrapper {
   height: 100%;
