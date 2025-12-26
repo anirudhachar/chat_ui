@@ -696,7 +696,14 @@ const getInitials = (name = "") => {
 
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 };
-
+  useEffect(() => {
+  if (isPartnerTyping) {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "end",
+    });
+  }
+}, [isPartnerTyping]);
 
   /* Empty State */
   if (!selectedUser) {
@@ -745,14 +752,7 @@ const getInitials = (name = "") => {
     );
   }
 
-  useEffect(() => {
-  if (isPartnerTyping) {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "end",
-    });
-  }
-}, [isPartnerTyping]);
+
 
 
   return (
