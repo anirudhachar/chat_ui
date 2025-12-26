@@ -429,21 +429,36 @@ export default function ChatInterface() {
             break;
           }
 
-          case "unreadConversationSync": {
-            // backend sends FULL unread count
-            setGlobalUnread(data.count ?? 0);
-            break;
-          }
+       case "unreadConversationSync":
+  setGlobalUnread(data.count ?? 0);
+  window.parent.postMessage(
+    { type: "UNREAD_COUNT_UPDATE", payload: { count: data.count ?? 0 } },
+    "*"
+  );
+  break;
 
-          case "unreadConversationIncrement": {
-            setGlobalUnread((prev) => prev + 1);
-            break;
-          }
+case "unreadConversationIncrement":
+  setGlobalUnread((prev) => {
+    const newCount = prev + 1;
+    window.parent.postMessage(
+      { type: "UNREAD_COUNT_UPDATE", payload: { count: newCount } },
+      "*"
+    );
+    return newCount;
+  });
+  break;
 
-          case "unreadConversationDecrement": {
-            setGlobalUnread((prev) => Math.max(0, prev - 1));
-            break;
-          }
+case "unreadConversationDecrement":
+  setGlobalUnread((prev) => {
+    const newCount = Math.max(0, prev - 1);
+    window.parent.postMessage(
+      { type: "UNREAD_COUNT_UPDATE", payload: { count: newCount } },
+      "*"
+    );
+    return newCount;
+  });
+  break;
+
 
           // Inside ws.onmessage switch (payload.event)
 
