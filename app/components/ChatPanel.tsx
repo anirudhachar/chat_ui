@@ -745,6 +745,16 @@ const getInitials = (name = "") => {
     );
   }
 
+  useEffect(() => {
+  if (isPartnerTyping) {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "end",
+    });
+  }
+}, [isPartnerTyping]);
+
+
   return (
     <div className={styles.chatPanel}>
       {/* HEADER */}
