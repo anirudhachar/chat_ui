@@ -73,6 +73,7 @@ export default function ChatInterface() {
   const [users, setUsers] = useState<User[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMoreUsers, setHasMoreUsers] = useState(true);
+  const [globalUnread, setGlobalUnread] = useState(0);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -225,6 +226,16 @@ export default function ChatInterface() {
   }, [users]);
 
   useEffect(() => {
+    window.parent.postMessage(
+      {
+        type: "UNREAD_COUNT_UPDATE",
+        payload: { count: globalUnread },
+      },
+      "*"
+    );
+  }, [globalUnread]);
+
+  useEffect(() => {
     if (!parentToken) return;
 
     const wsUrl = `wss://k4g7m4879h.execute-api.us-east-1.amazonaws.com/dev?token=${encodeURIComponent(
@@ -310,6 +321,7 @@ export default function ChatInterface() {
                       : m
                   )
                 );
+                  setGlobalUnread(prev => Math.max(0, prev - 1));
               }
             }
 
@@ -414,6 +426,22 @@ export default function ChatInterface() {
                   : m
               )
             );
+            break;
+          }
+
+          case "unreadConversationSync": {
+            // backend sends FULL unread count
+            setGlobalUnread(data.count ?? 0);
+            break;
+          }
+
+          case "unreadConversationIncrement": {
+            setGlobalUnread((prev) => prev + 1);
+            break;
+          }
+
+          case "unreadConversationDecrement": {
+            setGlobalUnread((prev) => Math.max(0, prev - 1));
             break;
           }
 
