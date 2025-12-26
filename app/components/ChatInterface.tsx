@@ -1376,7 +1376,7 @@ export default function ChatInterface() {
     typingTimeoutRef.current = setTimeout(() => {
       sendTypingEvent(false);
       lastTypingSentTimeRef.current = 0; // Reset throttle so next keypress sends true immediately
-    }, 3000);
+    }, 2000);
   }, [sendTypingEvent]);
   const handleEditMessage = async (msg: Message, newContent: string) => {
     if (!parentToken || !conversationIdRef.current) return;
