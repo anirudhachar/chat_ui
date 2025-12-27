@@ -18,6 +18,9 @@ export interface User {
   unread?: number;
   lastMessageStatus?: "sent" | "delivered" | "read" | "sending" | "failed";
   isTyping?: boolean;
+  instituteName?: string;
+  instituteSlug?: string;
+  instituteId?: number;
 }
 
 export interface Message {
@@ -173,6 +176,9 @@ export default function ChatInterface() {
                   minute: "2-digit",
                 })
               : "",
+            instituteName: c.user?.instituteName,
+            instituteSlug: c.user?.instituteSlug,
+            instituteId: c.user?.instituteId,
 
             online: c.user?.online ?? false,
             unread: c.unreadCount ?? "",
@@ -330,7 +336,7 @@ export default function ChatInterface() {
                 ...prev,
                 {
                   id: data.messageId,
-                   messageKey: data.messageKey,
+                  messageKey: data.messageKey,
                   content: parsedOffer?.text || data.content,
                   timestamp: new Date(data.createdAt).toLocaleTimeString(
                     "en-US",
@@ -1097,12 +1103,11 @@ export default function ChatInterface() {
       //   );
       // }
       // 🔥 stop typing cleanly
-if (typingTimeoutRef.current) {
-  clearTimeout(typingTimeoutRef.current);
-  typingTimeoutRef.current = null;
-}
-sendTypingEvent(false);
-
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+      sendTypingEvent(false);
 
       const tempId = `temp-${Date.now()}`;
       const timeString = new Date().toLocaleTimeString("en-US", {

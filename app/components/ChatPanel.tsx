@@ -770,7 +770,7 @@ const getInitials = (name = "") => {
         </div>
         <div className={styles.userInfo}>
           <h2 className={styles.userName}>{selectedUser.name}</h2>
-          <p className={styles.userStatus}>Stanford University</p>
+          <p className={styles.userStatus}>{selectedUser.instituteName}</p>
         </div>
         <button className={styles.moreButton}>
           <FiMoreVertical />
