@@ -19,7 +19,8 @@ interface MessageInputProps {
     type?: "text" | "image" | "document" | "link" | "audio",
     file?: { name: string; url: string; image?: string; description?: string }
   ) => void;
-  onTyping?: (isTyping: boolean) => void;
+onTyping?: () => void;
+
 
  
 }
@@ -196,7 +197,7 @@ export default function MessageInput({
   };
 
   const handleSend = () => {
-     if (onTyping) onTyping(false);
+    
     if (recordedAudio) {
       sendRecordedAudio();
       return;
@@ -408,12 +409,12 @@ export default function MessageInput({
               value={message}
               onChange={(e) => {
                 setMessage(e.target.value);
-                if (onTyping) onTyping(true); // Trigger parent logic
+                if (onTyping)  onTyping?.(); 
               }}
               // 🔥 ADD onBlur:
-              onBlur={() => {
-                if (onTyping) onTyping(false);
-              }}
+              // onBlur={() => {
+              //   if (onTyping) onTyping(false);
+              // }}
               onKeyDown={handleKeyDown}
             />
 
