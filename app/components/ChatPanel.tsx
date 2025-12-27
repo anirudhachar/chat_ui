@@ -49,7 +49,7 @@ interface ChatPanelProps {
   onReact: (message: Message, emoji: string) => void;
   isPartnerTyping: boolean;
   onTyping: () => void;
-  onInputBlur: () => void;
+  // onInputBlur: () => void;
 }
 
 // ───────────────────────────────────────────────
@@ -603,7 +603,7 @@ export default function ChatPanel({
   onReact,
   isPartnerTyping,
   onTyping,
-  onInputBlur,
+  // onInputBlur,
 }: ChatPanelProps) {
   console.log(messages,"messagesbeingsent")
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -890,7 +890,7 @@ const getInitials = (name = "") => {
       )}
 
       {/* INPUT */}
-      <MessageInput onSendMessage={handleInternalSendMessage} onTyping={onTyping}  onInputBlur={onInputBlur}/>
+      <MessageInput onSendMessage={handleInternalSendMessage} onTyping={onTyping}  />
     </div>
   );
 }

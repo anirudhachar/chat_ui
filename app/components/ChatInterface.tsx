@@ -1619,7 +1619,7 @@ sendTypingEvent(false);
           onReact={handleReaction}
           isPartnerTyping={isPartnerTyping} // To display the UI bubble
           onTyping={handleTypingInput} // To trigger the logic on keypress
-          onInputBlur={() => sendTypingEvent(false)} // To stop typing when they click away
+          // onInputBlur={() => sendTypingEvent(false)} // To stop typing when they click away
         />
       </div>
     </div>

@@ -21,7 +21,7 @@ interface MessageInputProps {
   ) => void;
   onTyping?: (isTyping: boolean) => void;
 
-  onInputBlur?: () => void;
+ 
 }
 
 const extractURL = (text: string) => {
@@ -40,7 +40,7 @@ const formatTime = (seconds: number) => {
 export default function MessageInput({
   onSendMessage,
   onTyping,
-  onInputBlur,
+
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
