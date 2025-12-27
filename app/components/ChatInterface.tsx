@@ -1081,21 +1081,28 @@ export default function ChatInterface() {
         setConversationId(cid);
       }
 
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-        typingTimeoutRef.current = null;
-      }
-      setIsTyping(false);
+      // if (typingTimeoutRef.current) {
+      //   clearTimeout(typingTimeoutRef.current);
+      //   typingTimeoutRef.current = null;
+      // }
+      // setIsTyping(false);
 
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(
-          JSON.stringify({
-            event: "typing",
-            conversationId: cid,
-            isTyping: false,
-          })
-        );
-      }
+      // if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      //   wsRef.current.send(
+      //     JSON.stringify({
+      //       event: "typing",
+      //       conversationId: cid,
+      //       isTyping: false,
+      //     })
+      //   );
+      // }
+      // 🔥 stop typing cleanly
+if (typingTimeoutRef.current) {
+  clearTimeout(typingTimeoutRef.current);
+  typingTimeoutRef.current = null;
+}
+sendTypingEvent(false);
+
 
       const tempId = `temp-${Date.now()}`;
       const timeString = new Date().toLocaleTimeString("en-US", {
@@ -1388,7 +1395,7 @@ export default function ChatInterface() {
 
   const handleTypingInput = useCallback(() => {
     const now = Date.now();
-    const THROTTLE_MS = 5000; // Block next "true" send for 2.5s
+    const THROTTLE_MS = 2000; // Block next "true" send for 2.5s
 
     // 1. Send TYPING = TRUE (Throttled)
     if (now - lastTypingSentTimeRef.current > THROTTLE_MS) {
