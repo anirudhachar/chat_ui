@@ -180,7 +180,7 @@ export default function ChatInterface() {
             instituteSlug: c.user?.instituteSlug,
             instituteId: c.user?.instituteId,
 
-            online: c.user?.online ?? false,
+            online: c.user?.isOnline ?? false,
             unread: c.unreadCount ?? "",
             lastMessageStatus: c.lastMessageDeliveryStatus
               ? (c.lastMessageDeliveryStatus.toLowerCase() as User["lastMessageStatus"])
@@ -411,7 +411,6 @@ export default function ChatInterface() {
                     minute: "2-digit",
                   }
                 ),
-                online: true,
 
                 unread:
                   data.conversationId === conversationIdRef.current
@@ -436,19 +435,42 @@ export default function ChatInterface() {
             break;
           }
 
-          case "unreadConversationSync": {
-            // backend sends FULL unread count
+          case "userPresence": {
+            const { userId, status } = data;
+            const isOnline = status === "online";
+
+            setUsers((prev) =>
+              prev.map((user) =>
+                user.id === userId ? { ...user, online: isOnline } : user
+              )
+            );
+
+            setSelectedUser((prev) =>
+              prev && prev.id === userId ? { ...prev, online: isOnline } : prev
+            );
+
+            break;
+          }
+
+          // case "unreadConversationSync": {
+          //   // backend sends FULL unread count
+          //   setGlobalUnread(data.count ?? 0);
+          //   break;
+          // }
+
+          // case "unreadConversationIncrement": {
+          //   setGlobalUnread((prev) => prev + 1);
+          //   break;
+          // }
+
+          // case "unreadConversationDecrement": {
+          //   setGlobalUnread((prev) => Math.max(0, prev - 1));
+          //   break;
+          // }
+
+          case "globalUnreadCount": {
+            // backend sends the FINAL unread number
             setGlobalUnread(data.count ?? 0);
-            break;
-          }
-
-          case "unreadConversationIncrement": {
-            setGlobalUnread((prev) => prev + 1);
-            break;
-          }
-
-          case "unreadConversationDecrement": {
-            setGlobalUnread((prev) => Math.max(0, prev - 1));
             break;
           }
 
