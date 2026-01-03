@@ -718,6 +718,8 @@ export default function ChatInterface() {
               ? `https://d34wmjl2ccaffd.cloudfront.net${u.profile_photo_url}`
               : undefined,
             lastMessage: "",
+            instituteName: u.instituteName,
+
             lastMessageTime: "",
             online: false,
             unread: 0,
@@ -1304,6 +1306,7 @@ export default function ChatInterface() {
               ? `https://d34wmjl2ccaffd.cloudfront.net${incomingUser.profilePhoto}`
               : undefined,
             lastMessage: "",
+             instituteName: incomingUser.instituteName, 
             lastMessageTime: "Now",
             online: true,
           };
