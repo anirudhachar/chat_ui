@@ -108,10 +108,9 @@ export default function ChatInterface() {
 
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchParams = useSearchParams();
-const pathname = usePathname();
+  const pathname = usePathname();
 
-const userParam = searchParams.get("user"); // string | null
-
+  const userParam = searchParams.get("user"); // string | null
 
   const extractUrl = (text: string) => {
     const match = text.match(/(https?:\/\/(?:www\.)?[^\s/$.?#].[^\s]*)/i);
@@ -221,7 +220,7 @@ const userParam = searchParams.get("user"); // string | null
   };
 
   useEffect(() => {
-  console.log(pathname,"pathname")
+    console.log(pathname, "pathname");
     if (!pathname.startsWith("/message")) return;
 
     // 🔥 CASE 1: /message (NO user) → UNSELECT CHAT
@@ -1050,9 +1049,7 @@ const userParam = searchParams.get("user"); // string | null
   };
 
   const handleUserSelect = async (user: User) => {
-    
     if (!parentToken || !loggedInUserId) return;
-    
 
     conversationIdRef.current = null;
 
@@ -1315,12 +1312,12 @@ const userParam = searchParams.get("user"); // string | null
     const handleMessage = async (event: MessageEvent) => {
       if (!event.data?.type) return;
 
-      console.log(event,"evrntenter")
+      console.log(event, "evrntenter");
 
       if (event.data.type === "OPEN_CHAT") {
         const token = event.data.payload?.token;
         const incomingUser = event.data.payload?.user;
-console.log(incomingUser,"incomingUser")
+        console.log(incomingUser, "incomingUser");
         setParentToken(token);
         const uid = decodeToken(token);
         setLoggedInUserId(uid);
@@ -1353,6 +1350,25 @@ console.log(incomingUser,"incomingUser")
 
           setShowSidebar(false);
         }
+      }
+
+      if (event.data.type === "CLOSE_CHAT") {
+        console.log("🚪 Chat closed by parent");
+
+        // refs
+        conversationIdRef.current = null;
+        selectedUserRef.current = null;
+
+        // state
+        setConversationId(null);
+        setSelectedUser(null);
+        setMessages([]);
+        setIsPartnerTyping(false);
+        setShowSidebar(true);
+        setMessageCursor(null);
+        setHasMoreMessages(true);
+
+        return;
       }
 
       if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
