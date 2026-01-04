@@ -231,15 +231,15 @@ export default function ChatInterface() {
     usersRef.current = users;
   }, [users]);
 
-  useEffect(() => {
-    window.parent.postMessage(
-      {
-        type: "UNREAD_COUNT_UPDATE",
-        payload: { count: globalUnread },
-      },
-      "*"
-    );
-  }, [globalUnread]);
+  // useEffect(() => {
+  //   window.parent.postMessage(
+  //     {
+  //       type: "UNREAD_COUNT_UPDATE",
+  //       payload: { count: globalUnread },
+  //     },
+  //     "*"
+  //   );
+  // }, [globalUnread]);
 
   useEffect(() => {
     if (!parentToken) return;
@@ -298,6 +298,17 @@ export default function ChatInterface() {
 
               // 1️⃣ ALWAYS send DELIVERED first
               console.log("📨 Sending ackDelivered:", backendMessageKey);
+
+              if (!isMine && !isChatOpen) {
+                window.parent.postMessage(
+                  {
+                    event: "globalUnreadCount",
+                    data: { delta: +1 },
+                  },
+                  "*"
+                );
+              }
+
               ws.send(
                 JSON.stringify({
                   event: "ackDelivered",
@@ -319,6 +330,13 @@ export default function ChatInterface() {
                   })
                 );
 
+                    window.parent.postMessage(
+                {
+                  event: "globalUnreadCount",
+                  data: { delta: -1 },
+                },
+                "*"
+              );
                 // ✅ Optimistically mark as read (blue tick)
                 setMessages((prev) =>
                   prev.map((m) =>
@@ -327,8 +345,9 @@ export default function ChatInterface() {
                       : m
                   )
                 );
-                setGlobalUnread((prev) => Math.max(0, prev - 1));
               }
+
+          
             }
 
             if (data.conversationId === conversationIdRef.current) {
@@ -451,22 +470,6 @@ export default function ChatInterface() {
 
             break;
           }
-
-          // case "unreadConversationSync": {
-          //   // backend sends FULL unread count
-          //   setGlobalUnread(data.count ?? 0);
-          //   break;
-          // }
-
-          // case "unreadConversationIncrement": {
-          //   setGlobalUnread((prev) => prev + 1);
-          //   break;
-          // }
-
-          // case "unreadConversationDecrement": {
-          //   setGlobalUnread((prev) => Math.max(0, prev - 1));
-          //   break;
-          // }
 
           case "globalUnreadCount": {
             // backend sends the FINAL unread number
@@ -1306,7 +1309,7 @@ export default function ChatInterface() {
               ? `https://d34wmjl2ccaffd.cloudfront.net${incomingUser.profilePhoto}`
               : undefined,
             lastMessage: "",
-             instituteName: incomingUser.instituteName, 
+            instituteName: incomingUser.instituteName,
             lastMessageTime: "Now",
             online: true,
           };
