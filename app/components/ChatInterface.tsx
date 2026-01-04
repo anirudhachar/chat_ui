@@ -219,22 +219,25 @@ export default function ChatInterface() {
   };
 
 
-  useEffect(() => {
-  // 👇 adjust this to your actual chat route
+useEffect(() => {
   const isChatRoute = pathname.startsWith("/message");
 
   if (!isChatRoute) {
-    // 🔥 unselect chat safely
+    // 🔥 FULL RESET
     setSelectedUser(null);
     setConversationId(null);
     setMessages([]);
-
-    // 🔥 VERY IMPORTANT: clear refs
-    activeConversationRef.current = null;
-    conversationIdRef.current = null;
-
-    // optional UX cleanup
     setIsPartnerTyping(false);
+    setShowSidebar(true);
+
+    // 🔥 CLEAR ALL CHAT REFS
+    conversationIdRef.current = null;
+    activeConversationRef.current = null;
+    selectedUserRef.current = null;
+
+    // 🔥 Reset pagination
+    setMessageCursor(null);
+    setHasMoreMessages(true);
   }
 }, [pathname]);
 
