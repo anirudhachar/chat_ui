@@ -243,6 +243,10 @@ export default function ChatInterface() {
 
   useEffect(() => {
     if (!parentToken) return;
+    if (wsRef.current) {
+      console.log("WebSocket already exists, skipping creation");
+      return;
+    }
 
     const wsUrl = `wss://k4g7m4879h.execute-api.us-east-1.amazonaws.com/dev?token=${encodeURIComponent(
       parentToken
@@ -330,13 +334,13 @@ export default function ChatInterface() {
                   })
                 );
 
-                    window.parent.postMessage(
-                {
-                  event: "globalUnreadCount",
-                  data: { delta: -1 },
-                },
-                "*"
-              );
+                window.parent.postMessage(
+                  {
+                    event: "globalUnreadCount",
+                    data: { delta: -1 },
+                  },
+                  "*"
+                );
                 // ✅ Optimistically mark as read (blue tick)
                 setMessages((prev) =>
                   prev.map((m) =>
@@ -346,8 +350,6 @@ export default function ChatInterface() {
                   )
                 );
               }
-
-          
             }
 
             if (data.conversationId === conversationIdRef.current) {
