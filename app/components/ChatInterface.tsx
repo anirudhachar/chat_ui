@@ -1320,7 +1320,7 @@ const userParam = searchParams.get("user"); // string | null
       if (event.data.type === "OPEN_CHAT") {
         const token = event.data.payload?.token;
         const incomingUser = event.data.payload?.user;
-
+console.log(incomingUser,"incomingUser")
         setParentToken(token);
         const uid = decodeToken(token);
         setLoggedInUserId(uid);
