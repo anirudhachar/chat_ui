@@ -460,7 +460,7 @@ export default function ChatInterface() {
             window.parent.postMessage(
               {
                 type: "globalUnreadCount",
-                payload: { delta },
+                data: { delta },
               },
               "*"
             );
