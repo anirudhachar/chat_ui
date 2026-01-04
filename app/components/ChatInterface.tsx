@@ -1391,11 +1391,11 @@ export default function ChatInterface() {
         handleSendMessage(payload.message);
       }
 
-      if (event.data.type === "CURRENT_CONVERSATION") {
-        activeConversationRef.current =
-          event.data.payload?.conversationId || null;
-        console.log("Active conversation set:", activeConversationRef.current);
-      }
+ if (event.data.type === "CURRENT_CONVERSATION") {
+      const conversationId = event.data.payload?.conversationId || null;
+      activeConversationRef.current = conversationId; // null if no chat selected
+      console.log("Active conversation updated:", conversationId);
+    }
     };
 
     window.addEventListener("message", handleMessage);
