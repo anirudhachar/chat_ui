@@ -1359,11 +1359,20 @@ export default function ChatInterface() {
         conversationIdRef.current = null;
         selectedUserRef.current = null;
 
-        // state
+        // main state
         setConversationId(null);
         setSelectedUser(null);
         setMessages([]);
         setIsPartnerTyping(false);
+
+        // 🔥 SIDEBAR RESET (THIS WAS MISSING)
+        setUsers((prev) =>
+          prev.map((u) => ({
+            ...u,
+            isTyping: false,
+          }))
+        );
+
         setShowSidebar(true);
         setMessageCursor(null);
         setHasMoreMessages(true);
