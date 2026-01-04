@@ -1050,7 +1050,9 @@ const userParam = searchParams.get("user"); // string | null
   };
 
   const handleUserSelect = async (user: User) => {
+      if (!userParam) return;
     if (!parentToken || !loggedInUserId) return;
+    
 
     conversationIdRef.current = null;
 
