@@ -306,7 +306,7 @@ export default function ChatInterface() {
               if (!isMine && !isChatOpen) {
                 window.parent.postMessage(
                   {
-                    event: "globalUnreadCount",
+                    type: "globalUnreadCount",
                     data: { delta: +1 },
                   },
                   "*"
@@ -336,7 +336,7 @@ export default function ChatInterface() {
 
                 window.parent.postMessage(
                   {
-                    event: "globalUnreadCount",
+                    type: "globalUnreadCount",
                     data: { delta: -1 },
                   },
                   "*"
