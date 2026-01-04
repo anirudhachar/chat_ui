@@ -5,6 +5,7 @@ import styles from "./ChatInterface.module.scss";
 import UserSidebar from "./UserSidebar";
 import ChatPanel from "./ChatPanel";
 import { getWebSocket } from "./websocketSingleton";
+import { usePathname } from "next/navigation";
 
 // ───────────────────────────────────────────────
 // TYPES
@@ -74,6 +75,8 @@ const decodeToken = (token: string) => {
 
 export default function ChatInterface() {
   const wsRef = useRef<WebSocket | null>(null);
+  const pathname = usePathname();
+
   const [users, setUsers] = useState<User[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMoreUsers, setHasMoreUsers] = useState(true);
@@ -214,6 +217,26 @@ export default function ChatInterface() {
       fetchUsers(cursor, false);
     }
   };
+
+
+  useEffect(() => {
+  // 👇 adjust this to your actual chat route
+  const isChatRoute = pathname.startsWith("/chat");
+
+  if (!isChatRoute) {
+    // 🔥 unselect chat safely
+    setSelectedUser(null);
+    setConversationId(null);
+    setMessages([]);
+
+    // 🔥 VERY IMPORTANT: clear refs
+    activeConversationRef.current = null;
+    conversationIdRef.current = null;
+
+    // optional UX cleanup
+    setIsPartnerTyping(false);
+  }
+}, [pathname]);
 
   useEffect(() => {
     conversationIdRef.current = conversationId;
