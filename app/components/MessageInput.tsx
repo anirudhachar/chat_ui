@@ -351,7 +351,7 @@ export default function MessageInput({
               <FiSmile />
             </button>
 
-            <div className={styles.attachWrapper}>
+            {/* <div className={styles.attachWrapper}>
               <button
                 className={styles.iconButton}
                 onClick={() => setShowAttachMenu((p) => !p)}
@@ -400,7 +400,7 @@ export default function MessageInput({
               accept=".pdf,.doc,.docx,.txt"
               hidden
               onChange={(e) => handleFilePick(e, "document")}
-            />
+            /> */}
 
             <input
               type="text"
@@ -423,7 +423,8 @@ export default function MessageInput({
               onClick={showSendButton ? handleSend : startRecording}
               disabled={false}
             >
-              {showSendButton ? <FiSend /> : <FiMic />}
+              {/* {showSendButton ? <FiSend /> : <FiMic />} */}
+                {showSendButton && <FiSend /> }
             </button>
           </div>
         )}

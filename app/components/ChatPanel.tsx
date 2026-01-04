@@ -776,9 +776,9 @@ ChatPanelProps) {
           <h2 className={styles.userName}>{selectedUser.name}</h2>
           <p className={styles.userStatus}>{selectedUser.instituteName}</p>
         </div>
-        <button className={styles.moreButton}>
+        {/* <button className={styles.moreButton}>
           <FiMoreVertical />
-        </button>
+        </button> */}
       </div>
 
       {/* MESSAGES AREA */}
