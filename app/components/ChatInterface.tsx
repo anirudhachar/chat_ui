@@ -221,7 +221,7 @@ export default function ChatInterface() {
 
   useEffect(() => {
   // 👇 adjust this to your actual chat route
-  const isChatRoute = pathname.startsWith("/chat");
+  const isChatRoute = pathname.startsWith("/message");
 
   if (!isChatRoute) {
     // 🔥 unselect chat safely
