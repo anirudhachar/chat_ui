@@ -662,108 +662,59 @@
   }
 }
 
-/* ─────────────────────────────────────────────
-   MESSAGE BUBBLE LAYOUT (Fixed)
-───────────────────────────────────────────── */
-
 .messageBubble {
   position: relative;
-  border-radius: 8px;
-  box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
-  
-  /* Sizing */
-  min-width: 80px;
-  max-width: 65%; /* WhatsApp standard max-width */
-  width: fit-content;
-  
-  /* Padding: Tighter to keep time snug */
-  padding: 6px 7px 8px 9px; 
+  padding: 8px 12px;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  min-width: 60px;
+  background-color: #fff;
+  margin: 0;
 
-  /* Flex: Stacks Sender Name (top) and ContentWrapper (bottom) */
-  display: flex;
-  flex-direction: column;
-
-  /* My Bubble (Sent) */
   .sent & {
-    background-color: #e0f2fe; /* Kept your Light Blue preference */
+    background-color: #e0f2fe; /* Light Blue for me */
     color: #111;
-    border-top-right-radius: 0;
+    border-bottom-right-radius: 2px;
   }
 
-  /* Their Bubble (Received) */
   .received & {
     background-color: #ffffff;
     color: #111;
-    border-top-left-radius: 0;
-  }
-
-  /* Mobile Responsive */
-  @media (max-width: 767px) {
-    max-width: 85%;
+    border-bottom-left-radius: 2px;
   }
 }
 
-/* ─────────────────────────────────────────────
-   THE WRAPPER (This fixes the time position)
-───────────────────────────────────────────── */
-
-/* Groups Text and Meta together */
-.contentWrapper {
-  display: flex;
-  flex-wrap: wrap;       /* Allows time to wrap to next line if needed */
-  align-items: flex-end; /* Aligns text bottom with time bottom */
-  column-gap: 8px;       /* Horizontal space between text and time */
+.messageBubble {
+  // max-width: 65%;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
   position: relative;
-}
 
-/* Reset text margins so Flex works */
-.messageText {
-  margin: 0;
-  padding: 0;
-  font-size: 14.5px;
-  line-height: 19px;
-  word-wrap: break-word;
-  white-space: pre-wrap;
-  max-width: 100%;
-}
-
-/* ─────────────────────────────────────────────
-   METADATA (Time + Ticks)
-───────────────────────────────────────────── */
-
-.messageMeta {
+  /* CRITICAL CHANGE: Allow flexible content stacking */
   display: flex;
-  align-items: center;
-  gap: 3px;
-  height: 15px;      /* Fixed height ensures alignment */
-  
-  /* Pushes time to the far right, whether on same line or next */
-  margin-left: auto; 
-  margin-bottom: -3px; 
-  flex-shrink: 0;    
-  user-select: none;
-}
+  flex-direction: column;
+  position: relative;
 
-.messageTime {
-  font-size: 11px;
-  color: rgba(0, 0, 0, 0.45);
-  white-space: nowrap;
-}
+  &:hover .optionsTrigger,
+  .optionsTrigger.active {
+    opacity: 1;
+    visibility: visible;
+  }
 
-.editedTag {
-  font-size: 11px;
-  color: rgba(0, 0, 0, 0.45);
-  font-style: italic;
-  margin-right: 4px;
-}
+  .sent & {
+    background-color: #fff;
+    border-bottom-right-radius: 2px;
+  }
 
-/* Ticks */
-.tickIcon {
-  font-size: 15px;
-  color: rgba(0, 0, 0, 0.45);
-}
-.read {
-  color: #53bdeb !important; /* Blue ticks */
+  .received & {
+    background-color: var(--color-message-received);
+    border-bottom-left-radius: 2px;
+  }
+
+  @media (max-width: 767px) {
+    max-width: 90%;
+  }
 }
 
 /* 🔥 Emoji reaction bar */
