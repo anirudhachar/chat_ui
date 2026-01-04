@@ -1100,39 +1100,27 @@
 
 /* Initials fallback */
 .emptyInitials {
-  width: 100%;
-  height: 100%;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
 
-  background: linear-gradient(135deg, #ffffff, #f9fafb);
+  background: #eef2ff; // light indigo surface
+  color: #4f46e5;
+
   display: flex;
   align-items: center;
   justify-content: center;
 
-  font-weight: 700;
-  font-size: 22px;
-
-  background: linear-gradient(135deg, #4f46e5, #06b6d4);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+  font-size: 20px;
 }
 
 .emptyTitle {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
-  line-height: 1.35;
-  margin-bottom: 8px;
+  line-height: 1.4;
+  margin-bottom: 6px;
   color: #111827;
-
-  span {
-    display: inline-block;
-    margin-top: 4px;
-    font-weight: 700;
-
-    background: linear-gradient(135deg, #4f46e5, #06b6d4);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
 }
 
 .emptySubtitle {
