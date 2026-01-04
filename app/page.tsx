@@ -1,7 +1,12 @@
-"use client"
+"use client";
 
-import ChatInterface from './components/ChatInterface';
+import { Suspense } from "react";
+import ChatInterface from "./components/ChatInterface";
 
 export default function Home() {
-  return <ChatInterface />;
+  return (
+    <Suspense fallback={null}>
+      <ChatInterface />
+    </Suspense>
+  );
 }
