@@ -253,13 +253,16 @@ export default function ChatInterface() {
     )}`;
 
     const ws = new WebSocket(wsUrl);
+   const wsId = Math.random().toString(36).slice(2);
     wsRef.current = ws;
+    console.log("Created WebSocket with id:", wsId);
 
     ws.onopen = () => {
       console.log("WebSocket connected");
     };
 
     ws.onmessage = (event) => {
+      console.log("WS event from socket id:", wsId, event.data);
       try {
         const payload = JSON.parse(event.data);
         const { event: eventType, data } = payload;
