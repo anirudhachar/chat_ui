@@ -22,7 +22,12 @@ import { User, Message } from "./ChatInterface";
 import MessageInput from "./MessageInput";
 import styles from "./ChatPanel.module.scss";
 import MessageSkeleton from "./MessageSkeleton/MessageSkeleton";
-import { IoAlertCircle, IoCheckmark, IoCheckmarkDone, IoTimeOutline } from "react-icons/io5";
+import {
+  IoAlertCircle,
+  IoCheckmark,
+  IoCheckmarkDone,
+  IoTimeOutline,
+} from "react-icons/io5";
 
 // ───────────────────────────────────────────────
 // TYPES
@@ -379,31 +384,33 @@ const MessageRow = ({
     return wrapWithReply(<p className={styles.messageText}>{m.content}</p>);
   };
 
- const getStatusIcon = (status?: string) => {
-  console.log("Message status:", status);
+  const getStatusIcon = (status?: string) => {
+    console.log("Message status:", status);
 
-  if (!status) return null;
+    if (!status) return null;
 
-  switch (status) {
-    case "sending":
-      return <IoTimeOutline className={styles.sendingIcon} />;
-    
-    case "failed":
-      // Using an icon instead of an emoji for a more professional look
-      return <IoAlertCircle className={styles.failedIcon} />;
-    
-    case "read":
-      // io5 icons don't "intersect" as much as Bootstrap ones
-      return <IoCheckmarkDone className={`${styles.tickIcon} ${styles.read}`} />;
-    
-    case "delivered":
-      return <IoCheckmarkDone className={styles.tickIcon} />;
-    
-    case "sent":
-    default:
-      return <IoCheckmark className={styles.tickIcon} />;
-  }
-};
+    switch (status) {
+      case "sending":
+        return <IoTimeOutline className={styles.sendingIcon} />;
+
+      case "failed":
+        // Using an icon instead of an emoji for a more professional look
+        return <IoAlertCircle className={styles.failedIcon} />;
+
+      case "read":
+        // io5 icons don't "intersect" as much as Bootstrap ones
+        return (
+          <IoCheckmarkDone className={`${styles.tickIcon} ${styles.read}`} />
+        );
+
+      case "delivered":
+        return <IoCheckmarkDone className={styles.tickIcon} />;
+
+      case "sent":
+      default:
+        return <IoCheckmark className={styles.tickIcon} />;
+    }
+  };
 
   // LinkedIn Style: 5 quick emojis
   const QUICK_REACTIONS = ["👍", "👏", "😄", "🤔", "❤️"];
@@ -548,7 +555,6 @@ const MessageRow = ({
           </div>
           {renderContent()}
 
-          {/* Metadata: Hide while editing to keep it clean */}
           {!isEditing && (
             <div className={styles.messageMeta}>
               {(m as any).isEdited && (
@@ -603,9 +609,9 @@ export default function ChatPanel({
   onReact,
   isPartnerTyping,
   onTyping,
-  // onInputBlur,
-}: ChatPanelProps) {
-  console.log(messages,"messagesbeingsent")
+}: // onInputBlur,
+ChatPanelProps) {
+  console.log(messages, "messagesbeingsent");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
   const topMessageSentinelRef = useRef<HTMLDivElement>(null);
@@ -685,18 +691,17 @@ export default function ChatPanel({
     setReplyingTo(null);
   };
 
-const getInitials = (name = "") => {
-  const parts = name.trim().split(" ").filter(Boolean);
+  const getInitials = (name = "") => {
+    const parts = name.trim().split(" ").filter(Boolean);
 
-  if (parts.length === 0) return "?";
+    if (parts.length === 0) return "?";
 
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
 
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-};
-
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  };
 
   /* Empty State */
   if (!selectedUser) {
@@ -744,7 +749,6 @@ const getInitials = (name = "") => {
       </div>
     );
   }
-  
 
   return (
     <div className={styles.chatPanel}>
@@ -780,7 +784,7 @@ const getInitials = (name = "") => {
       {/* MESSAGES AREA */}
       <div className={styles.messagesArea} ref={messagesAreaRef}>
         {isLoading && (
-        <div className={styles.loadingContainer}>
+          <div className={styles.loadingContainer}>
             <div className={styles.spinner} />
           </div>
         )}
@@ -888,7 +892,10 @@ const getInitials = (name = "") => {
       )}
 
       {/* INPUT */}
-      <MessageInput onSendMessage={handleInternalSendMessage} onTyping={onTyping}  />
+      <MessageInput
+        onSendMessage={handleInternalSendMessage}
+        onTyping={onTyping}
+      />
     </div>
   );
 }

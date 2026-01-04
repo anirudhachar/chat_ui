@@ -219,31 +219,31 @@ export default function ChatInterface() {
     }
   };
 
-  useEffect(() => {
-    console.log(pathname, "pathname");
-    if (!pathname.startsWith("/message")) return;
+  // useEffect(() => {
+  //   console.log(pathname, "pathname");
+  //   if (!pathname.startsWith("/message")) return;
 
-    // 🔥 CASE 1: /message (NO user) → UNSELECT CHAT
-    if (!userParam) {
-      // refs (critical)
-      conversationIdRef.current = null;
-      selectedUserRef.current = null;
+  //   // 🔥 CASE 1: /message (NO user) → UNSELECT CHAT
+  //   if (!userParam) {
+  //     // refs (critical)
+  //     conversationIdRef.current = null;
+  //     selectedUserRef.current = null;
 
-      // state
-      setConversationId(null);
-      setSelectedUser(null);
-      setMessages([]);
-      setIsPartnerTyping(false);
+  //     // state
+  //     setConversationId(null);
+  //     setSelectedUser(null);
+  //     setMessages([]);
+  //     setIsPartnerTyping(false);
 
-      return;
-    }
+  //     return;
+  //   }
 
-    // 🔥 CASE 2: /message?user=ID → SELECT CHAT
-    const user = users.find((u) => u.id === userParam);
-    if (!user || !parentToken || !loggedInUserId) return;
+  //   // 🔥 CASE 2: /message?user=ID → SELECT CHAT
+  //   const user = users.find((u) => u.id === userParam);
+  //   if (!user || !parentToken || !loggedInUserId) return;
 
-    handleUserSelect(user);
-  }, [userParam, pathname, users, parentToken, loggedInUserId]);
+  //   handleUserSelect(user);
+  // }, [userParam, pathname, users, parentToken, loggedInUserId]);
 
   useEffect(() => {
     conversationIdRef.current = conversationId;
