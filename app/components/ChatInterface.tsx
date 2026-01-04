@@ -5,6 +5,7 @@ import styles from "./ChatInterface.module.scss";
 import UserSidebar from "./UserSidebar";
 import ChatPanel from "./ChatPanel";
 import { getWebSocket } from "./websocketSingleton";
+import { usePathname, useSearchParams } from "next/navigation";
 
 // ───────────────────────────────────────────────
 // TYPES
@@ -106,7 +107,11 @@ export default function ChatInterface() {
   const [enableInfiniteScroll, setEnableInfiniteScroll] = useState(true);
 
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+  const searchParams = useSearchParams();
+const pathname = usePathname();
+
+const userParam = searchParams.get("user"); // string | null
+
 
   const extractUrl = (text: string) => {
     const match = text.match(/(https?:\/\/(?:www\.)?[^\s/$.?#].[^\s]*)/i);
@@ -214,6 +219,32 @@ export default function ChatInterface() {
       fetchUsers(cursor, false);
     }
   };
+
+  useEffect(() => {
+    // Only care about /message route
+    if (!pathname.startsWith("/message")) return;
+
+    // 🔥 CASE 1: /message (NO user) → UNSELECT CHAT
+    if (!userParam) {
+      // refs (critical)
+      conversationIdRef.current = null;
+      selectedUserRef.current = null;
+
+      // state
+      setConversationId(null);
+      setSelectedUser(null);
+      setMessages([]);
+      setIsPartnerTyping(false);
+
+      return;
+    }
+
+    // 🔥 CASE 2: /message?user=ID → SELECT CHAT
+    const user = users.find((u) => u.id === userParam);
+    if (!user || !parentToken || !loggedInUserId) return;
+
+    handleUserSelect(user);
+  }, [userParam, pathname, users, parentToken, loggedInUserId]);
 
   useEffect(() => {
     conversationIdRef.current = conversationId;
