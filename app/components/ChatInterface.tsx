@@ -5,7 +5,6 @@ import styles from "./ChatInterface.module.scss";
 import UserSidebar from "./UserSidebar";
 import ChatPanel from "./ChatPanel";
 import { getWebSocket } from "./websocketSingleton";
-import { usePathname } from "next/navigation";
 
 // ───────────────────────────────────────────────
 // TYPES
@@ -75,8 +74,6 @@ const decodeToken = (token: string) => {
 
 export default function ChatInterface() {
   const wsRef = useRef<WebSocket | null>(null);
-  const pathname = usePathname();
-
   const [users, setUsers] = useState<User[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMoreUsers, setHasMoreUsers] = useState(true);
@@ -109,7 +106,7 @@ export default function ChatInterface() {
   const [enableInfiniteScroll, setEnableInfiniteScroll] = useState(true);
 
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const activeConversationRef = useRef<string | null>(null);
+  
 
   const extractUrl = (text: string) => {
     const match = text.match(/(https?:\/\/(?:www\.)?[^\s/$.?#].[^\s]*)/i);
@@ -218,29 +215,6 @@ export default function ChatInterface() {
     }
   };
 
-
-useEffect(() => {
-  const isChatRoute = pathname.startsWith("/message");
-
-  if (!isChatRoute) {
-    // 🔥 FULL RESET
-    setSelectedUser(null);
-    setConversationId(null);
-    setMessages([]);
-    setIsPartnerTyping(false);
-    setShowSidebar(true);
-
-    // 🔥 CLEAR ALL CHAT REFS
-    conversationIdRef.current = null;
-    activeConversationRef.current = null;
-    selectedUserRef.current = null;
-
-    // 🔥 Reset pagination
-    setMessageCursor(null);
-    setHasMoreMessages(true);
-  }
-}, [pathname]);
-
   useEffect(() => {
     conversationIdRef.current = conversationId;
   }, [conversationId]);
@@ -323,7 +297,7 @@ useEffect(() => {
             if (!isMine) {
               const backendMessageKey = data.messageKey || data.messageId;
               const isChatOpen =
-                data.conversationId === activeConversationRef.current;
+                data.conversationId === conversationIdRef.current;
 
               // 1️⃣ ALWAYS send DELIVERED first
               console.log("📨 Sending ackDelivered:", backendMessageKey);
@@ -1416,12 +1390,6 @@ useEffect(() => {
         // 🟢 NORMAL TEXT MESSAGE
         handleSendMessage(payload.message);
       }
-
- if (event.data.type === "CURRENT_CONVERSATION") {
-      const conversationId = event.data.payload?.conversationId || null;
-      activeConversationRef.current = conversationId; // null if no chat selected
-      console.log("Active conversation updated:", conversationId);
-    }
     };
 
     window.addEventListener("message", handleMessage);
