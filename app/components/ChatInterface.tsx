@@ -106,6 +106,7 @@ export default function ChatInterface() {
   const [enableInfiniteScroll, setEnableInfiniteScroll] = useState(true);
 
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const activeConversationRef = useRef<string | null>(null);
 
   const extractUrl = (text: string) => {
     const match = text.match(/(https?:\/\/(?:www\.)?[^\s/$.?#].[^\s]*)/i);
@@ -296,7 +297,7 @@ export default function ChatInterface() {
             if (!isMine) {
               const backendMessageKey = data.messageKey || data.messageId;
               const isChatOpen =
-                data.conversationId === conversationIdRef.current;
+                data.conversationId === activeConversationRef.current;
 
               // 1️⃣ ALWAYS send DELIVERED first
               console.log("📨 Sending ackDelivered:", backendMessageKey);
@@ -1388,6 +1389,12 @@ export default function ChatInterface() {
 
         // 🟢 NORMAL TEXT MESSAGE
         handleSendMessage(payload.message);
+      }
+
+      if (event.data.type === "CURRENT_CONVERSATION") {
+        activeConversationRef.current =
+          event.data.payload?.conversationId || null;
+        console.log("Active conversation set:", activeConversationRef.current);
       }
     };
 
