@@ -81,6 +81,10 @@ export default function ChatInterface() {
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const messagesRef = useRef<Message[]>([]);
+
+  // Keep ref in sync with state
+
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isUsersLoading, setIsUsersLoading] = useState(false);
 
@@ -111,6 +115,9 @@ export default function ChatInterface() {
     const match = text.match(/(https?:\/\/(?:www\.)?[^\s/$.?#].[^\s]*)/i);
     return match ? match[0] : null;
   };
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const fetchLinkPreview = async (messageId: string, url: string) => {
     try {
@@ -252,14 +259,12 @@ export default function ChatInterface() {
     const { ws, id } = getWebSocket(parentToken);
     wsRef.current = ws;
 
-  
-
     ws.onopen = () => {
       console.log("WebSocket connected");
     };
 
     ws.onmessage = (event) => {
-       console.log("WS message from id:", id, event.data);
+      console.log("WS message from id:", id, event.data);
       try {
         const payload = JSON.parse(event.data);
         const { event: eventType, data } = payload;
@@ -446,6 +451,25 @@ export default function ChatInterface() {
             break;
           }
           case "messageRead": {
+            // Check if the message was unread before
+            const wasUnread = messagesRef.current.some(
+              (m) =>
+                (m.messageKey === data.messageKey || m.id === data.messageId) &&
+                m.status !== "read"
+            );
+
+            if (wasUnread) {
+              // Decrease unread counter
+              window.parent.postMessage(
+                {
+                  type: "globalUnreadCount",
+                  data: { delta: -1 },
+                },
+                "*"
+              );
+            }
+
+            // Update the message status to "read"
             setMessages((prev) =>
               prev.map((m) =>
                 m.messageKey === data.messageKey || m.id === data.messageId
@@ -453,6 +477,7 @@ export default function ChatInterface() {
                   : m
               )
             );
+
             break;
           }
 
