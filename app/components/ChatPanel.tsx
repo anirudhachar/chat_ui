@@ -780,10 +780,8 @@ const getInitials = (name = "") => {
       {/* MESSAGES AREA */}
       <div className={styles.messagesArea} ref={messagesAreaRef}>
         {isLoading && (
-          <div className={styles.loadingWrapper}>
-            <MessageSkeleton />
-            <MessageSkeleton />
-            <MessageSkeleton />
+        <div className={styles.loadingContainer}>
+            <div className={styles.spinner} />
           </div>
         )}
 
