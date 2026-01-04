@@ -241,28 +241,33 @@ export default function ChatInterface() {
   //   );
   // }, [globalUnread]);
 
+  let globalWebSocket: WebSocket | null = null;
+let globalWebSocketId: string | null = null;
+
   useEffect(() => {
     if (!parentToken) return;
-    if (wsRef.current) {
-      console.log("WebSocket already exists, skipping creation");
-      return;
-    }
+  if (globalWebSocket) {
+    console.log("WebSocket already exists, skipping creation:", globalWebSocketId);
+    wsRef.current = globalWebSocket; // assign for ref usage
+    return;
+  }
 
     const wsUrl = `wss://k4g7m4879h.execute-api.us-east-1.amazonaws.com/dev?token=${encodeURIComponent(
       parentToken
     )}`;
 
     const ws = new WebSocket(wsUrl);
-   const wsId = Math.random().toString(36).slice(2);
     wsRef.current = ws;
-    console.log("Created WebSocket with id:", wsId);
+   globalWebSocket = ws;
+  globalWebSocketId = Math.random().toString(36).slice(2);
+  console.log("Created WebSocket with id:", globalWebSocketId);
 
     ws.onopen = () => {
       console.log("WebSocket connected");
     };
 
     ws.onmessage = (event) => {
-      console.log("WS event from socket id:", wsId, event.data);
+     console.log("WS message from id:", globalWebSocketId, event.data);
       try {
         const payload = JSON.parse(event.data);
         const { event: eventType, data } = payload;
