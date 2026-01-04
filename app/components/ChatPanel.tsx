@@ -538,7 +538,7 @@ const MessageRow = ({
         )}
 
         {/* 📨 MESSAGE BUBBLE */}
-        <div className={styles.messageBubble}>
+     <div className={styles.messageBubble}>
           <div
             className={`${styles.senderNameLabel} ${
               isMine ? styles.textRight : styles.textLeft
@@ -546,18 +546,21 @@ const MessageRow = ({
           >
             {isMine ? "You" : m.senderName || "User"}
           </div>
-          {renderContent()}
 
-          {/* Metadata: Hide while editing to keep it clean */}
-          {!isEditing && (
-            <div className={styles.messageMeta}>
-              {(m as any).isEdited && (
-                <span className={styles.editedTag}>(edited)</span>
-              )}
-              <span className={styles.messageTime}>{m.timestamp}</span>
-              {isMine && getStatusIcon(m.status)}
-            </div>
-          )}
+          {/* 👇 COPY THIS SECTION EXACTLY 👇 */}
+          <div className={styles.contentWrapper}>
+            {renderContent()}
+
+            {!isEditing && (
+              <div className={styles.messageMeta}>
+                {(m as any).isEdited && (
+                  <span className={styles.editedTag}>(edited)</span>
+                )}
+                <span className={styles.messageTime}>{m.timestamp}</span>
+                {isMine && getStatusIcon(m.status)}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 😍 REACTION PILLS */}
