@@ -338,6 +338,7 @@ export default function ChatInterface() {
                     },
                   })
                 );
+                console.log("message be bab")
 
                 window.parent.postMessage(
                   {
