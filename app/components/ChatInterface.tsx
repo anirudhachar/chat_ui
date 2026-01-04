@@ -1315,6 +1315,8 @@ const userParam = searchParams.get("user"); // string | null
     const handleMessage = async (event: MessageEvent) => {
       if (!event.data?.type) return;
 
+      console.log(event,"evrntenter")
+
       if (event.data.type === "OPEN_CHAT") {
         const token = event.data.payload?.token;
         const incomingUser = event.data.payload?.user;
