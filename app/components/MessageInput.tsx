@@ -423,8 +423,8 @@ export default function MessageInput({
               onClick={showSendButton ? handleSend : startRecording}
               disabled={false}
             >
-              {/* {showSendButton ? <FiSend /> : <FiMic />} */}
-                {showSendButton && <FiSend /> }
+              {showSendButton ? <FiSend /> : <FiSend />}
+            
             </button>
           </div>
         )}
