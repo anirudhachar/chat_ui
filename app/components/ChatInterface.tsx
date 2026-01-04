@@ -221,7 +221,7 @@ const userParam = searchParams.get("user"); // string | null
   };
 
   useEffect(() => {
-    // Only care about /message route
+  console.log(pathname,"pathname")
     if (!pathname.startsWith("/message")) return;
 
     // 🔥 CASE 1: /message (NO user) → UNSELECT CHAT
@@ -1050,7 +1050,7 @@ const userParam = searchParams.get("user"); // string | null
   };
 
   const handleUserSelect = async (user: User) => {
-      if (!userParam) return;
+    
     if (!parentToken || !loggedInUserId) return;
     
 
