@@ -23,6 +23,7 @@ export interface User {
   instituteName?: string;
   instituteSlug?: string;
   instituteId?: number;
+  isLastMessageMine?: boolean;
 }
 
 export interface Message {
@@ -168,30 +169,41 @@ export default function ChatInterface() {
         console.log("📥 Conversations List:", data);
 
         const mappedUsers: User[] =
-          data?.data?.conversations?.map((c: any) => ({
-            id: c.user?.userId,
-            name: `${c.user?.firstName ?? ""} ${c.user?.lastName ?? ""}`.trim(),
-            avatar: c.user?.avatarUrl
-              ? `https://d34wmjl2ccaffd.cloudfront.net${c.user.avatarUrl}`
-              : undefined,
+          data?.data?.conversations?.map((c: any) => {
+            // 🔥 STEP 1: Check if I sent the last message
+            // Ensure you use loggedInUserIdRef.current (or loggedInUserId) here
+            const isMine = c.lastMessageSenderId === loggedInUserIdRef.current;
 
-            lastMessage: c.lastMessagePreview ?? "",
-            lastMessageTime: c.lastMessageAt
-              ? new Date(c.lastMessageAt).toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })
-              : "",
-            instituteName: c.user?.instituteName,
-            instituteSlug: c.user?.instituteSlug,
-            instituteId: c.user?.instituteId,
+            return {
+              id: c.user?.userId,
+              name: `${c.user?.firstName ?? ""} ${
+                c.user?.lastName ?? ""
+              }`.trim(),
+              avatar: c.user?.avatarUrl
+                ? `https://d34wmjl2ccaffd.cloudfront.net${c.user.avatarUrl}`
+                : undefined,
 
-            online: c.user?.isOnline ?? false,
-            unread: c.unreadCount ?? "",
-            lastMessageStatus: c.lastMessageDeliveryStatus
-              ? (c.lastMessageDeliveryStatus.toLowerCase() as User["lastMessageStatus"])
-              : undefined,
-          })) || [];
+              lastMessage: c.lastMessagePreview ?? "",
+              lastMessageTime: c.lastMessageAt
+                ? new Date(c.lastMessageAt).toLocaleTimeString("en-US", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })
+                : "",
+              instituteName: c.user?.instituteName,
+              instituteSlug: c.user?.instituteSlug,
+              instituteId: c.user?.instituteId,
+
+              // 🔥 STEP 2: Pass this flag to the UI
+              isLastMessageMine: isMine,
+
+              online: c.user?.isOnline ?? false,
+              unread: c.unreadCount ?? "",
+              lastMessageStatus: c.lastMessageDeliveryStatus
+                ? (c.lastMessageDeliveryStatus.toLowerCase() as User["lastMessageStatus"])
+                : undefined,
+            };
+          }) || [];
 
         // If it's the initial fetch (cursor is null), replace the list. Otherwise, append.
         setUsers((prev) =>
@@ -432,6 +444,7 @@ export default function ChatInterface() {
               if (existingIndex === -1) return prev;
 
               const existingUser = prev[existingIndex];
+              const isMine = data.senderUserId === loggedInUserIdRef.current;
 
               const updatedUser: User = {
                 ...existingUser,
@@ -443,7 +456,8 @@ export default function ChatInterface() {
                     minute: "2-digit",
                   }
                 ),
-
+                isLastMessageMine: isMine,
+                lastMessageStatus: isMine ? "sent" : undefined,
                 unread:
                   data.conversationId === conversationIdRef.current
                     ? 0
@@ -457,12 +471,32 @@ export default function ChatInterface() {
             break;
           }
           case "messageRead": {
+            // 1. Update the open Chat Window (Existing code)
             setMessages((prev) =>
               prev.map((m) =>
                 m.messageKey === data.messageKey || m.id === data.messageId
                   ? { ...m, status: "read" }
                   : m
               )
+            );
+
+            // 2. 🔥 Update the Sidebar (Add this)
+            setUsers((prev) =>
+              prev.map((user) => {
+                // Identify the user who read the message.
+                // Usually 'data.userId' or 'data.senderUserId' in the payload is the person who read it.
+                const isTheReader =
+                  user.id === data.userId || user.id === data.senderUserId;
+
+                // Only update if it is the correct user AND the last message was yours
+                if (isTheReader && user.isLastMessageMine) {
+                  return {
+                    ...user,
+                    lastMessageStatus: "read",
+                  };
+                }
+                return user;
+              })
             );
             break;
           }
@@ -525,6 +559,7 @@ export default function ChatInterface() {
           }
 
           case "messageDelivered": {
+            // 1. Update Active Chat Messages (Existing logic)
             setMessages((prev) =>
               prev.map((m) => {
                 if (
@@ -543,6 +578,24 @@ export default function ChatInterface() {
                 }
 
                 return { ...m, status: "delivered" };
+              })
+            );
+
+            // 2. 🔥 Update Sidebar Users (Add this)
+            setUsers((prev) =>
+              prev.map((user) => {
+                // Check if this user is the recipient of the delivered message
+                const isRecipient = user.id === data.recipientUserId;
+
+                if (isRecipient && user.isLastMessageMine) {
+                  // ⛔ Prevention: If it's already READ (blue), don't go back to DELIVERED (gray)
+                  if (user.lastMessageStatus === "read") {
+                    return user;
+                  }
+
+                  return { ...user, lastMessageStatus: "delivered" };
+                }
+                return user;
               })
             );
             break;
