@@ -19,6 +19,7 @@ interface UserSidebarProps {
   hasMore: boolean;
   isSearching: boolean;
   isUsersLoading: boolean;
+  
 }
 
 // ───────────────────────────────────────────────
