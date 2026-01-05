@@ -433,9 +433,6 @@ export default function ChatInterface() {
 
               const existingUser = prev[existingIndex];
 
-              const isChatOpen =
-                data.conversationId === conversationIdRef.current;
-
               const updatedUser: User = {
                 ...existingUser,
                 lastMessage: parsedOffer ? "Sent an offer" : data.content,
@@ -446,14 +443,11 @@ export default function ChatInterface() {
                     minute: "2-digit",
                   }
                 ),
-                unread: isChatOpen ? 0 : existingUser.unread,
 
-                // 🔥 Update status dynamically
-                lastMessageStatus: isChatOpen
-                  ? "read"
-                  : data.senderUserId === loggedInUserIdRef.current
-                  ? "sent"
-                  : "delivered",
+                unread:
+                  data.conversationId === conversationIdRef.current
+                    ? 0
+                    : existingUser.unread,
               };
 
               const others = prev.filter((_, idx) => idx !== existingIndex);
@@ -643,37 +637,36 @@ export default function ChatInterface() {
             break;
           }
 
-         case "conversationUpdated": {
-  setUsers((prev) => {
-    const targetId = data.lastMessageSenderId;
-    const index = prev.findIndex((u) => u.id === targetId);
+          case "conversationUpdated": {
+            setUsers((prev) => {
+              // Find the user to update
+              const targetId = data.lastMessageSenderId;
 
-    if (index === -1) return prev;
+              const index = prev.findIndex((u) => u.id === targetId);
 
-    const existingUser = prev[index];
+              if (index === -1) return prev;
 
-    const updatedUser: User = {
-      ...existingUser, // preserve all existing fields, optional and required
-      lastMessage: data.lastMessagePreview,
-      lastMessageTime: new Date(data.lastMessageAt).toLocaleTimeString(
-        "en-US",
-        { hour: "numeric", minute: "2-digit" }
-      ),
-      unread:
-        selectedUserRef.current?.id === targetId
-          ? 0
-          : (existingUser.unread ?? 0) + (data.unreadIncrement ?? 0),
-      lastMessageStatus: data.lastMessageDeliveryStatus
-        ? (data.lastMessageDeliveryStatus.toLowerCase() as User["lastMessageStatus"])
-        : existingUser.lastMessageStatus,
-    };
+              const updatedUser = {
+                ...prev[index],
+                lastMessage: data.lastMessagePreview,
+                lastMessageTime: new Date(
+                  data.lastMessageAt
+                ).toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                }),
+                unread:
+                  selectedUserRef.current?.id === targetId
+                    ? 0
+                    : (prev[index].unread ?? 0) + (data.unreadIncrement ?? 0),
+              };
 
-    const others = prev.filter((_, i) => i !== index);
-    return [updatedUser, ...others];
-  });
-  break;
-}
-
+              // Move to top
+              const others = prev.filter((_, i) => i !== index);
+              return [updatedUser, ...others];
+            });
+            break;
+          }
 
           case "messageSentAck": {
             console.log("✅ Message acknowledged by server");
