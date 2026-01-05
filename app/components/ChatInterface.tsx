@@ -465,13 +465,15 @@ export default function ChatInterface() {
               )
             );
 
-            setUsers((prev) =>
-              prev.map((u) =>
-                u.id === data.readerUserId
-                  ? { ...u, lastMessageStatus: "read" }
-                  : u
-              )
-            );
+        setUsers((prev) =>
+  prev.map((u) =>
+    conversationIdRef.current &&
+    u.id === selectedUserRef.current?.id
+      ? { ...u, lastMessageStatus: "read" }
+      : u
+  )
+);
+
 
             break;
           }
