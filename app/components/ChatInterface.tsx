@@ -443,7 +443,7 @@ export default function ChatInterface() {
                     minute: "2-digit",
                   }
                 ),
-                lastMessageStatus: isMine ? "sent" : "read",
+
                 unread:
                   data.conversationId === conversationIdRef.current
                     ? 0
@@ -464,17 +464,6 @@ export default function ChatInterface() {
                   : m
               )
             );
-
-        setUsers((prev) =>
-  prev.map((u) =>
-    conversationIdRef.current &&
-    u.id === selectedUserRef.current?.id
-      ? { ...u, lastMessageStatus: "read" }
-      : u
-  )
-);
-
-
             break;
           }
 
@@ -556,14 +545,7 @@ export default function ChatInterface() {
                 return { ...m, status: "delivered" };
               })
             );
-
-            setUsers((prev) =>
-              prev.map((u) =>
-                u.id === data.recipientUserId
-                  ? { ...u, lastMessageStatus: "delivered" }
-                  : u
-              )
-            );
+            
             break;
           }
 
@@ -1211,11 +1193,6 @@ export default function ChatInterface() {
       setSearchQuery("");
       setSearchResults([]);
       setIsSearching(false);
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === selectedUser.id ? { ...u, lastMessageStatus: "sent" } : u
-        )
-      );
 
       setUsers((prev) => {
         const updatedUser: User = {
