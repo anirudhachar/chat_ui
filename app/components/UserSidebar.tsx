@@ -38,9 +38,7 @@ const StatusIcon = ({ status }: { status?: User["lastMessageStatus"] }) => {
       return <IoCheckmarkDone className={styles.tickIcon} />;
 
     case "read":
-      return (
-        <IoCheckmarkDone className={`${styles.tickIcon} ${styles.read}`} />
-      );
+      return <IoCheckmarkDone className={`${styles.tickIcon} ${styles.read}`} />;
 
     default:
       return null;
@@ -63,7 +61,7 @@ export default function UserSidebar({
 
   /* Infinite scroll (disabled during search) */
   useEffect(() => {
-    if (!onLoadMore || !hasMore || searchQuery.length >= 2) return;
+if (!onLoadMore || !hasMore || searchQuery.length >= 2) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
@@ -188,11 +186,9 @@ export default function UserSidebar({
                 </div>
                 <div className={styles.lastMessageWrapper}>
                   {/* 🔥 NEW: Render Status Icon */}
-                  {!user.isTyping &&
-                    user.isLastMessageMine &&
-                    user.lastMessageStatus && (
-                      <StatusIcon status={user.lastMessageStatus} />
-                    )}
+                  {!user.isTyping && user.lastMessageStatus && (
+                    <StatusIcon status={user.lastMessageStatus} />
+                  )}
 
                   <p
                     className={`${styles.lastMessage} ${
