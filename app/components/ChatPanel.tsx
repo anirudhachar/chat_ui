@@ -89,7 +89,7 @@ const MessageRow = ({
   const [editContent, setEditContent] = useState("");
 
   const menuRef = useRef<HTMLDivElement>(null);
-  const pickerRef = useRef<HTMLDivElement>(null);
+
   const isDeleted =
     m.content === "This message was deleted" || (m as any).isDeleted;
 
@@ -462,21 +462,23 @@ const MessageRow = ({
             <div className={styles.divider} />
 
             {/* 2. Plus Button (Picker) */}
-            <div className={styles.actionBtnWrapper} ref={pickerRef}>
-              <button
-                className={styles.actionBtn}
-                onClick={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setPickerPosition({
-                    top: rect.top - 360,
-                    left: rect.left,
-                  });
-                }}
-              >
+         
+             <button
+  className={styles.actionBtn}
+  onClick={(e) => {
+    e.stopPropagation(); // ✅ CRITICAL
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPickerPosition({
+      top: Math.max(16, rect.top - 360),
+      left: rect.left,
+    });
+  }}
+>
+
                 <FiSmile /> <span className={styles.plusSign}>+</span>
               </button>
 
-            </div>
+          
 
             <div className={styles.divider} />
 
