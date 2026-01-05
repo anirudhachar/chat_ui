@@ -690,36 +690,42 @@ export default function ChatInterface() {
             break;
           }
 
-          case "conversationUpdated": {
-            setUsers((prev) => {
-              // Find the user to update
-              const targetId = data.lastMessageSenderId;
+       case "conversationUpdated": {
+  setUsers((prev) => {
+    const targetId = data.lastMessageSenderId === loggedInUserIdRef.current 
+      ? data.otherUserId // Ensure you have a way to find the partner ID if you are the sender
+      : data.lastMessageSenderId;
 
-              const index = prev.findIndex((u) => u.id === targetId);
+    // Fallback: search by conversationId or just loop to find the changed item
+    const index = prev.findIndex((u) => u.id === targetId || data.conversationId === conversationIdRef.current);
 
-              if (index === -1) return prev;
+    if (index === -1) return prev;
 
-              const updatedUser = {
-                ...prev[index],
-                lastMessage: data.lastMessagePreview,
-                lastMessageTime: new Date(
-                  data.lastMessageAt
-                ).toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                }),
-                unread:
-                  selectedUserRef.current?.id === targetId
-                    ? 0
-                    : (prev[index].unread ?? 0) + (data.unreadIncrement ?? 0),
-              };
+    // 🔥 1. Check ownership
+    const isMine = data.lastMessageSenderId === loggedInUserIdRef.current;
 
-              // Move to top
-              const others = prev.filter((_, i) => i !== index);
-              return [updatedUser, ...others];
-            });
-            break;
-          }
+    const updatedUser = {
+      ...prev[index],
+      lastMessage: data.lastMessagePreview,
+      lastMessageTime: new Date(data.lastMessageAt).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      }),
+      unread: isMine ? 0 : (prev[index].unread ?? 0) + (data.unreadIncrement ?? 0),
+
+      // 🔥 2. CRITICAL FIX: Ensure status persists
+      isLastMessageMine: isMine,
+      lastMessageStatus: isMine 
+        ? (data.lastMessageDeliveryStatus?.toLowerCase() || "sent") // Use backend status if avail, else default to 'sent'
+        : undefined,
+    };
+
+    // Move to top
+    const others = prev.filter((_, i) => i !== index);
+    return [updatedUser, ...others];
+  });
+  break;
+}
 
           case "messageSentAck": {
             console.log("✅ Message acknowledged by server");
