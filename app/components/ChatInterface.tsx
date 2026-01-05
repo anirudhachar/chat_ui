@@ -433,9 +433,6 @@ export default function ChatInterface() {
 
               const existingUser = prev[existingIndex];
 
-              const isChatOpen =
-                data.conversationId === conversationIdRef.current;
-
               const updatedUser: User = {
                 ...existingUser,
                 lastMessage: parsedOffer ? "Sent an offer" : data.content,
@@ -446,14 +443,11 @@ export default function ChatInterface() {
                     minute: "2-digit",
                   }
                 ),
-                unread: isChatOpen ? 0 : existingUser.unread,
 
-                // 🔥 Update status dynamically
-                lastMessageStatus: isChatOpen
-                  ? "read"
-                  : data.senderUserId === loggedInUserIdRef.current
-                  ? "sent"
-                  : "delivered",
+                unread:
+                  data.conversationId === conversationIdRef.current
+                    ? 0
+                    : existingUser.unread,
               };
 
               const others = prev.filter((_, idx) => idx !== existingIndex);
@@ -645,15 +639,15 @@ export default function ChatInterface() {
 
           case "conversationUpdated": {
             setUsers((prev) => {
+              // Find the user to update
               const targetId = data.lastMessageSenderId;
+
               const index = prev.findIndex((u) => u.id === targetId);
 
               if (index === -1) return prev;
 
-              const existingUser = prev[index];
-
-              const updatedUser: User = {
-                ...existingUser, // preserve all existing fields, optional and required
+              const updatedUser = {
+                ...prev[index],
                 lastMessage: data.lastMessagePreview,
                 lastMessageTime: new Date(
                   data.lastMessageAt
@@ -664,12 +658,10 @@ export default function ChatInterface() {
                 unread:
                   selectedUserRef.current?.id === targetId
                     ? 0
-                    : (existingUser.unread ?? 0) + (data.unreadIncrement ?? 0),
-                lastMessageStatus: data.lastMessageDeliveryStatus
-                  ? (data.lastMessageDeliveryStatus.toLowerCase() as User["lastMessageStatus"])
-                  : existingUser.lastMessageStatus,
+                    : (prev[index].unread ?? 0) + (data.unreadIncrement ?? 0),
               };
 
+              // Move to top
               const others = prev.filter((_, i) => i !== index);
               return [updatedUser, ...others];
             });
