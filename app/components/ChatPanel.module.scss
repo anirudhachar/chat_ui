@@ -1618,3 +1618,11 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+.emojiPickerPortal {
+  position: fixed;
+  z-index: 10000;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}

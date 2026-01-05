@@ -28,6 +28,7 @@ import {
   IoCheckmarkDone,
   IoTimeOutline,
 } from "react-icons/io5";
+import { createPortal } from "react-dom";
 
 // ───────────────────────────────────────────────
 // TYPES
@@ -77,7 +78,10 @@ const MessageRow = ({
   onDelete: (m: Message) => void;
   onReact: (m: Message, e: string) => void;
 }) => {
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [pickerPosition, setPickerPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const [showMenu, setShowMenu] = useState(false);
 
   // ✏️ NEW: Local Editing State
@@ -90,21 +94,17 @@ const MessageRow = ({
     m.content === "This message was deleted" || (m as any).isDeleted;
 
   // Close popups on click outside
+
+
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
-      if (
-        pickerRef.current &&
-        !pickerRef.current.contains(event.target as Node)
-      ) {
-        setShowEmojiPicker(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  if (!pickerPosition) return;
+
+  const close = () => setPickerPosition(null);
+  window.addEventListener("click", close);
+
+  return () => window.removeEventListener("click", close);
+}, [pickerPosition]);
+
 
   // ─────────────────────────────────────────────
   // EDIT HANDLERS
@@ -416,6 +416,7 @@ const MessageRow = ({
   const QUICK_REACTIONS = ["👍", "👏", "😄", "🤔", "❤️"];
 
   return (
+    <>
     <div
       className={`${styles.messageRow} ${
         isMine ? styles.myRow : styles.theirRow
@@ -464,25 +465,17 @@ const MessageRow = ({
             <div className={styles.actionBtnWrapper} ref={pickerRef}>
               <button
                 className={styles.actionBtn}
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                title="Add reaction"
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setPickerPosition({
+                    top: rect.top - 360,
+                    left: rect.left,
+                  });
+                }}
               >
                 <FiSmile /> <span className={styles.plusSign}>+</span>
               </button>
-              {showEmojiPicker && (
-                <div className={styles.emojiPickerPopup}>
-                  <EmojiPicker
-                    onEmojiClick={(e) => {
-                      onReact(m, e.emoji);
-                      setShowEmojiPicker(false);
-                    }}
-                    width={280}
-                    height={350}
-                    theme={Theme.LIGHT}
-                    previewConfig={{ showPreview: false }}
-                  />
-                </div>
-              )}
+
             </div>
 
             <div className={styles.divider} />
@@ -588,8 +581,37 @@ const MessageRow = ({
         )}
       </div>
     </div>
+{pickerPosition &&
+  typeof window !== "undefined" &&
+  createPortal(
+    <div
+      className={styles.emojiPickerPortal}
+      style={{
+        top: pickerPosition.top,
+        left: pickerPosition.left,
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <EmojiPicker
+        onEmojiClick={(e) => {
+          onReact(m, e.emoji);
+          setPickerPosition(null);
+        }}
+        width={280}
+        height={350}
+        theme={Theme.LIGHT}
+        previewConfig={{ showPreview: false }}
+      />
+    </div>,
+    document.body
+  )}
+
+    </>
   );
 };
+
+
+
 
 // ───────────────────────────────────────────────
 // MAIN CHAT PANEL
