@@ -470,36 +470,37 @@ export default function ChatInterface() {
 
             break;
           }
-          case "messageRead": {
-            // 1. Update the open Chat Window (Existing code)
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.messageKey === data.messageKey || m.id === data.messageId
-                  ? { ...m, status: "read" }
-                  : m
-              )
-            );
+      case "messageRead": {
+  // 1. Update the open Chat Window (Existing code)
+  setMessages((prev) =>
+    prev.map((m) =>
+      m.messageKey === data.messageKey || m.id === data.messageId
+        ? { ...m, status: "read" }
+        : m
+    )
+  );
 
-            // 2. 🔥 Update the Sidebar (Add this)
-            setUsers((prev) =>
-              prev.map((user) => {
-                // Identify the user who read the message.
-                // Usually 'data.userId' or 'data.senderUserId' in the payload is the person who read it.
-                const isTheReader =
-                  user.id === data.userId || user.id === data.senderUserId;
+  // 2. 🔥 Update the Sidebar (FIXED)
+  setUsers((prev) =>
+    prev.map((user) => {
+      // Check multiple potential ID fields from the backend payload
+      const isTheReader =
+        user.id === data.recipientUserId || // Check this (Matches 'delivered' logic)
+        user.id === data.userId ||          // Check this (Standard event actor)
+        user.id === data.senderUserId;      // Check this (Event sender)
 
-                // Only update if it is the correct user AND the last message was yours
-                if (isTheReader && user.isLastMessageMine) {
-                  return {
-                    ...user,
-                    lastMessageStatus: "read",
-                  };
-                }
-                return user;
-              })
-            );
-            break;
-          }
+      // Only update if it's the correct user AND the last message was yours
+      if (isTheReader && user.isLastMessageMine) {
+        return {
+          ...user,
+          lastMessageStatus: "read",
+        };
+      }
+      return user;
+    })
+  );
+  break;
+}
 
           case "userPresence": {
             const { userId, status } = data;
