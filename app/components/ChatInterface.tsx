@@ -464,6 +464,14 @@ export default function ChatInterface() {
                   : m
               )
             );
+            setUsers((prev) =>
+              prev.map((u) =>
+                u.id === selectedUserRef.current?.id
+                  ? { ...u, lastMessageStatus: "read" } // ✓✓ blue
+                  : u
+              )
+            );
+
             break;
           }
 
@@ -1198,6 +1206,7 @@ export default function ChatInterface() {
           ...selectedUser,
           lastMessage: content,
           lastMessageTime: timeString,
+          lastMessageStatus: "sending",
           unread: 0,
         };
 
@@ -1250,6 +1259,13 @@ export default function ChatInterface() {
                   senderAvatar: myAvatar,
                 }
               : m
+          )
+        );
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === selectedUser.id
+              ? { ...u, lastMessageStatus: "sent" } // ✓ single tick
+              : u
           )
         );
 
