@@ -153,7 +153,10 @@ export default function UserSidebar({
               className={`${styles.userCard} ${
                 selectedUser?.id === user.id ? styles.active : ""
               }`}
-              onClick={() => onUserSelect(user)}
+              onClick={() => {
+                if (selectedUser?.id === user.id) return; // 🚫 do nothing
+                onUserSelect(user);
+              }}
             >
               <div className={styles.avatarWrapper}>
                 {user.avatar ? (

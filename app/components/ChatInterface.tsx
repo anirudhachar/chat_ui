@@ -1732,7 +1732,7 @@ export default function ChatInterface() {
           onBack={() => {
             setSelectedUser(null);
             setShowSidebar(true);
-              conversationIdRef.current = null;
+            conversationIdRef.current = null;
           }}
           onLoadMoreMessages={loadMoreMessages}
           hasMoreMessages={hasMoreMessages}
