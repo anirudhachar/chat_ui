@@ -106,7 +106,6 @@ export default function ChatInterface() {
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const lastTypingSentTimeRef = useRef<number>(0);
   const [enableInfiniteScroll, setEnableInfiniteScroll] = useState(true);
-  const seenAckMessageIdsRef = useRef<Set<string>>(new Set());
 
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchParams = useSearchParams();
@@ -661,54 +660,39 @@ export default function ChatInterface() {
             break;
           }
 
-        case "conversationUpdated": {
-  setUsers(prev => {
-    const index = prev.findIndex(
-      u => u.id === data.lastMessageSenderId
-    );
+          case "conversationUpdated": {
+            setUsers((prev) => {
+              // Find the user to update
+              const targetId = data.lastMessageSenderId;
 
-    if (index === -1) return prev;
+              const index = prev.findIndex((u) => u.id === targetId);
 
-    const updatedUser: User = {
-      ...prev[index],
-      lastMessage: data.lastMessagePreview,
-      lastMessageTime: new Date(data.lastMessageAt).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-      lastMessageSenderId: data.lastMessageSenderId,
-      unread:
-        selectedUserRef.current?.id === data.lastMessageSenderId
-          ? 0
-          : (prev[index].unread ?? 0) + (data.unreadIncrement ?? 0),
-    };
+              if (index === -1) return prev;
 
-    const others = prev.filter((_, i) => i !== index);
-    return [updatedUser, ...others]; // 🔥 move to top
-  });
+              const updatedUser = {
+                ...prev[index],
+                lastMessage: data.lastMessagePreview,
+                lastMessageTime: new Date(
+                  data.lastMessageAt
+                ).toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                }),
+                unread:
+                  selectedUserRef.current?.id === targetId
+                    ? 0
+                    : (prev[index].unread ?? 0) + (data.unreadIncrement ?? 0),
+              };
 
-  break;
-}
-
+              // Move to top
+              const others = prev.filter((_, i) => i !== index);
+              return [updatedUser, ...others];
+            });
+            break;
+          }
 
           case "messageSentAck": {
-            const { conversationId, messageId } = data;
-
-            console.log("✅ messageSentAck received", data);
-
-            // Only if this conversation is currently open
-            if (conversationId !== conversationIdRef.current) return;
-
-            // Prevent duplicate fetches
-            if (seenAckMessageIdsRef.current.has(messageId)) return;
-            seenAckMessageIdsRef.current.add(messageId);
-
-            // Fetch messages for current conversation
-            if (parentToken && loggedInUserId) {
-              setIsMessagesLoading(true);
-              fetchMessages(conversationId, parentToken, loggedInUserId, null);
-            }
-
+            console.log("✅ Message acknowledged by server");
             break;
           }
 
