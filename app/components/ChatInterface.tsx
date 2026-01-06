@@ -661,62 +661,32 @@ export default function ChatInterface() {
             break;
           }
 
-          // case "conversationUpdated": {
-          //   setUsers((prev) => {
-          //     // Find the user to update
-          //     const targetId = data.lastMessageSenderId;
+        case "conversationUpdated": {
+  setUsers(prev => {
+    const index = prev.findIndex(
+      u => u.id === data.lastMessageSenderId
+    );
 
-          //     const index = prev.findIndex((u) => u.id === targetId);
-
-          //     if (index === -1) return prev;
-
-          //     const updatedUser = {
-          //       ...prev[index],
-          //       lastMessage: data.lastMessagePreview,
-          //       lastMessageTime: new Date(
-          //         data.lastMessageAt
-          //       ).toLocaleTimeString("en-US", {
-          //         hour: "numeric",
-          //         minute: "2-digit",
-          //       }),
-          //       unread:
-          //         selectedUserRef.current?.id === targetId
-          //           ? 0
-          //           : (prev[index].unread ?? 0) + (data.unreadIncrement ?? 0),
-          //     };
-
-          //     // Move to top
-          //     const others = prev.filter((_, i) => i !== index);
-          //     return [updatedUser, ...others];
-          //   });
-          //   break;
-          // }
-
-          case "conversationUpdated": {
-  setUsers((prev) => {
-    // Find the user to update
-    const targetId = data.lastMessageSenderId;
-    const index = prev.findIndex((u) => u.id === targetId);
     if (index === -1) return prev;
 
-    const updatedUser = {
+    const updatedUser: User = {
       ...prev[index],
       lastMessage: data.lastMessagePreview,
-      lastMessageTime: new Date(data.lastMessageAt).toLocaleTimeString(
-        "en-US",
-        { hour: "numeric", minute: "2-digit" }
-      ),
+      lastMessageTime: new Date(data.lastMessageAt).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      }),
+      lastMessageSenderId: data.lastMessageSenderId,
       unread:
-        selectedUserRef.current?.id === targetId
+        selectedUserRef.current?.id === data.lastMessageSenderId
           ? 0
           : (prev[index].unread ?? 0) + (data.unreadIncrement ?? 0),
-      lastMessageSenderId: targetId, // track sender
     };
 
-    // Move updated conversation to top
     const others = prev.filter((_, i) => i !== index);
-    return [updatedUser, ...others];
+    return [updatedUser, ...others]; // 🔥 move to top
   });
+
   break;
 }
 
