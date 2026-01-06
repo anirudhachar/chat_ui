@@ -23,6 +23,7 @@ export interface User {
   instituteName?: string;
   instituteSlug?: string;
   instituteId?: number;
+  lastMessageSenderId?: string;
 }
 
 export interface Message {
@@ -448,6 +449,9 @@ export default function ChatInterface() {
                   data.conversationId === conversationIdRef.current
                     ? 0
                     : existingUser.unread,
+
+                lastMessageStatus: undefined, // ❌ remove ticks
+                lastMessageSenderId: data.senderUserId, // incoming
               };
 
               const others = prev.filter((_, idx) => idx !== existingIndex);
@@ -466,8 +470,9 @@ export default function ChatInterface() {
             );
             setUsers((prev) =>
               prev.map((u) =>
-                u.id === selectedUserRef.current?.id
-                  ? { ...u, lastMessageStatus: "read" } // ✓✓ blue
+                u.id === selectedUserRef.current?.id &&
+                u.lastMessageSenderId === loggedInUserIdRef.current
+                  ? { ...u, lastMessageStatus: "read" }
                   : u
               )
             );
@@ -553,6 +558,16 @@ export default function ChatInterface() {
                 return { ...m, status: "delivered" };
               })
             );
+
+            setUsers((prev) =>
+              prev.map((u) =>
+                u.id === selectedUserRef.current?.id &&
+                u.lastMessageSenderId === loggedInUserIdRef.current
+                  ? { ...u, lastMessageStatus: "delivered" }
+                  : u
+              )
+            );
+
             break;
           }
 
@@ -1207,6 +1222,8 @@ export default function ChatInterface() {
           lastMessage: content,
           lastMessageTime: timeString,
           lastMessageStatus: "sending",
+          lastMessageSenderId: loggedInUserId ?? undefined,
+
           unread: 0,
         };
 
@@ -1264,7 +1281,11 @@ export default function ChatInterface() {
         setUsers((prev) =>
           prev.map((u) =>
             u.id === selectedUser.id
-              ? { ...u, lastMessageStatus: "sent" } // ✓ single tick
+              ? {
+                  ...u,
+                  lastMessageStatus: "sent",
+                  lastMessageSenderId: loggedInUserId ?? undefined,
+                } // ✓ single tick
               : u
           )
         );
