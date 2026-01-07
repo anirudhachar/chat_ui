@@ -1142,6 +1142,8 @@ export default function ChatInterface() {
       },
       replyTo?: Message
     ) => {
+
+     console.log("Sending message:", content, type, file, replyTo);
       if (!selectedUser || !parentToken) return;
 
       // 1. Detect URL for Link Preview logic later
