@@ -1372,7 +1372,7 @@ export default function ChatInterface() {
             lastMessage: "",
             instituteName: incomingUser.instituteName,
             lastMessageTime: "Now",
-            online: true,
+            online: false,
           };
 
           setSelectedUser(user);
