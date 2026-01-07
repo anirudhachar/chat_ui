@@ -1418,6 +1418,7 @@ export default function ChatInterface() {
       }
 
       if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
+        console.log("got message");
         if (!selectedUser || !parentToken) return;
 
         const payload = event.data.payload;
@@ -1481,6 +1482,14 @@ export default function ChatInterface() {
             );
           }
 
+          return;
+        }
+
+        if (payload.type === "MARKETPLACE_MESSAGE") {
+          const text = payload.text;
+          if (!text) return;
+
+          handleSendMessage(text);
           return;
         }
 
