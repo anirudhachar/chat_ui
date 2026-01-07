@@ -165,12 +165,26 @@ const MessageRow = ({
     }
   };
 
+  const editInputRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+  if (isEditing && editInputRef.current) {
+    const el = editInputRef.current;
+    const len = el.value.length;
+
+    // Move cursor to end
+    el.setSelectionRange(len, len);
+    el.focus();
+  }
+}, [isEditing]);
+
+
   const renderContent = () => {
     // ✏️ 1. EDIT MODE (Only for text messages)
     if (isEditing) {
       return (
         <div className={styles.editContainer}>
           <textarea
+           ref={editInputRef}
             className={styles.editInput}
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
@@ -414,6 +428,8 @@ const MessageRow = ({
 
   // LinkedIn Style: 5 quick emojis
   const QUICK_REACTIONS = ["👍", "👏", "😄", "🤔", "❤️"];
+
+  
 
   return (
     <>
