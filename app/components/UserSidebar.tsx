@@ -229,61 +229,62 @@ export default function UserSidebar({
 
 
   {profileUser && (
+ <div
+  className={styles.profileModalOverlay}
+  onClick={() => setProfileUser(null)}
+>
   <div
-    className={styles.profileModalOverlay}
-    onClick={() => setProfileUser(null)}
+    className={styles.profileModal}
+    onClick={(e) => e.stopPropagation()}
   >
-    <div
-      className={styles.profileModal}
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* Full profile image */}
-      <div className={styles.profileImageWrapper}>
-        {profileUser.avatar ? (
-          <img
-            src={profileUser.avatar}
-            alt={profileUser.name}
-            className={styles.profileImage}
-          />
-        ) : (
-          <div
-            className={styles.profileImageFallback}
-            style={{ backgroundColor: getAvatarColor(profileUser.id) }}
-          >
-            {getInitials(profileUser.name)}
-          </div>
-        )}
-      </div>
-
-      {/* Name */}
-      <h3 className={styles.profileName}>{profileUser.name}</h3>
-
-      {/* Actions */}
-      <div className={styles.profileActionsRow}>
-        <button
-          className={styles.profileActionBtn}
-          onClick={() => {
-            onUserSelect(profileUser);
-            setProfileUser(null);
-          }}
+    {/* Full profile image */}
+    <div className={styles.profileImageWrapper}>
+      {profileUser.avatar ? (
+        <img
+          src={profileUser.avatar}
+          alt={profileUser.name}
+          className={styles.profileImage}
+        />
+      ) : (
+        <div
+          className={styles.profileImageFallback}
+          style={{ backgroundColor: getAvatarColor(profileUser.id) }}
         >
-          <FiCheck className={styles.actionIcon} />
-          <span>Message</span>
-        </button>
+          {getInitials(profileUser.name)}
+        </div>
+      )}
 
-        <button
-          className={styles.profileActionBtn}
-          onClick={() => {
-            console.log("Go to profile:", profileUser.id);
-            setProfileUser(null);
-          }}
-        >
-          <FiSearch className={styles.actionIcon} />
-          <span>View Profile</span>
-        </button>
-      </div>
+      {/* Name overlay top-left */}
+      <div className={styles.profileNameOverlay}>{profileUser.name}</div>
+    </div>
+
+    {/* Actions */}
+    <div className={styles.profileActionsRow}>
+      <button
+        className={styles.profileActionBtn}
+        onClick={() => {
+          onUserSelect(profileUser);
+          setProfileUser(null);
+        }}
+      >
+        <FiCheck className={styles.actionIcon} />
+        <span>Message</span>
+      </button>
+
+      <button
+        className={styles.profileActionBtn}
+        onClick={() => {
+          console.log("Go to profile:", profileUser.id);
+          setProfileUser(null);
+        }}
+      >
+        <FiSearch className={styles.actionIcon} />
+        <span>Profile</span>
+      </button>
     </div>
   </div>
+</div>
+
 )}
 
 
