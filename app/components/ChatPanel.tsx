@@ -58,7 +58,6 @@ interface ChatPanelProps {
   // onInputBlur: () => void;
 }
 
-
 const isMobileDevice = () =>
   typeof window !== "undefined" &&
   (window.innerWidth < 768 || "ontouchstart" in window);
@@ -99,37 +98,38 @@ const MessageRow = ({
     m.content === "This message was deleted" || (m as any).isDeleted;
 
   // Close popups on click outside
-const [showMobileSheet, setShowMobileSheet] = useState(false);
-const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-const isMobile = isMobileDevice();
-const handleTouchStart = () => {
-  if (!isMobile) return;
+  const [showMobileSheet, setShowMobileSheet] = useState(false);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const isMobile = isMobileDevice();
+  const handleTouchStart = () => {
+    if (!isMobile) return;
 
-  longPressTimer.current = setTimeout(() => {
-    setShowMobileSheet(true);
-  }, 450); // LinkedIn-like delay
-};
+    longPressTimer.current = setTimeout(() => {
+      setShowMobileSheet(true);
+    }, 450); // LinkedIn-like delay
+  };
 
-const handleTouchEnd = () => {
-  if (longPressTimer.current) {
-    clearTimeout(longPressTimer.current);
-    longPressTimer.current = null;
-  }
-};
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
 
   useEffect(() => {
-  if (!pickerPosition) return;
+    if (!pickerPosition) return;
 
-  const close = () => setPickerPosition(null);
-  window.addEventListener("click", close);
+    const close = () => setPickerPosition(null);
+    window.addEventListener("click", close);
 
-  return () => window.removeEventListener("click", close);
-}, [pickerPosition]);
+    return () => window.removeEventListener("click", close);
+  }, [pickerPosition]);
 
+  const closeMobileSheet = () => {
+    setShowMobileSheet(false);
+    setPickerPosition(null);
+  };
 
-  // ─────────────────────────────────────────────
-  // EDIT HANDLERS
-  // ─────────────────────────────────────────────
   const handleStartEdit = () => {
     setEditContent(m.content || "");
     setIsEditing(true);
@@ -188,16 +188,15 @@ const handleTouchEnd = () => {
 
   const editInputRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
-  if (isEditing && editInputRef.current) {
-    const el = editInputRef.current;
-    const len = el.value.length;
+    if (isEditing && editInputRef.current) {
+      const el = editInputRef.current;
+      const len = el.value.length;
 
-    // Move cursor to end
-    el.setSelectionRange(len, len);
-    el.focus();
-  }
-}, [isEditing]);
-
+      // Move cursor to end
+      el.setSelectionRange(len, len);
+      el.focus();
+    }
+  }, [isEditing]);
 
   const renderContent = () => {
     // ✏️ 1. EDIT MODE (Only for text messages)
@@ -205,7 +204,7 @@ const handleTouchEnd = () => {
       return (
         <div className={styles.editContainer}>
           <textarea
-           ref={editInputRef}
+            ref={editInputRef}
             className={styles.editInput}
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
@@ -450,275 +449,291 @@ const handleTouchEnd = () => {
   // LinkedIn Style: 5 quick emojis
   const QUICK_REACTIONS = ["👍", "👏", "😄", "🤔", "❤️"];
 
-  
-
   return (
     <>
-    <div
-      className={`${styles.messageRow} ${
-        isMine ? styles.myRow : styles.theirRow
-      }`}
-      onTouchStart={handleTouchStart}
-  onTouchEnd={handleTouchEnd}
-    >
-      {/* AVATAR */}
-      {!isMine && (
-        <div className={styles.avatarCol}>
-          {m.senderAvatar ? (
-            <img
-              src={m.senderAvatar}
-              alt="avatar"
-              className={styles.messageAvatar}
-            />
-          ) : (
-            <div className={styles.defaultAvatar}>
-              {m.senderName?.charAt(0)}
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className={styles.bubbleContainer}>
-      {!isEditing && !isDeleted && !isMobile && (
-          <div
-            className={`${styles.actionBar} ${
-              isMine ? styles.actionLeft : styles.actionRight
-            }`}
-          >
-            {/* 1. Quick Reactions */}
-            <div className={styles.quickReactions}>
-              {QUICK_REACTIONS.map((emoji) => (
-                <button
-                  key={emoji}
-                  className={styles.reactionBtn}
-                  onClick={() => onReact(m, emoji)}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-
-            <div className={styles.divider} />
-
-            {/* 2. Plus Button (Picker) */}
-         
-             <button
-  className={styles.actionBtn}
-  onClick={(e) => {
-    e.stopPropagation(); // ✅ CRITICAL
-    const rect = e.currentTarget.getBoundingClientRect();
-    setPickerPosition({
-      top: Math.max(16, rect.top - 360),
-      left: rect.left,
-    });
-  }}
->
-
-                <FiSmile /> <span className={styles.plusSign}>+</span>
-              </button>
-
-          
-
-            <div className={styles.divider} />
-
-            {/* 3. Reply Button */}
-            <button
-              className={styles.actionBtn}
-              onClick={() => onReply(m)}
-              title="Reply"
-            >
-              <FiCornerUpLeft />
-            </button>
-
-            {/* 4. More Options */}
-            <div className={styles.actionBtnWrapper} ref={menuRef}>
-              <button
-                className={styles.actionBtn}
-                onClick={() => setShowMenu(!showMenu)}
-              >
-                <FiMoreVertical />
-              </button>
-
-              {showMenu && (
-                <div className={styles.dropdownMenu}>
-                  <div
-                    onClick={() => {
-                      onCopy(m);
-                      setShowMenu(false);
-                    }}
-                    className={styles.dropdownItem}
-                  >
-                    <FiCopy size={14} /> Copy
-                  </div>
-
-                  {/* 🔥 INLINE EDIT TRIGGER */}
-                  {isMine && m.type === "text" && (
-                    <div
-                      onClick={handleStartEdit}
-                      className={styles.dropdownItem}
-                    >
-                      <FiEdit2 size={14} /> Edit
-                    </div>
-                  )}
-
-                  {isMine && (
-                    <div
-                      onClick={() => {
-                        onDelete(m);
-                        setShowMenu(false);
-                      }}
-                      className={`${styles.dropdownItem} ${styles.danger}`}
-                    >
-                      <FiTrash size={14} /> Delete
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* 📨 MESSAGE BUBBLE */}
-        <div className={styles.messageBubble}>
-          <div
-            className={`${styles.senderNameLabel} ${
-              isMine ? styles.textRight : styles.textLeft
-            }`}
-          >
-            {isMine ? "You" : m.senderName || "User"}
-          </div>
-          {renderContent()}
-
-          {!isEditing && (
-            <div className={styles.messageMeta}>
-              {(m as any).isEdited && (
-                <span className={styles.editedTag}>(edited)</span>
-              )}
-              <span className={styles.messageTime}>{m.timestamp}</span>
-              {isMine && getStatusIcon(m.status)}
-            </div>
-          )}
-        </div>
-
-        {/* 😍 REACTION PILLS */}
-        {!isDeleted && m.reactions && Object.keys(m.reactions).length > 0 && (
-          <div className={styles.reactionRow}>
-            {Object.entries(m.reactions).map(
-              ([emoji, userIds]) =>
-                userIds.length > 0 && (
-                  <button
-                    key={emoji}
-                    className={styles.reactionPill}
-                    onClick={() => onReact(m, emoji)}
-                  >
-                    <span className={styles.reactionEmoji}>{emoji}</span>
-                    <span className={styles.reactionCount}>
-                      {userIds.length}
-                    </span>
-                  </button>
-                )
+      <div
+        id={`msg-${m.id}`} // ✅ ADD THIS
+        className={`${styles.messageRow} ${
+          isMine ? styles.myRow : styles.theirRow
+        }`}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* AVATAR */}
+        {!isMine && (
+          <div className={styles.avatarCol}>
+            {m.senderAvatar ? (
+              <img
+                src={m.senderAvatar}
+                alt="avatar"
+                className={styles.messageAvatar}
+              />
+            ) : (
+              <div className={styles.defaultAvatar}>
+                {m.senderName?.charAt(0)}
+              </div>
             )}
           </div>
         )}
-      </div>
-    </div>
-{pickerPosition &&
-  typeof window !== "undefined" &&
-  createPortal(
-    <div
-      className={styles.emojiPickerPortal}
-      style={{
-        top: pickerPosition.top,
-        left: pickerPosition.left,
-      }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <EmojiPicker
-        onEmojiClick={(e) => {
-          onReact(m, e.emoji);
-          setPickerPosition(null);
-        }}
-        width={280}
-        height={350}
-        theme={Theme.LIGHT}
-        previewConfig={{ showPreview: false }}
-      />
-    </div>,
-    document.body
-  )}
 
-
-{showMobileSheet &&
-  createPortal(
-    <div
-      className={styles.mobileSheetOverlay}
-      onClick={() => setShowMobileSheet(false)}
-    >
-      <div
-        className={styles.mobileSheet}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Reactions */}
-        <div className={styles.mobileReactions}>
-          {QUICK_REACTIONS.map((emoji) => (
-            <button
-              key={emoji}
-              onClick={() => {
-                onReact(m, emoji);
-                setShowMobileSheet(false);
-              }}
+        <div className={styles.bubbleContainer}>
+          {!isEditing && !isDeleted && !isMobile && (
+            <div
+              className={`${styles.actionBar} ${
+                isMine ? styles.actionLeft : styles.actionRight
+              }`}
             >
-              {emoji}
-            </button>
-          ))}
-          <button
-            onClick={() => {
-              setPickerPosition({ top: window.innerHeight - 380, left: 16 });
-              setShowMobileSheet(false);
+              {/* 1. Quick Reactions */}
+              <div className={styles.quickReactions}>
+                {QUICK_REACTIONS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    className={styles.reactionBtn}
+                    onClick={() => onReact(m, emoji)}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+
+              <div className={styles.divider} />
+
+              {/* 2. Plus Button (Picker) */}
+
+              <button
+                className={styles.actionBtn}
+                onClick={(e) => {
+                  e.stopPropagation(); // ✅ CRITICAL
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setPickerPosition({
+                    top: Math.max(16, rect.top - 360),
+                    left: rect.left,
+                  });
+                }}
+              >
+                <FiSmile /> <span className={styles.plusSign}>+</span>
+              </button>
+
+              <div className={styles.divider} />
+
+              {/* 3. Reply Button */}
+              <button
+                className={styles.actionBtn}
+                onClick={() => onReply(m)}
+                title="Reply"
+              >
+                <FiCornerUpLeft />
+              </button>
+
+              {/* 4. More Options */}
+              <div className={styles.actionBtnWrapper} ref={menuRef}>
+                <button
+                  className={styles.actionBtn}
+                  onClick={() => setShowMenu(!showMenu)}
+                >
+                  <FiMoreVertical />
+                </button>
+
+                {showMenu && (
+                  <div className={styles.dropdownMenu}>
+                    <div
+                      onClick={() => {
+                        onCopy(m);
+                        setShowMenu(false);
+                      }}
+                      className={styles.dropdownItem}
+                    >
+                      <FiCopy size={14} /> Copy
+                    </div>
+
+                    {/* 🔥 INLINE EDIT TRIGGER */}
+                    {isMine && m.type === "text" && (
+                      <div
+                        onClick={handleStartEdit}
+                        className={styles.dropdownItem}
+                      >
+                        <FiEdit2 size={14} /> Edit
+                      </div>
+                    )}
+
+                    {isMine && (
+                      <div
+                        onClick={() => {
+                          onDelete(m);
+                          setShowMenu(false);
+                        }}
+                        className={`${styles.dropdownItem} ${styles.danger}`}
+                      >
+                        <FiTrash size={14} /> Delete
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 📨 MESSAGE BUBBLE */}
+          <div className={styles.messageBubble}>
+            <div
+              className={`${styles.senderNameLabel} ${
+                isMine ? styles.textRight : styles.textLeft
+              }`}
+            >
+              {isMine ? "You" : m.senderName || "User"}
+            </div>
+            {renderContent()}
+
+            {!isEditing && (
+              <div className={styles.messageMeta}>
+                {(m as any).isEdited && (
+                  <span className={styles.editedTag}>(edited)</span>
+                )}
+                <span className={styles.messageTime}>{m.timestamp}</span>
+                {isMine && getStatusIcon(m.status)}
+              </div>
+            )}
+          </div>
+
+          {/* 😍 REACTION PILLS */}
+          {!isDeleted && m.reactions && Object.keys(m.reactions).length > 0 && (
+            <div className={styles.reactionRow}>
+              {Object.entries(m.reactions).map(
+                ([emoji, userIds]) =>
+                  userIds.length > 0 && (
+                    <button
+                      key={emoji}
+                      className={styles.reactionPill}
+                      onClick={() => onReact(m, emoji)}
+                    >
+                      <span className={styles.reactionEmoji}>{emoji}</span>
+                      <span className={styles.reactionCount}>
+                        {userIds.length}
+                      </span>
+                    </button>
+                  )
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      {pickerPosition &&
+        typeof window !== "undefined" &&
+        createPortal(
+          <div
+            className={styles.emojiPickerPortal}
+            style={{
+              top: pickerPosition.top,
+              left: pickerPosition.left,
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <FiSmile />
-          </button>
-        </div>
-
-        <div className={styles.mobileActions}>
-          <button onClick={() => onReply(m)}>
-            <FiCornerUpLeft /> Reply
-          </button>
-
-          <button onClick={() => onCopy(m)}>
-            <FiCopy /> Copy
-          </button>
-
-          {isMine && m.type === "text" && (
-            <button onClick={handleStartEdit}>
-              <FiEdit2 /> Edit
-            </button>
-          )}
-
-          {isMine && (
-            <button
-              className={styles.danger}
-              onClick={() => {
-                onDelete(m);
-                setShowMobileSheet(false);
+            <EmojiPicker
+              onEmojiClick={(e) => {
+                onReact(m, e.emoji);
+                setPickerPosition(null);
               }}
-            >
-              <FiTrash /> Delete
-            </button>
-          )}
-        </div>
-      </div>
-    </div>,
-    document.body
-  )}
+              width={280}
+              height={350}
+              theme={Theme.LIGHT}
+              previewConfig={{ showPreview: false }}
+            />
+          </div>,
+          document.body
+        )}
 
+      {showMobileSheet &&
+        createPortal(
+          <div
+            className={styles.mobileSheetOverlay}
+            onClick={() => setShowMobileSheet(false)}
+          >
+            <div
+              className={styles.mobileSheet}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Reactions */}
+              <div className={styles.mobileReactions}>
+                {QUICK_REACTIONS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => {
+                      onReact(m, emoji);
+                      closeMobileSheet();
+                    }}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+                <button
+                  onClick={() => {
+                    const rect = document
+                      .getElementById(`msg-${m.id}`)
+                      ?.getBoundingClientRect();
+
+                    closeMobileSheet();
+
+                    if (rect) {
+                      setTimeout(() => {
+                        setPickerPosition({
+                          top: Math.max(16, rect.top - 360),
+                          left: rect.left + 12,
+                        });
+                      }, 60); // small delay = LinkedIn feel
+                    }
+                  }}
+                >
+                  <FiSmile />
+                </button>
+              </div>
+
+              <div className={styles.mobileActions}>
+                <button
+                  onClick={() => {
+                    onReply(m);
+                    closeMobileSheet();
+                  }}
+                >
+                  <FiCornerUpLeft /> Reply
+                </button>
+
+                <button
+                  onClick={() => {
+                    onCopy(m);
+                    closeMobileSheet();
+                  }}
+                >
+                  <FiCopy /> Copy
+                </button>
+
+                {isMine && m.type === "text" && (
+                  <button
+                    onClick={() => {
+                      handleStartEdit();
+                      closeMobileSheet();
+                    }}
+                  >
+                    <FiEdit2 /> Edit
+                  </button>
+                )}
+
+                <button
+                  className={styles.danger}
+                  onClick={() => {
+                    onDelete(m);
+                    closeMobileSheet();
+                  }}
+                >
+                  <FiTrash /> Delete
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </>
   );
 };
-
-
-
 
 // ───────────────────────────────────────────────
 // MAIN CHAT PANEL
