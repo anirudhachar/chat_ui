@@ -1689,19 +1689,20 @@
 }
 .copiedToast {
   position: absolute;
-  top: -24px; // above message bubble
-  left: 50%;
-  transform: translateX(-50%);
-  background: #333;
+  bottom: 100%;
+  right: 8px; // aligns near ticks
+  margin-bottom: 6px;
+  background: rgba(0, 0, 0, 0.85);
   color: #fff;
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  opacity: 0.9;
-  z-index: 500;
-  pointer-events: none;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  z-index: 999;
   animation: fadeUp 1.2s ease forwards;
+  pointer-events: none;
 }
+
 
 @keyframes fadeUp {
   0% {
