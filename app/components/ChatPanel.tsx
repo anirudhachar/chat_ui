@@ -609,6 +609,10 @@ const MessageRow = ({
                 {isMine && getStatusIcon(m.status)}
               </div>
             )}
+
+             {copiedMessageId === m.id && (
+    <div className={styles.copiedToast}>Copied</div>
+  )}
           </div>
 
           {/* 😍 REACTION PILLS */}
@@ -748,9 +752,7 @@ const MessageRow = ({
           document.body
         )}
 
-      {copiedMessageId === m.id && (
-        <div className={styles.copiedToast}>Copied!</div>
-      )}
+    
     </>
   );
 };
