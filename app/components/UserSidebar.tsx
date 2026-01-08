@@ -228,7 +228,7 @@ export default function UserSidebar({
 
 
 
-      {profileUser && (
+  {profileUser && (
   <div
     className={styles.profileModalOverlay}
     onClick={() => setProfileUser(null)}
@@ -237,17 +237,17 @@ export default function UserSidebar({
       className={styles.profileModal}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Avatar */}
-      <div className={styles.profileAvatarWrapper}>
+      {/* Full profile image */}
+      <div className={styles.profileImageWrapper}>
         {profileUser.avatar ? (
           <img
             src={profileUser.avatar}
             alt={profileUser.name}
-            className={styles.profileAvatar}
+            className={styles.profileImage}
           />
         ) : (
           <div
-            className={styles.profileAvatarFallback}
+            className={styles.profileImageFallback}
             style={{ backgroundColor: getAvatarColor(profileUser.id) }}
           >
             {getInitials(profileUser.name)}
@@ -259,31 +259,33 @@ export default function UserSidebar({
       <h3 className={styles.profileName}>{profileUser.name}</h3>
 
       {/* Actions */}
-      <div className={styles.profileActions}>
+      <div className={styles.profileActionsRow}>
         <button
-          className={styles.primaryAction}
+          className={styles.profileActionBtn}
           onClick={() => {
             onUserSelect(profileUser);
             setProfileUser(null);
           }}
         >
-          Message
+          <FiCheck className={styles.actionIcon} />
+          <span>Message</span>
         </button>
 
         <button
-          className={styles.secondaryAction}
+          className={styles.profileActionBtn}
           onClick={() => {
-            // route / profile logic
             console.log("Go to profile:", profileUser.id);
             setProfileUser(null);
           }}
         >
-          View Profile
+          <FiSearch className={styles.actionIcon} />
+          <span>View Profile</span>
         </button>
       </div>
     </div>
   </div>
 )}
+
 
     </div>
   );
