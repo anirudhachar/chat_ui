@@ -499,7 +499,7 @@ const MessageRow = ({
               <button
                 className={styles.actionBtn}
                 onClick={(e) => {
-                  e.stopPropagation(); // ✅ CRITICAL
+                  e.stopPropagation(); 
                   const rect = e.currentTarget.getBoundingClientRect();
                   const PICKER_WIDTH = 280;
                   const VIEWPORT_PADDING = 12;

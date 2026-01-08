@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 // Import icons for the tick marks
 import { FiSearch, FiCheck } from "react-icons/fi";
 // Assuming the User type now includes lastMessageStatus
@@ -60,7 +60,7 @@ export default function UserSidebar({
 }: UserSidebarProps) {
   const loadingIndicatorRef = useRef<HTMLDivElement>(null);
   const userListRef = useRef<HTMLDivElement>(null);
-
+  const [profileUser, setProfileUser] = useState<User | null>(null);
   /* Infinite scroll (disabled during search) */
   useEffect(() => {
     if (!onLoadMore || !hasMore || searchQuery.length >= 2) return;
@@ -158,7 +158,13 @@ export default function UserSidebar({
                 onUserSelect(user);
               }}
             >
-              <div className={styles.avatarWrapper}>
+              <div
+                className={styles.avatarWrapper}
+                onClick={(e) => {
+                  e.stopPropagation(); // 🔥 prevents chat open
+                  setProfileUser(user);
+                }}
+              >
                 {user.avatar ? (
                   <img
                     src={user.avatar}
@@ -219,6 +225,66 @@ export default function UserSidebar({
           </div>
         )}
       </div>
+
+
+
+      {profileUser && (
+  <div
+    className={styles.profileModalOverlay}
+    onClick={() => setProfileUser(null)}
+  >
+    <div
+      className={styles.profileModal}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Avatar */}
+      <div className={styles.profileAvatarWrapper}>
+        {profileUser.avatar ? (
+          <img
+            src={profileUser.avatar}
+            alt={profileUser.name}
+            className={styles.profileAvatar}
+          />
+        ) : (
+          <div
+            className={styles.profileAvatarFallback}
+            style={{ backgroundColor: getAvatarColor(profileUser.id) }}
+          >
+            {getInitials(profileUser.name)}
+          </div>
+        )}
+      </div>
+
+      {/* Name */}
+      <h3 className={styles.profileName}>{profileUser.name}</h3>
+
+      {/* Actions */}
+      <div className={styles.profileActions}>
+        <button
+          className={styles.primaryAction}
+          onClick={() => {
+            onUserSelect(profileUser);
+            setProfileUser(null);
+          }}
+        >
+          Message
+        </button>
+
+        <button
+          className={styles.secondaryAction}
+          onClick={() => {
+            // route / profile logic
+            console.log("Go to profile:", profileUser.id);
+            setProfileUser(null);
+          }}
+        >
+          View Profile
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }
