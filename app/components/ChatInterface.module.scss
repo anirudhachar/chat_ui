@@ -56,3 +56,115 @@
     }
   }
 }
+
+
+.profileModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Modal */
+.profileModal {
+  width: 280px; /* slightly smaller */
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+  animation: scaleIn 0.15s ease-out;
+  text-align: center;
+}
+
+/* Animation */
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Full image */
+.profileImageWrapper {
+  width: 100%;
+  height: 220px; /* slightly smaller */
+  background: #f2f2f2;
+  position: relative;
+}
+
+.profileImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profileImageFallback {
+  width: 100%;
+  height: 100%;
+  font-size: 42px;
+  font-weight: 600;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Name overlay (top-left) */
+.profileNameOverlay {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  padding: 6px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 6px;
+  backdrop-filter: blur(4px);
+}
+
+/* Actions row */
+.profileActionsRow {
+  display: flex;
+  border-top: 1px solid #eee;
+}
+
+/* Buttons */
+.profileActionBtn {
+  flex: 1;
+  padding: 12px 0;
+  background: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #008069; /* WhatsApp green */
+  transition: all 0.15s ease;
+  border-radius: 8px;
+  margin: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profileActionBtn:hover {
+  background: #f7f7f7;
+  transform: translateY(-1px);
+}
+
+.profileActionBtn:active {
+  transform: scale(0.97);
+}
+
+.actionIcon {
+  font-size: 18px;
+}
