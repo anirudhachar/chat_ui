@@ -30,7 +30,6 @@ import {
 } from "react-icons/io5";
 import { createPortal } from "react-dom";
 
-
 interface ChatPanelProps {
   selectedUser: User | null;
   messages: Message[];
@@ -502,9 +501,28 @@ const MessageRow = ({
                 onClick={(e) => {
                   e.stopPropagation(); // ✅ CRITICAL
                   const rect = e.currentTarget.getBoundingClientRect();
+                  const PICKER_WIDTH = 280;
+                  const VIEWPORT_PADDING = 12;
+
+                  let left = rect.left;
+
+                  // 🧠 If message is mine (right side), open picker to LEFT
+                  if (isMine) {
+                    left = rect.right - PICKER_WIDTH;
+                  }
+
+                  // 🛡️ Clamp inside viewport
+                  left = Math.max(
+                    VIEWPORT_PADDING,
+                    Math.min(
+                      left,
+                      window.innerWidth - PICKER_WIDTH - VIEWPORT_PADDING
+                    )
+                  );
+
                   setPickerPosition({
                     top: Math.max(16, rect.top - 360),
-                    left: rect.left,
+                    left,
                   });
                 }}
               >

@@ -605,6 +605,12 @@
   width: 100%;
 }
 
+@media(max-width: 480px) {
+  .editContainer {
+    min-width: 180px;
+  }
+}
+
 .editInput {
   width: 100%;
   padding: 8px 10px;
