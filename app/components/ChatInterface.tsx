@@ -1811,7 +1811,7 @@ export default function ChatInterface() {
                   setProfileUser(null);
                 }}
               >
-               <Image src={user_img} alt="User" className={styles.actionIcon} />
+               <Image src={user_img} alt="User" className={styles.actionIcon} width={20} height={20} />
                 <span>Message</span>
               </button>
 
@@ -1828,7 +1828,7 @@ export default function ChatInterface() {
                   setProfileUser(null);
                 }}
               >
-                <Image src={bubble_img} alt="User" className={styles.actionIcon} />
+                <Image src={bubble_img} alt="User" className={styles.actionIcon} width={20} height={20}/>
                 <span>Profile</span>
               </button>
             </div>
