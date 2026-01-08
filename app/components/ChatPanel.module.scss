@@ -1703,6 +1703,21 @@
   pointer-events: none;
 }
 
+.mobileCopiedToast {
+  position: fixed;
+  bottom: 90px; // above input
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: #fff;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 18px;
+  z-index: 9999;
+  animation: fadeUp 1.2s ease forwards;
+  pointer-events: none;
+}
+
 
 @keyframes fadeUp {
   0% {

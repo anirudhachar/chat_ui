@@ -59,30 +59,28 @@ const isMobileDevice = () =>
   typeof window !== "undefined" &&
   (window.innerWidth < 768 || "ontouchstart" in window);
 
-  const getCopyText = (msg: Message): string => {
-    switch (msg.type) {
-      case "text":
-        return msg.content || "";
-      case "image":
-        return msg.content || msg.fileUrl || "";
-      case "document":
-        return `${msg.fileName || "Document"}\n${msg.fileUrl || ""}`;
-      case "link":
-        return msg.linkUrl || msg.content || "";
-      case "offer":
-        if (!msg.offer) return "";
-        if (msg.offer.offerType === "PRICE") {
-          return `Offer: ${msg.offer.currency} ${msg.offer.amount}\n${
-            msg.content || ""
-          }`;
-        }
-        return `Trade Offer: ${msg.offer.tradeDescription}\n${
+const getCopyText = (msg: Message): string => {
+  switch (msg.type) {
+    case "text":
+      return msg.content || "";
+    case "image":
+      return msg.content || msg.fileUrl || "";
+    case "document":
+      return `${msg.fileName || "Document"}\n${msg.fileUrl || ""}`;
+    case "link":
+      return msg.linkUrl || msg.content || "";
+    case "offer":
+      if (!msg.offer) return "";
+      if (msg.offer.offerType === "PRICE") {
+        return `Offer: ${msg.offer.currency} ${msg.offer.amount}\n${
           msg.content || ""
         }`;
-      default:
-        return msg.content || "";
-    }
-  };
+      }
+      return `Trade Offer: ${msg.offer.tradeDescription}\n${msg.content || ""}`;
+    default:
+      return msg.content || "";
+  }
+};
 const MessageRow = ({
   m,
   isMine,
@@ -181,7 +179,6 @@ const MessageRow = ({
   // ─────────────────────────────────────────────
   // RENDER CONTENT LOGIC
   // ─────────────────────────────────────────────
-
 
   const editInputRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -610,9 +607,9 @@ const MessageRow = ({
               </div>
             )}
 
-             {copiedMessageId === m.id && (
-    <div className={styles.copiedToast}>Copied</div>
-  )}
+            {!isMobile && copiedMessageId === m.id && (
+              <div className={styles.copiedToast}>Copied</div>
+            )}
           </div>
 
           {/* 😍 REACTION PILLS */}
@@ -751,8 +748,6 @@ const MessageRow = ({
           </div>,
           document.body
         )}
-
-    
     </>
   );
 };
@@ -789,6 +784,7 @@ ChatPanelProps) {
 
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [showGlobalCopyToast, setShowGlobalCopyToast] = useState(false);
 
   useEffect(() => {
     isFirstLoadRef.current = true;
@@ -844,17 +840,21 @@ ChatPanelProps) {
     if (onReply) onReply(msg);
   };
 
-const handleCopy = (msg: Message) => {
-  const text = getCopyText(msg);
+  const handleCopy = (msg: Message) => {
+    const text = getCopyText(msg);
+    if (!text.trim()) return;
 
-  if (!text.trim()) return;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedMessageId(msg.id);
 
-  navigator.clipboard.writeText(text).then(() => {
-    setCopiedMessageId(msg.id);
-    setTimeout(() => setCopiedMessageId(null), 1200);
-  });
-};
-
+      if (isMobileDevice()) {
+        setShowGlobalCopyToast(true);
+        setTimeout(() => setShowGlobalCopyToast(false), 1200);
+      } else {
+        setTimeout(() => setCopiedMessageId(null), 1200);
+      }
+    });
+  };
 
   const handleInternalSendMessage = (
     content: string,
@@ -1075,6 +1075,11 @@ const handleCopy = (msg: Message) => {
         onSendMessage={handleInternalSendMessage}
         onTyping={onTyping}
       />
+
+      {showGlobalCopyToast && (
+  <div className={styles.mobileCopiedToast}>Copied</div>
+)}
+
     </div>
   );
 }
