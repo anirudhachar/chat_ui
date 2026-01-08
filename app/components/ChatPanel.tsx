@@ -52,6 +52,7 @@ interface ChatPanelProps {
   isPartnerTyping: boolean;
   onTyping: () => void;
   // onInputBlur: () => void;
+  onOpenProfile: (user: User) => void;
 }
 
 const isMobileDevice = () =>
@@ -69,7 +70,7 @@ const MessageRow = ({
   onEdit,
   onDelete,
   onReact,
-   copiedMessageId, 
+  copiedMessageId,
 }: {
   m: Message;
   isMine: boolean;
@@ -78,7 +79,7 @@ const MessageRow = ({
   onEdit: (m: Message, newContent: string) => void;
   onDelete: (m: Message) => void;
   onReact: (m: Message, e: string) => void;
-   copiedMessageId?: string | null; 
+  copiedMessageId?: string | null;
 }) => {
   const [pickerPosition, setPickerPosition] = useState<{
     top: number;
@@ -749,12 +750,9 @@ const MessageRow = ({
           document.body
         )}
 
-        {copiedMessageId === m.id && (
-  <div className={styles.copiedToast}>
-    Copied!
-  </div>
-)}
-
+      {copiedMessageId === m.id && (
+        <div className={styles.copiedToast}>Copied!</div>
+      )}
     </>
   );
 };
@@ -777,6 +775,7 @@ export default function ChatPanel({
   onReact,
   isPartnerTyping,
   onTyping,
+  onOpenProfile,
 }: // onInputBlur,
 ChatPanelProps) {
   console.log(messages, "messagesbeingsent");
@@ -790,7 +789,6 @@ ChatPanelProps) {
 
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
-
 
   useEffect(() => {
     isFirstLoadRef.current = true;
@@ -846,16 +844,16 @@ ChatPanelProps) {
     if (onReply) onReply(msg);
   };
 
-const handleCopy = (msg: Message) => {
-  const text = msg.content || msg.linkUrl || "";
-  if (text) {
-    navigator.clipboard.writeText(text);
+  const handleCopy = (msg: Message) => {
+    const text = msg.content || msg.linkUrl || "";
+    if (text) {
+      navigator.clipboard.writeText(text);
 
-    // Show copied toast
-    setCopiedMessageId(msg.id);
-    setTimeout(() => setCopiedMessageId(null), 1200); // hide after 1.2s
-  }
-};
+      // Show copied toast
+      setCopiedMessageId(msg.id);
+      setTimeout(() => setCopiedMessageId(null), 1200); // hide after 1.2s
+    }
+  };
 
   const handleInternalSendMessage = (
     content: string,
@@ -932,7 +930,11 @@ const handleCopy = (msg: Message) => {
         <button className={styles.backButton} onClick={onBack}>
           <FiArrowLeft />
         </button>
-        <div className={styles.avatarWrapper}>
+        <div
+          className={styles.avatarWrapper}
+          onClick={() => selectedUser && onOpenProfile(selectedUser)}
+          style={{ cursor: "pointer" }}
+        >
           {selectedUser.avatar ? (
             <img
               src={selectedUser.avatar}

@@ -80,6 +80,8 @@ export default function ChatInterface() {
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMoreUsers, setHasMoreUsers] = useState(true);
   const [globalUnread, setGlobalUnread] = useState(0);
+  const [profileUser, setProfileUser] = useState<User | null>(null);
+  console.log(profileUser,"profileUserObject")
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -1142,8 +1144,7 @@ export default function ChatInterface() {
       },
       replyTo?: Message
     ) => {
-
-     console.log("Sending message:", content, type, file, replyTo);
+      console.log("Sending message:", content, type, file, replyTo);
       if (!selectedUser || !parentToken) return;
 
       // 1. Detect URL for Link Preview logic later
@@ -1729,6 +1730,7 @@ export default function ChatInterface() {
           hasMore={enableInfiniteScroll && hasMoreUsers && !isSearchActive}
           isSearching={isSearching}
           isUsersLoading={isUsersLoading}
+          onOpenProfile={setProfileUser}
         />
       </div>
 
@@ -1754,8 +1756,65 @@ export default function ChatInterface() {
           isPartnerTyping={isPartnerTyping} // To display the UI bubble
           onTyping={handleTypingInput} // To trigger the logic on keypress
           // onInputBlur={() => sendTypingEvent(false)} // To stop typing when they click away
+          onOpenProfile={setProfileUser}
         />
       </div>
+
+      {profileUser && (
+        <div
+          className={styles.profileModalOverlay}
+          onClick={() => setProfileUser(null)}
+        >
+          <div
+            className={styles.profileModal}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Full image */}
+            <div className={styles.profileImageWrapper}>
+              {profileUser.avatar ? (
+                <img
+                  src={profileUser.avatar}
+                  className={styles.profileImage}
+                  alt=""
+                />
+              ) : (
+                <div className={styles.profileImageFallback}>
+                  {profileUser.name?.charAt(0)}
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className={styles.profileActionsRow}>
+              <button
+                className={styles.profileActionBtn}
+                onClick={() => {
+                  handleUserSelect(profileUser);
+                  setProfileUser(null);
+                }}
+              >
+                Message
+              </button>
+
+              <button
+                className={styles.profileActionBtn}
+                onClick={() => {
+                  window.parent.postMessage(
+                    {
+                      type: "NAVIGATE_PROFILE",
+                      data: { userId: profileUser.id },
+                    },
+                    "*"
+                  );
+                  setProfileUser(null);
+                }}
+              >
+                View Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

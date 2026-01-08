@@ -20,6 +20,7 @@ interface UserSidebarProps {
   hasMore: boolean;
   isSearching: boolean;
   isUsersLoading: boolean;
+  onOpenProfile: (user: User) => void;
 }
 
 // ───────────────────────────────────────────────
@@ -58,10 +59,11 @@ export default function UserSidebar({
   hasMore,
   isSearching,
   isUsersLoading,
+  onOpenProfile,
 }: UserSidebarProps) {
   const loadingIndicatorRef = useRef<HTMLDivElement>(null);
   const userListRef = useRef<HTMLDivElement>(null);
-  const [profileUser, setProfileUser] = useState<User | null>(null);
+
   const router = useRouter();
   /* Infinite scroll (disabled during search) */
   useEffect(() => {
@@ -163,8 +165,8 @@ export default function UserSidebar({
               <div
                 className={styles.avatarWrapper}
                 onClick={(e) => {
-                  e.stopPropagation(); // 🔥 prevents chat open
-                  setProfileUser(user);
+                  e.stopPropagation();
+                  onOpenProfile(user);
                 }}
               >
                 {user.avatar ? (
@@ -227,75 +229,6 @@ export default function UserSidebar({
           </div>
         )}
       </div>
-
-      {profileUser && (
-        <div
-          className={styles.profileModalOverlay}
-          onClick={() => setProfileUser(null)}
-        >
-          <div
-            className={styles.profileModal}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Full profile image */}
-            <div className={styles.profileImageWrapper}>
-              {profileUser.avatar ? (
-                <img
-                  src={profileUser.avatar}
-                  alt={profileUser.name}
-                  className={styles.profileImage}
-                />
-              ) : (
-                <div
-                  className={styles.profileImageFallback}
-                  style={{ backgroundColor: getAvatarColor(profileUser.id) }}
-                >
-                  {getInitials(profileUser.name)}
-                </div>
-              )}
-
-              {/* Name overlay top-left */}
-              <div className={styles.profileNameOverlay}>
-                {profileUser.name}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className={styles.profileActionsRow}>
-              <button
-                className={styles.profileActionBtn}
-                onClick={() => {
-                  onUserSelect(profileUser);
-                  setProfileUser(null);
-                }}
-              >
-                <FiCheck className={styles.actionIcon} />
-                <span>Message</span>
-              </button>
-
-              <button
-                className={styles.profileActionBtn}
-                onClick={() => {
-                  window.parent.postMessage(
-                    {
-                      type: "NAVIGATE_PROFILE",
-                      data: {
-                        userId: profileUser.id,
-                      },
-                    },
-                    "*"
-                  );
-
-                  setProfileUser(null);
-                }}
-              >
-                <FiSearch className={styles.actionIcon} />
-                <span>Profile</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
