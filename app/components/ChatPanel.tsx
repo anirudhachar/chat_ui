@@ -414,7 +414,17 @@ const MessageRow = ({
     }
 
     // 💬 TEXT
-    return wrapWithReply(<p className={styles.messageText}>{m.content}</p>);
+    // 💬 TEXT (WhatsApp style: text + time inline)
+    return wrapWithReply(
+      <div className={styles.textWithMeta}>
+        <p className={styles.messageText}>{m.content}</p>
+
+        <span className={styles.inlineMeta}>
+          <span className={styles.messageTime}>{m.timestamp}</span>
+          {isMine && getStatusIcon(m.status)}
+        </span>
+      </div>
+    );
   };
 
   const getStatusIcon = (status?: string) => {
@@ -602,15 +612,16 @@ const MessageRow = ({
             </div>
             {renderContent()}
 
-            {!isEditing && (
-              <div className={styles.messageMeta}>
-                {(m as any).isEdited && (
-                  <span className={styles.editedTag}>(edited)</span>
-                )}
-                <span className={styles.messageTime}>{m.timestamp}</span>
-                {isMine && getStatusIcon(m.status)}
-              </div>
-            )}
+        {!isEditing && m.type !== "text" && (
+  <div className={styles.messageMeta}>
+    {(m as any).isEdited && (
+      <span className={styles.editedTag}>(edited)</span>
+    )}
+    <span className={styles.messageTime}>{m.timestamp}</span>
+    {isMine && getStatusIcon(m.status)}
+  </div>
+)}
+
           </div>
 
           {/* 😍 REACTION PILLS */}

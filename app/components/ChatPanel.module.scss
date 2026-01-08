@@ -1708,3 +1708,21 @@
     transform: translateX(-50%) translateY(-16px);
   }
 }
+
+
+.textWithMeta {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.inlineMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  color: #666;
+  white-space: nowrap;
+  margin-bottom: 2px;
+}
