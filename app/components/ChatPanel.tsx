@@ -58,6 +58,11 @@ interface ChatPanelProps {
   // onInputBlur: () => void;
 }
 
+
+const isMobileDevice = () =>
+  typeof window !== "undefined" &&
+  (window.innerWidth < 768 || "ontouchstart" in window);
+
 // ───────────────────────────────────────────────
 // SUB-COMPONENT: Message Row
 // ───────────────────────────────────────────────
@@ -94,7 +99,23 @@ const MessageRow = ({
     m.content === "This message was deleted" || (m as any).isDeleted;
 
   // Close popups on click outside
+const [showMobileSheet, setShowMobileSheet] = useState(false);
+const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+const isMobile = isMobileDevice();
+const handleTouchStart = () => {
+  if (!isMobile) return;
 
+  longPressTimer.current = setTimeout(() => {
+    setShowMobileSheet(true);
+  }, 450); // LinkedIn-like delay
+};
+
+const handleTouchEnd = () => {
+  if (longPressTimer.current) {
+    clearTimeout(longPressTimer.current);
+    longPressTimer.current = null;
+  }
+};
 
   useEffect(() => {
   if (!pickerPosition) return;
@@ -437,6 +458,8 @@ const MessageRow = ({
       className={`${styles.messageRow} ${
         isMine ? styles.myRow : styles.theirRow
       }`}
+      onTouchStart={handleTouchStart}
+  onTouchEnd={handleTouchEnd}
     >
       {/* AVATAR */}
       {!isMine && (
@@ -456,7 +479,7 @@ const MessageRow = ({
       )}
 
       <div className={styles.bubbleContainer}>
-        {!isEditing && !isDeleted && (
+      {!isEditing && !isDeleted && !isMobile && (
           <div
             className={`${styles.actionBar} ${
               isMine ? styles.actionLeft : styles.actionRight
@@ -620,6 +643,72 @@ const MessageRow = ({
         theme={Theme.LIGHT}
         previewConfig={{ showPreview: false }}
       />
+    </div>,
+    document.body
+  )}
+
+
+{showMobileSheet &&
+  createPortal(
+    <div
+      className={styles.mobileSheetOverlay}
+      onClick={() => setShowMobileSheet(false)}
+    >
+      <div
+        className={styles.mobileSheet}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Reactions */}
+        <div className={styles.mobileReactions}>
+          {QUICK_REACTIONS.map((emoji) => (
+            <button
+              key={emoji}
+              onClick={() => {
+                onReact(m, emoji);
+                setShowMobileSheet(false);
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
+          <button
+            onClick={() => {
+              setPickerPosition({ top: window.innerHeight - 380, left: 16 });
+              setShowMobileSheet(false);
+            }}
+          >
+            <FiSmile />
+          </button>
+        </div>
+
+        <div className={styles.mobileActions}>
+          <button onClick={() => onReply(m)}>
+            <FiCornerUpLeft /> Reply
+          </button>
+
+          <button onClick={() => onCopy(m)}>
+            <FiCopy /> Copy
+          </button>
+
+          {isMine && m.type === "text" && (
+            <button onClick={handleStartEdit}>
+              <FiEdit2 /> Edit
+            </button>
+          )}
+
+          {isMine && (
+            <button
+              className={styles.danger}
+              onClick={() => {
+                onDelete(m);
+                setShowMobileSheet(false);
+              }}
+            >
+              <FiTrash /> Delete
+            </button>
+          )}
+        </div>
+      </div>
     </div>,
     document.body
   )}
