@@ -6,6 +6,7 @@ import UserSidebar from "./UserSidebar";
 import ChatPanel from "./ChatPanel";
 import { getWebSocket } from "./websocketSingleton";
 import { usePathname, useSearchParams } from "next/navigation";
+import { FiCheck, FiSearch } from "react-icons/fi";
 
 // ───────────────────────────────────────────────
 // TYPES
@@ -73,6 +74,17 @@ const decodeToken = (token: string) => {
     return null;
   }
 };
+
+const getInitials = (name?: string) => {
+  if (!name) return "";
+  return name
+    .split(" ")
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+};
+
 
 export default function ChatInterface() {
   const wsRef = useRef<WebSocket | null>(null);
@@ -1760,61 +1772,69 @@ export default function ChatInterface() {
         />
       </div>
 
-      {profileUser && (
-        <div
-          className={styles.profileModalOverlay}
-          onClick={() => setProfileUser(null)}
-        >
-          <div
-            className={styles.profileModal}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Full image */}
-            <div className={styles.profileImageWrapper}>
-              {profileUser.avatar ? (
-                <img
-                  src={profileUser.avatar}
-                  className={styles.profileImage}
-                  alt=""
-                />
-              ) : (
-                <div className={styles.profileImageFallback}>
-                  {profileUser.name?.charAt(0)}
-                </div>
-              )}
-            </div>
-
-            {/* Actions */}
-            <div className={styles.profileActionsRow}>
-              <button
-                className={styles.profileActionBtn}
-                onClick={() => {
-                  handleUserSelect(profileUser);
-                  setProfileUser(null);
-                }}
-              >
-                Message
-              </button>
-
-              <button
-                className={styles.profileActionBtn}
-                onClick={() => {
-                  window.parent.postMessage(
-                    {
-                      type: "NAVIGATE_PROFILE",
-                      data: { userId: profileUser.id },
-                    },
-                    "*"
-                  );
-                  setProfileUser(null);
-                }}
-              >
-                View Profile
-              </button>
-            </div>
+     {profileUser && (
+  <div
+    className={styles.profileModalOverlay}
+    onClick={() => setProfileUser(null)}
+  >
+    <div
+      className={styles.profileModal}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Image section */}
+      <div className={styles.profileImageWrapper}>
+        {profileUser.avatar ? (
+          <img
+            src={profileUser.avatar}
+            alt={profileUser.name}
+            className={styles.profileImage}
+          />
+        ) : (
+          <div className={styles.profileImageFallback}>
+            {getInitials(profileUser.name)}
           </div>
+        )}
+
+        {/* Name overlay (top-left like WhatsApp) */}
+        <div className={styles.profileNameOverlay}>
+          {profileUser.name}
         </div>
-      )}
+      </div>
+
+      {/* Actions */}
+      <div className={styles.profileActionsRow}>
+        <button
+          className={styles.profileActionBtn}
+          onClick={() => {
+            handleUserSelect(profileUser);
+            setProfileUser(null);
+          }}
+        >
+          <FiCheck className={styles.actionIcon} />
+          <span>Message</span>
+        </button>
+
+        <button
+          className={styles.profileActionBtn}
+          onClick={() => {
+            window.parent.postMessage(
+              {
+                type: "NAVIGATE_PROFILE",
+                data: { userId: profileUser.id },
+              },
+              "*"
+            );
+            setProfileUser(null);
+          }}
+        >
+          <FiSearch className={styles.actionIcon} />
+          <span>Profile</span>
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }
