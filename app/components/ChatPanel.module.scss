@@ -193,7 +193,12 @@
   border-top-right-radius: 12px;
   border-bottom-right-radius: 12px;
 }
-
+@media(max-width: 480px) {
+  .chatHeader {
+ border-top-right-radius: 0px;
+  border-bottom-right-radius: 0px;
+  }
+}
 .backButton {
   display: none;
   align-items: center;
