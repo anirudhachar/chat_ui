@@ -59,9 +59,30 @@ const isMobileDevice = () =>
   typeof window !== "undefined" &&
   (window.innerWidth < 768 || "ontouchstart" in window);
 
-// ───────────────────────────────────────────────
-// SUB-COMPONENT: Message Row
-// ───────────────────────────────────────────────
+  const getCopyText = (msg: Message): string => {
+    switch (msg.type) {
+      case "text":
+        return msg.content || "";
+      case "image":
+        return msg.content || msg.fileUrl || "";
+      case "document":
+        return `${msg.fileName || "Document"}\n${msg.fileUrl || ""}`;
+      case "link":
+        return msg.linkUrl || msg.content || "";
+      case "offer":
+        if (!msg.offer) return "";
+        if (msg.offer.offerType === "PRICE") {
+          return `Offer: ${msg.offer.currency} ${msg.offer.amount}\n${
+            msg.content || ""
+          }`;
+        }
+        return `Trade Offer: ${msg.offer.tradeDescription}\n${
+          msg.content || ""
+        }`;
+      default:
+        return msg.content || "";
+    }
+  };
 const MessageRow = ({
   m,
   isMine,
@@ -160,30 +181,7 @@ const MessageRow = ({
   // ─────────────────────────────────────────────
   // RENDER CONTENT LOGIC
   // ─────────────────────────────────────────────
-  const getCopyText = (msg: Message): string => {
-    switch (msg.type) {
-      case "text":
-        return msg.content || "";
-      case "image":
-        return msg.content || msg.fileUrl || "";
-      case "document":
-        return `${msg.fileName || "Document"}\n${msg.fileUrl || ""}`;
-      case "link":
-        return msg.linkUrl || msg.content || "";
-      case "offer":
-        if (!msg.offer) return "";
-        if (msg.offer.offerType === "PRICE") {
-          return `Offer: ${msg.offer.currency} ${msg.offer.amount}\n${
-            msg.content || ""
-          }`;
-        }
-        return `Trade Offer: ${msg.offer.tradeDescription}\n${
-          msg.content || ""
-        }`;
-      default:
-        return msg.content || "";
-    }
-  };
+
 
   const editInputRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -844,16 +842,17 @@ ChatPanelProps) {
     if (onReply) onReply(msg);
   };
 
-  const handleCopy = (msg: Message) => {
-    const text = msg.content || msg.linkUrl || "";
-    if (text) {
-      navigator.clipboard.writeText(text);
+const handleCopy = (msg: Message) => {
+  const text = getCopyText(msg);
 
-      // Show copied toast
-      setCopiedMessageId(msg.id);
-      setTimeout(() => setCopiedMessageId(null), 1200); // hide after 1.2s
-    }
-  };
+  if (!text.trim()) return;
+
+  navigator.clipboard.writeText(text).then(() => {
+    setCopiedMessageId(msg.id);
+    setTimeout(() => setCopiedMessageId(null), 1200);
+  });
+};
+
 
   const handleInternalSendMessage = (
     content: string,
