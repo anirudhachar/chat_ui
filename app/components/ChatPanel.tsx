@@ -30,10 +30,7 @@ import {
 } from "react-icons/io5";
 import { createPortal } from "react-dom";
 
-// ───────────────────────────────────────────────
-// TYPES
 
-// ───────────────────────────────────────────────
 interface ChatPanelProps {
   selectedUser: User | null;
   messages: Message[];
