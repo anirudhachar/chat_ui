@@ -643,7 +643,7 @@ const MessageRow = ({
         createPortal(
           <div
             className={styles.mobileSheetOverlay}
-            onClick={() => setShowMobileSheet(false)}
+            onClick={() => setShowMobileSheet(true)}
           >
             <div
               className={styles.mobileSheet}
