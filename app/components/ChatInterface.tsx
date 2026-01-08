@@ -7,6 +7,9 @@ import ChatPanel from "./ChatPanel";
 import { getWebSocket } from "./websocketSingleton";
 import { usePathname, useSearchParams } from "next/navigation";
 import { FiCheck, FiSearch } from "react-icons/fi";
+import user_img from "@/app/assets/user.png";
+import Image from "next/image";
+import { bubble_img } from "../assets";
 
 // ───────────────────────────────────────────────
 // TYPES
@@ -85,7 +88,6 @@ const getInitials = (name?: string) => {
     .toUpperCase();
 };
 
-
 export default function ChatInterface() {
   const wsRef = useRef<WebSocket | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -93,7 +95,7 @@ export default function ChatInterface() {
   const [hasMoreUsers, setHasMoreUsers] = useState(true);
   const [globalUnread, setGlobalUnread] = useState(0);
   const [profileUser, setProfileUser] = useState<User | null>(null);
-  console.log(profileUser,"profileUserObject")
+  console.log(profileUser, "profileUserObject");
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -1772,69 +1774,67 @@ export default function ChatInterface() {
         />
       </div>
 
-     {profileUser && (
-  <div
-    className={styles.profileModalOverlay}
-    onClick={() => setProfileUser(null)}
-  >
-    <div
-      className={styles.profileModal}
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* Image section */}
-      <div className={styles.profileImageWrapper}>
-        {profileUser.avatar ? (
-          <img
-            src={profileUser.avatar}
-            alt={profileUser.name}
-            className={styles.profileImage}
-          />
-        ) : (
-          <div className={styles.profileImageFallback}>
-            {getInitials(profileUser.name)}
+      {profileUser && (
+        <div
+          className={styles.profileModalOverlay}
+          onClick={() => setProfileUser(null)}
+        >
+          <div
+            className={styles.profileModal}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.profileImageWrapper}>
+              {profileUser.avatar ? (
+                <img
+                  src={profileUser.avatar}
+                  alt={profileUser.name}
+                  className={styles.profileImage}
+                />
+              ) : (
+                <div className={styles.profileImageFallback}>
+                  {getInitials(profileUser.name)}
+                </div>
+              )}
+
+              {/* Name overlay (top-left like WhatsApp) */}
+              <div className={styles.profileNameOverlay}>
+                {profileUser.name}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className={styles.profileActionsRow}>
+              <button
+                className={styles.profileActionBtn}
+                onClick={() => {
+                  handleUserSelect(profileUser);
+                  setProfileUser(null);
+                }}
+              >
+               <Image src={user_img} alt="User" className={styles.actionIcon} />
+                <span>Message</span>
+              </button>
+
+              <button
+                className={styles.profileActionBtn}
+                onClick={() => {
+                  window.parent.postMessage(
+                    {
+                      type: "NAVIGATE_PROFILE",
+                      data: { userId: profileUser.id },
+                    },
+                    "*"
+                  );
+                  setProfileUser(null);
+                }}
+              >
+                <Image src={bubble_img} alt="User" className={styles.actionIcon} />
+                <span>Profile</span>
+              </button>
+            </div>
           </div>
-        )}
-
-        {/* Name overlay (top-left like WhatsApp) */}
-        <div className={styles.profileNameOverlay}>
-          {profileUser.name}
         </div>
-      </div>
-
-      {/* Actions */}
-      <div className={styles.profileActionsRow}>
-        <button
-          className={styles.profileActionBtn}
-          onClick={() => {
-            handleUserSelect(profileUser);
-            setProfileUser(null);
-          }}
-        >
-          <FiCheck className={styles.actionIcon} />
-          <span>Message</span>
-        </button>
-
-        <button
-          className={styles.profileActionBtn}
-          onClick={() => {
-            window.parent.postMessage(
-              {
-                type: "NAVIGATE_PROFILE",
-                data: { userId: profileUser.id },
-              },
-              "*"
-            );
-            setProfileUser(null);
-          }}
-        >
-          <FiSearch className={styles.actionIcon} />
-          <span>Profile</span>
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
+      )}
     </div>
   );
 }
