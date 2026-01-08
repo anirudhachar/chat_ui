@@ -276,7 +276,16 @@ export default function UserSidebar({
               <button
                 className={styles.profileActionBtn}
                 onClick={() => {
-                  router.push(`/user-profile/${profileUser.id}`);
+                  window.parent.postMessage(
+                    {
+                      type: "NAVIGATE_PROFILE",
+                      data: {
+                        userId: profileUser.id,
+                      },
+                    },
+                    "*"
+                  );
+
                   setProfileUser(null);
                 }}
               >
