@@ -1682,3 +1682,29 @@
     color: #d32f2f;
   }
 }
+.copiedToast {
+  position: absolute;
+  top: -24px; // above message bubble
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  opacity: 0.9;
+  z-index: 500;
+  pointer-events: none;
+  animation: fadeUp 1.2s ease forwards;
+}
+
+@keyframes fadeUp {
+  0% {
+    opacity: 0.9;
+    transform: translateX(-50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-16px);
+  }
+}

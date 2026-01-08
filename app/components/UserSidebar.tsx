@@ -8,6 +8,7 @@ import { User } from "./ChatInterface";
 import styles from "./UserSidebar.module.scss";
 import UserSidebarSkeleton from "./UserSidebarSkeleton/UserSidebarSkeleton";
 import { IoCheckmark, IoCheckmarkDone, IoTimeOutline } from "react-icons/io5";
+import { useRouter } from "next/navigation";
 
 interface UserSidebarProps {
   users: User[];
@@ -61,6 +62,7 @@ export default function UserSidebar({
   const loadingIndicatorRef = useRef<HTMLDivElement>(null);
   const userListRef = useRef<HTMLDivElement>(null);
   const [profileUser, setProfileUser] = useState<User | null>(null);
+  const router = useRouter();
   /* Infinite scroll (disabled during search) */
   useEffect(() => {
     if (!onLoadMore || !hasMore || searchQuery.length >= 2) return;
@@ -226,68 +228,65 @@ export default function UserSidebar({
         )}
       </div>
 
-
-
-  {profileUser && (
- <div
-  className={styles.profileModalOverlay}
-  onClick={() => setProfileUser(null)}
->
-  <div
-    className={styles.profileModal}
-    onClick={(e) => e.stopPropagation()}
-  >
-    {/* Full profile image */}
-    <div className={styles.profileImageWrapper}>
-      {profileUser.avatar ? (
-        <img
-          src={profileUser.avatar}
-          alt={profileUser.name}
-          className={styles.profileImage}
-        />
-      ) : (
+      {profileUser && (
         <div
-          className={styles.profileImageFallback}
-          style={{ backgroundColor: getAvatarColor(profileUser.id) }}
+          className={styles.profileModalOverlay}
+          onClick={() => setProfileUser(null)}
         >
-          {getInitials(profileUser.name)}
+          <div
+            className={styles.profileModal}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Full profile image */}
+            <div className={styles.profileImageWrapper}>
+              {profileUser.avatar ? (
+                <img
+                  src={profileUser.avatar}
+                  alt={profileUser.name}
+                  className={styles.profileImage}
+                />
+              ) : (
+                <div
+                  className={styles.profileImageFallback}
+                  style={{ backgroundColor: getAvatarColor(profileUser.id) }}
+                >
+                  {getInitials(profileUser.name)}
+                </div>
+              )}
+
+              {/* Name overlay top-left */}
+              <div className={styles.profileNameOverlay}>
+                {profileUser.name}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className={styles.profileActionsRow}>
+              <button
+                className={styles.profileActionBtn}
+                onClick={() => {
+                  onUserSelect(profileUser);
+                  setProfileUser(null);
+                }}
+              >
+                <FiCheck className={styles.actionIcon} />
+                <span>Message</span>
+              </button>
+
+              <button
+                className={styles.profileActionBtn}
+                onClick={() => {
+                  router.push(`/user-profile/${profileUser.id}`);
+                  setProfileUser(null);
+                }}
+              >
+                <FiSearch className={styles.actionIcon} />
+                <span>Profile</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
-
-      {/* Name overlay top-left */}
-      <div className={styles.profileNameOverlay}>{profileUser.name}</div>
-    </div>
-
-    {/* Actions */}
-    <div className={styles.profileActionsRow}>
-      <button
-        className={styles.profileActionBtn}
-        onClick={() => {
-          onUserSelect(profileUser);
-          setProfileUser(null);
-        }}
-      >
-        <FiCheck className={styles.actionIcon} />
-        <span>Message</span>
-      </button>
-
-      <button
-        className={styles.profileActionBtn}
-        onClick={() => {
-          console.log("Go to profile:", profileUser.id);
-          setProfileUser(null);
-        }}
-      >
-        <FiSearch className={styles.actionIcon} />
-        <span>Profile</span>
-      </button>
-    </div>
-  </div>
-</div>
-
-)}
-
-
     </div>
   );
 }

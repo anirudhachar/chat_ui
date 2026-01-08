@@ -69,6 +69,7 @@ const MessageRow = ({
   onEdit,
   onDelete,
   onReact,
+   copiedMessageId, 
 }: {
   m: Message;
   isMine: boolean;
@@ -77,6 +78,7 @@ const MessageRow = ({
   onEdit: (m: Message, newContent: string) => void;
   onDelete: (m: Message) => void;
   onReact: (m: Message, e: string) => void;
+   copiedMessageId?: string | null; 
 }) => {
   const [pickerPosition, setPickerPosition] = useState<{
     top: number;
@@ -499,7 +501,7 @@ const MessageRow = ({
               <button
                 className={styles.actionBtn}
                 onClick={(e) => {
-                  e.stopPropagation(); 
+                  e.stopPropagation();
                   const rect = e.currentTarget.getBoundingClientRect();
                   const PICKER_WIDTH = 280;
                   const VIEWPORT_PADDING = 12;
@@ -746,6 +748,13 @@ const MessageRow = ({
           </div>,
           document.body
         )}
+
+        {copiedMessageId === m.id && (
+  <div className={styles.copiedToast}>
+    Copied!
+  </div>
+)}
+
     </>
   );
 };
@@ -780,6 +789,8 @@ ChatPanelProps) {
   const prevScrollHeightRef = useRef(0);
 
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+
 
   useEffect(() => {
     isFirstLoadRef.current = true;
@@ -835,11 +846,16 @@ ChatPanelProps) {
     if (onReply) onReply(msg);
   };
 
-  const handleCopy = (msg: Message) => {
-    // Basic copy logic, specific text extraction is in MessageRow
-    const text = msg.content || msg.linkUrl || "";
-    if (text) navigator.clipboard.writeText(text);
-  };
+const handleCopy = (msg: Message) => {
+  const text = msg.content || msg.linkUrl || "";
+  if (text) {
+    navigator.clipboard.writeText(text);
+
+    // Show copied toast
+    setCopiedMessageId(msg.id);
+    setTimeout(() => setCopiedMessageId(null), 1200); // hide after 1.2s
+  }
+};
 
   const handleInternalSendMessage = (
     content: string,
@@ -983,6 +999,7 @@ ChatPanelProps) {
               onEdit={onEditMessage || (() => {})}
               onDelete={onDeleteMessage || (() => {})}
               onReact={onReact}
+              copiedMessageId={copiedMessageId}
             />
           ))}
 
