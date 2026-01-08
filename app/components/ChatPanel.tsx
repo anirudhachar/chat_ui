@@ -593,22 +593,29 @@ const MessageRow = ({
 
           {/* 📨 MESSAGE BUBBLE */}
           <div className={styles.messageBubble}>
+            {/* 👤 Sender name + time row */}
             <div
-              className={`${styles.senderNameLabel} ${
+              className={`${styles.senderRow} ${
                 isMine ? styles.textRight : styles.textLeft
               }`}
             >
-              {isMine ? "You" : m.senderName || "User"}
-            </div>
-            {renderContent()}
+              <span className={styles.senderName}>
+                {isMine ? "You" : m.senderName || "User"}
+              </span>
 
-            {!isEditing && (
-              <div className={styles.messageMeta}>
-                {(m as any).isEdited && (
-                  <span className={styles.editedTag}>(edited)</span>
-                )}
+              <span className={styles.senderMeta}>
                 <span className={styles.messageTime}>{m.timestamp}</span>
                 {isMine && getStatusIcon(m.status)}
+              </span>
+            </div>
+
+            {/* 📦 Message content */}
+            {renderContent()}
+
+            {/* ✏️ Edited tag only (optional) */}
+            {!isEditing && (m as any).isEdited && (
+              <div className={styles.messageMeta}>
+                <span className={styles.editedTag}>(edited)</span>
               </div>
             )}
           </div>

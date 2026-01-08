@@ -1540,6 +1540,27 @@
   margin-right: 6px;
 }
 
+.senderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.senderName {
+  font-weight: 500;
+}
+
+.senderMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+
 .senderNameLabel {
   font-size: 12px;
   font-weight: 600;
