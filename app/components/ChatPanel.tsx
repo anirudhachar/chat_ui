@@ -641,7 +641,7 @@ const MessageRow = ({
          C7.526,2.156,6.958,1,5.188,1z"
               />
               <path
-                fill="currentColor"
+               fill="#ffffff"
                 d="M5.188,0H0v11.193l6.467-8.625
          C7.526,1.156,6.958,0,5.188,0z"
               />
