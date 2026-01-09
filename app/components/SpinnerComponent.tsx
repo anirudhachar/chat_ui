@@ -2,7 +2,7 @@
 
 export default function Spinner({ loadingText = "Loading..." }) {
   return (
-    <div className="spinnerOverlay">
+    <div className="chatSpinner">
       <div className="lineScale">
         <span />
         <span />
@@ -13,15 +13,15 @@ export default function Spinner({ loadingText = "Loading..." }) {
       <p>{loadingText}</p>
 
       <style jsx>{`
-        .spinnerOverlay {
-          position: fixed;
+        .chatSpinner {
+          position: absolute;   /* ⬅ NOT fixed */
           inset: 0;
-          background: rgba(51, 51, 51, 0.8);
+          background: rgba(51, 51, 51, 0.4);
           display: flex;
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          z-index: 9999;
+          z-index: 10;
         }
 
         .lineScale span {
@@ -31,19 +31,6 @@ export default function Spinner({ loadingText = "Loading..." }) {
           margin: 0 3px;
           background: #fff;
           animation: scale 1s infinite ease-in-out;
-        }
-
-        .lineScale span:nth-child(2) {
-          animation-delay: 0.1s;
-        }
-        .lineScale span:nth-child(3) {
-          animation-delay: 0.2s;
-        }
-        .lineScale span:nth-child(4) {
-          animation-delay: 0.3s;
-        }
-        .lineScale span:nth-child(5) {
-          animation-delay: 0.4s;
         }
 
         @keyframes scale {
@@ -57,8 +44,8 @@ export default function Spinner({ loadingText = "Loading..." }) {
         }
 
         p {
-          margin-top: 16px;
-          font-size: 20px;
+          margin-top: 12px;
+          font-size: 16px;
           color: white;
         }
       `}</style>
