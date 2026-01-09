@@ -331,17 +331,23 @@ export default function MessageInput({
         ) : (
           /* 3. DEFAULT TEXT INPUT STATE */
           <div className={styles.inputContainer}>
-            {showEmojiPicker && (
-              <>
-                <div
-                  className={styles.emojiPickerBackdrop}
-                  onClick={() => setShowEmojiPicker(false)}
-                />
-                <div className={styles.emojiPickerWrapper}>
-                  <EmojiPicker onEmojiClick={handleEmojiClick} />
-                </div>
-              </>
-            )}
+         {showEmojiPicker && (
+  <>
+    <div
+      className={styles.emojiSheetBackdrop}
+      onClick={() => setShowEmojiPicker(false)}
+    />
+
+    <div className={styles.emojiBottomSheet}>
+      <div className={styles.sheetHandle} />
+      <EmojiPicker
+        onEmojiClick={handleEmojiClick}
+        height={350}
+        width="100%"
+      />
+    </div>
+  </>
+)}
 
             <button
               className={styles.iconButton}

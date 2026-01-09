@@ -378,3 +378,44 @@
     padding: 4px 8px;
   }
 }
+
+
+/* Backdrop */
+.emojiSheetBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 200;
+}
+
+/* Bottom Sheet */
+.emojiBottomSheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 10px 12px 16px;
+  z-index: 201;
+  animation: slideUp 0.25s ease-out;
+}
+
+/* Drag handle (LinkedIn style) */
+.sheetHandle {
+  width: 40px;
+  height: 4px;
+  background: #ccc;
+  border-radius: 4px;
+  margin: 6px auto 10px;
+}
+
+/* Animation */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
