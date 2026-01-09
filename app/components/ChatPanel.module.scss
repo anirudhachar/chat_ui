@@ -685,10 +685,13 @@
     content: "";
     position: absolute;
     bottom: 0;
-    width: 15px;
-    height: 15px;
-    border: 10px solid transparent;
-    background-color: red;
+    /* Small size for a subtle tail */
+    width: 10px; 
+    height: 10px;
+    /* This makes it a diamond */
+    transform: rotate(45deg);
+    /* Keeps it behind the bubble */
+    z-index: -1; 
   }
 
   .sent & {
@@ -696,11 +699,13 @@
     color: #111;
     border-bottom-right-radius: 2px;
 
-    &::after {
-      right: -8px; // Move outside the bubble
-      border-left-color: #e0f2fe; // Match bubble color
-      border-bottom: 0;
-      border-right: 0;
+ &::after {
+      background-color: #e0f2fe;
+      /* Adjust these to get the 'point' just right */
+      right: -4px; 
+      bottom: 2px; 
+      /* Optional: WhatsApp tails are often slightly skewed */
+      transform: rotate(45deg) skew(10deg, 10deg);
     }
   }
 
@@ -709,11 +714,11 @@
     color: #111;
     border-bottom-left-radius: 2px;
 
-    &::after {
-      left: -8px; // Move outside the bubble
-      border-right-color: #ffffff; // Match bubble color
-      border-bottom: 0;
-      border-left: 0;
+ &::after {
+      background-color: #ffffff;
+      left: -4px;
+      bottom: 2px;
+      transform: rotate(45deg) skew(-10deg, -10deg);
     }
   }
 }
