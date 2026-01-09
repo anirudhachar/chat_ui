@@ -685,9 +685,10 @@
     content: "";
     position: absolute;
     bottom: 0;
-    width: 0;
-    height: 0;
+    width: 15px;
+    height: 15px;
     border: 10px solid transparent;
+    background-color: red;
   }
 
   .sent & {
