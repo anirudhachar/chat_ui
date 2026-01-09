@@ -19,10 +19,7 @@ interface MessageInputProps {
     type?: "text" | "image" | "document" | "link" | "audio",
     file?: { name: string; url: string; image?: string; description?: string }
   ) => void;
-onTyping?: () => void;
-
-
- 
+  onTyping?: () => void;
 }
 
 const extractURL = (text: string) => {
@@ -41,7 +38,6 @@ const formatTime = (seconds: number) => {
 export default function MessageInput({
   onSendMessage,
   onTyping,
-
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -70,6 +66,61 @@ export default function MessageInput({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+  const startYRef = useRef(0);
+  const currentYRef = useRef(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const [closingEmojiSheet, setClosingEmojiSheet] = useState(false);
+
+const closeEmojiSheet = () => {
+  setClosingEmojiSheet(true);
+
+  // slide down animation duration
+  setTimeout(() => {
+    setShowEmojiPicker(false);
+    setClosingEmojiSheet(false);
+
+    // reset transform for next open
+    if (sheetRef.current) {
+      sheetRef.current.style.transform = "translateY(0)";
+    }
+  }, 250);
+};
+
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startYRef.current = e.touches[0].clientY;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || !sheetRef.current) return;
+
+    currentYRef.current = e.touches[0].clientY;
+    const diff = currentYRef.current - startYRef.current;
+
+    if (diff > 0) {
+      sheetRef.current.style.transform = `translateY(${diff}px)`;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!sheetRef.current) return;
+
+    const diff = currentYRef.current - startYRef.current;
+
+    setIsDragging(false);
+
+    // 👉 threshold to close
+    if (diff > 120) {
+      closeEmojiSheet();
+    } else {
+      // snap back
+      sheetRef.current.style.transform = "translateY(0)";
+    }
+  };
 
   // Link Preview Logic
   const fetchPreviewDebounced = (url: string) => {
@@ -197,7 +248,6 @@ export default function MessageInput({
   };
 
   const handleSend = () => {
-    
     if (recordedAudio) {
       sendRecordedAudio();
       return;
@@ -245,9 +295,11 @@ export default function MessageInput({
     }
   };
 
-  const handleEmojiClick = (emojiData: EmojiClickData) => {
-    setMessage((prev) => prev + emojiData.emoji);
-  };
+const handleEmojiClick = (emojiData: EmojiClickData) => {
+  setMessage((prev) => prev + emojiData.emoji);
+  closeEmojiSheet(); // ✅ CLOSE AFTER SELECT
+};
+
 
   const showSendButton =
     message.trim().length > 0 || selectedFile || linkPreview || recordedAudio;
@@ -331,14 +383,24 @@ export default function MessageInput({
         ) : (
           /* 3. DEFAULT TEXT INPUT STATE */
           <div className={styles.inputContainer}>
-         {showEmojiPicker && (
+          {showEmojiPicker && (
   <>
+    {/* BACKDROP */}
     <div
       className={styles.emojiSheetBackdrop}
-      onClick={() => setShowEmojiPicker(false)}
+      onClick={closeEmojiSheet}
     />
 
-    <div className={styles.emojiBottomSheet}>
+    {/* BOTTOM SHEET */}
+    <div
+      ref={sheetRef}
+      className={`${styles.emojiBottomSheet} ${
+        closingEmojiSheet ? styles.closing : ""
+      }`}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       <div className={styles.sheetHandle} />
       <EmojiPicker
         onEmojiClick={handleEmojiClick}
@@ -348,6 +410,7 @@ export default function MessageInput({
     </div>
   </>
 )}
+
 
             <button
               className={styles.iconButton}
@@ -415,7 +478,7 @@ export default function MessageInput({
               value={message}
               onChange={(e) => {
                 setMessage(e.target.value);
-                if (onTyping)  onTyping?.(); 
+                if (onTyping) onTyping?.();
               }}
               // 🔥 ADD onBlur:
               // onBlur={() => {
@@ -430,7 +493,6 @@ export default function MessageInput({
               disabled={false}
             >
               {showSendButton ? <FiSend /> : <FiSend />}
-            
             </button>
           </div>
         )}
