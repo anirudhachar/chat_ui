@@ -74,21 +74,33 @@ export default function MessageInput({
 
   const [closingEmojiSheet, setClosingEmojiSheet] = useState(false);
 
-const closeEmojiSheet = () => {
-  setClosingEmojiSheet(true);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // slide down animation duration
-  setTimeout(() => {
-    setShowEmojiPicker(false);
-    setClosingEmojiSheet(false);
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
 
-    // reset transform for next open
-    if (sheetRef.current) {
-      sheetRef.current.style.transform = "translateY(0)";
-    }
-  }, 250);
-};
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
 
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const closeEmojiSheet = () => {
+    setClosingEmojiSheet(true);
+
+    // slide down animation duration
+    setTimeout(() => {
+      setShowEmojiPicker(false);
+      setClosingEmojiSheet(false);
+
+      // reset transform for next open
+      if (sheetRef.current) {
+        sheetRef.current.style.transform = "translateY(0)";
+      }
+    }, 250);
+  };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     startYRef.current = e.touches[0].clientY;
@@ -295,11 +307,10 @@ const closeEmojiSheet = () => {
     }
   };
 
-const handleEmojiClick = (emojiData: EmojiClickData) => {
-  setMessage((prev) => prev + emojiData.emoji);
-  closeEmojiSheet(); // ✅ CLOSE AFTER SELECT
-};
-
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    setMessage((prev) => prev + emojiData.emoji);
+    closeEmojiSheet(); // ✅ CLOSE AFTER SELECT
+  };
 
   const showSendButton =
     message.trim().length > 0 || selectedFile || linkPreview || recordedAudio;
@@ -383,34 +394,44 @@ const handleEmojiClick = (emojiData: EmojiClickData) => {
         ) : (
           /* 3. DEFAULT TEXT INPUT STATE */
           <div className={styles.inputContainer}>
-          {showEmojiPicker && (
-  <>
-    {/* BACKDROP */}
-    <div
-      className={styles.emojiSheetBackdrop}
-      onClick={closeEmojiSheet}
-    />
+            {/* DESKTOP EMOJI PICKER */}
+            {showEmojiPicker && !isMobile && (
+              <>
+                <div
+                  className={styles.emojiPickerBackdrop}
+                  onClick={() => setShowEmojiPicker(false)}
+                />
+                <div className={styles.emojiPickerWrapper}>
+                  <EmojiPicker onEmojiClick={handleEmojiClick} />
+                </div>
+              </>
+            )}
+            {/* MOBILE EMOJI PICKER */}
+            {showEmojiPicker && isMobile && (
+              <>
+                <div
+                  className={styles.emojiSheetBackdrop}
+                  onClick={closeEmojiSheet}
+                />
 
-    {/* BOTTOM SHEET */}
-    <div
-      ref={sheetRef}
-      className={`${styles.emojiBottomSheet} ${
-        closingEmojiSheet ? styles.closing : ""
-      }`}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      <div className={styles.sheetHandle} />
-      <EmojiPicker
-        onEmojiClick={handleEmojiClick}
-        height={350}
-        width="100%"
-      />
-    </div>
-  </>
-)}
-
+                <div
+                  ref={sheetRef}
+                  className={`${styles.emojiBottomSheet} ${
+                    closingEmojiSheet ? styles.closing : ""
+                  }`}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                >
+                  <div className={styles.sheetHandle} />
+                  <EmojiPicker
+                    onEmojiClick={handleEmojiClick}
+                    height={350}
+                    width="100%"
+                  />
+                </div>
+              </>
+            )}
 
             <button
               className={styles.iconButton}
