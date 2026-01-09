@@ -34,7 +34,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
     width: 4px;
     height: 35px;
     margin: 0 3px;
-    background: #fff;
+    background: #9e9e9e;
     animation: scale 1s infinite ease-in-out;
   }
 
