@@ -694,32 +694,32 @@
   }
 }
 
-.mine {
-  background-color: #fff;
-  color: #dcf8c6;
-}
+// .mine {
+//   background-color: #fff;
+//   color: #dcf8c6;
+// }
 
-.theirs {
-  background-color: #ffffff;
-  color: #ffffff;
-}
+// .theirs {
+//   background-color: #ffffff;
+//   color: #ffffff;
+// }
 
-/* Tail base */
-.tail {
-  position: absolute;
-  top: 0;
-}
+// /* Tail base */
+// .tail {
+//   position: absolute;
+//   top: 0;
+// }
 
-/* Right side (me) */
-.tailMine {
-  right: -6px;
-}
+// /* Right side (me) */
+// .tailMine {
+//   right: -6px;
+// }
 
-/* Left side (them) */
-.tailTheirs {
-  left: -8px;
-  transform: scaleX(-1); // mirror the SVG
-}
+// /* Left side (them) */
+// .tailTheirs {
+//   left: -8px;
+//   transform: scaleX(-1); // mirror the SVG
+// }
 .messageBubble {
   // max-width: 65%;
   padding: 8px 12px;

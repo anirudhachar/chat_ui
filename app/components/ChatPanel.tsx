@@ -622,11 +622,8 @@ const MessageRow = ({
 
           {/* 📨 MESSAGE BUBBLE */}
           <div
-            className={`${styles.messageBubble} ${
-              isMine ? styles.mine : styles.theirs
-            }`}
-          >
-            <svg
+            className={`${styles.messageBubble}`} >
+            {/* <svg
               viewBox="0 0 8 13"
               width="8"
               height="13"
@@ -645,7 +642,7 @@ const MessageRow = ({
                 d="M5.188,0H0v11.193l6.467-8.625
          C7.526,1.156,6.958,0,5.188,0z"
               />
-            </svg>
+            </svg> */}
             <div
               className={`${styles.senderNameLabel} ${
                 isMine ? styles.textRight : styles.textLeft
