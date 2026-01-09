@@ -695,43 +695,31 @@
 }
 
 .mine {
-  background: #fff;
-  border-top-right-radius: 4px;
+  background-color: #fff;
+  color: #dcf8c6;
 }
 
-.mine::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: -8px;
-
-  width: 0;
-  height: 0;
-
-  border-left: 8px solid #dcf8c6;
-  border-top: 8px solid transparent;
-}
 .theirs {
-  background: #ffffff;
-  border-top-left-radius: 4px;
+  background-color: #ffffff;
+  color: #ffffff;
 }
 
-.theirs::after {
-  content: "";
+/* Tail base */
+.tail {
   position: absolute;
   top: 0;
+}
+
+/* Right side (me) */
+.tailMine {
+  right: -8px;
+}
+
+/* Left side (them) */
+.tailTheirs {
   left: -8px;
-
-  width: 0;
-  height: 0;
-
-  border-right: 8px solid #ffffff;
-  border-top: 8px solid transparent;
+  transform: scaleX(-1); // mirror the SVG
 }
-.noTail::after {
-  display: none;
-}
-
 .messageBubble {
   // max-width: 65%;
   padding: 8px 12px;
