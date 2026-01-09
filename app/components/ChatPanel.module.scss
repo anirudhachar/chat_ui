@@ -695,6 +695,45 @@
   }
 }
 
+.mine {
+  background: #dcf8c6;
+  border-top-right-radius: 4px;
+}
+
+.mine::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -8px;
+
+  width: 0;
+  height: 0;
+
+  border-left: 8px solid #dcf8c6;
+  border-top: 8px solid transparent;
+}
+.theirs {
+  background: #ffffff;
+  border-top-left-radius: 4px;
+}
+
+.theirs::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -8px;
+
+  width: 0;
+  height: 0;
+
+  border-right: 8px solid #ffffff;
+  border-top: 8px solid transparent;
+}
+.noTail::after {
+  display: none;
+}
+
+
 .messageBubble {
   // max-width: 65%;
   padding: 8px 12px;

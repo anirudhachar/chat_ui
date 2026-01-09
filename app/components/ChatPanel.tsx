@@ -621,7 +621,9 @@ const MessageRow = ({
           )}
 
           {/* 📨 MESSAGE BUBBLE */}
-          <div className={styles.messageBubble}>
+          <div  className={`${styles.messageBubble} ${
+    isMine ? styles.mine : styles.theirs
+  }`}>
             <div
               className={`${styles.senderNameLabel} ${
                 isMine ? styles.textRight : styles.textLeft
