@@ -680,7 +680,6 @@
   min-width: 60px;
   background-color: #fff;
   margin: 0;
-  
 
   .sent & {
     background-color: #e0f2fe; /* Light Blue for me */
@@ -696,7 +695,7 @@
 }
 
 .mine {
-  background: #dcf8c6;
+  background: #fff;
   border-top-right-radius: 4px;
 }
 
@@ -732,7 +731,6 @@
 .noTail::after {
   display: none;
 }
-
 
 .messageBubble {
   // max-width: 65%;
