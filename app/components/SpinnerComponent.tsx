@@ -10,7 +10,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
         <span />
         <span />
       </div>
-      <p>{loadingText}</p>
+      <p style={{color:"#9e9e9e"}}>{loadingText}</p>
 
     <style jsx>{`
   .chatSpinner {
