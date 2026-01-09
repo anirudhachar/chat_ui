@@ -119,38 +119,37 @@ const MessageRow = ({
   const [showMobileSheet, setShowMobileSheet] = useState(false);
   const [showMobileEmojiSheet, setShowMobileEmojiSheet] = useState(false);
   const emojiSheetRef = useRef<HTMLDivElement | null>(null);
-const startYRef = useRef(0);
-const currentYRef = useRef(0);
-const [isDraggingEmoji, setIsDraggingEmoji] = useState(false);
-const handleEmojiTouchStart = (e: React.TouchEvent) => {
-  startYRef.current = e.touches[0].clientY;
-  setIsDraggingEmoji(true);
-};
+  const startYRef = useRef(0);
+  const currentYRef = useRef(0);
+  const [isDraggingEmoji, setIsDraggingEmoji] = useState(false);
+  const handleEmojiTouchStart = (e: React.TouchEvent) => {
+    startYRef.current = e.touches[0].clientY;
+    setIsDraggingEmoji(true);
+  };
 
-const handleEmojiTouchMove = (e: React.TouchEvent) => {
-  if (!isDraggingEmoji || !emojiSheetRef.current) return;
+  const handleEmojiTouchMove = (e: React.TouchEvent) => {
+    if (!isDraggingEmoji || !emojiSheetRef.current) return;
 
-  currentYRef.current = e.touches[0].clientY;
-  const diff = currentYRef.current - startYRef.current;
+    currentYRef.current = e.touches[0].clientY;
+    const diff = currentYRef.current - startYRef.current;
 
-  if (diff > 0) {
-    emojiSheetRef.current.style.transform = `translateY(${diff}px)`;
-  }
-};
+    if (diff > 0) {
+      emojiSheetRef.current.style.transform = `translateY(${diff}px)`;
+    }
+  };
 
-const handleEmojiTouchEnd = () => {
-  if (!emojiSheetRef.current) return;
+  const handleEmojiTouchEnd = () => {
+    if (!emojiSheetRef.current) return;
 
-  const diff = currentYRef.current - startYRef.current;
-  setIsDraggingEmoji(false);
+    const diff = currentYRef.current - startYRef.current;
+    setIsDraggingEmoji(false);
 
-  if (diff > 120) {
-    setShowMobileEmojiSheet(false);
-  } else {
-    emojiSheetRef.current.style.transform = "translateY(0)";
-  }
-};
-
+    if (diff > 120) {
+      setShowMobileEmojiSheet(false);
+    } else {
+      emojiSheetRef.current.style.transform = "translateY(0)";
+    }
+  };
 
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const isMobile = isMobileDevice();
@@ -772,36 +771,35 @@ const handleEmojiTouchEnd = () => {
           document.body
         )}
 
-    {showMobileEmojiSheet &&
-  createPortal(
-    <div
-      className={styles.mobileSheetOverlay}
-      onClick={() => setShowMobileEmojiSheet(false)}
-    >
-      <div
-        ref={emojiSheetRef}
-        className={styles.mobileEmojiSheet}
-        onClick={(e) => e.stopPropagation()}
-        onTouchStart={handleEmojiTouchStart}
-        onTouchMove={handleEmojiTouchMove}
-        onTouchEnd={handleEmojiTouchEnd}
-      >
-        <div className={styles.sheetHandle} />
+      {showMobileEmojiSheet &&
+        createPortal(
+          <div
+            className={styles.mobileSheetOverlay}
+            onClick={() => setShowMobileEmojiSheet(false)}
+          >
+            <div
+              ref={emojiSheetRef}
+              className={styles.mobileEmojiSheet}
+              onClick={(e) => e.stopPropagation()}
+              onTouchStart={handleEmojiTouchStart}
+              onTouchMove={handleEmojiTouchMove}
+              onTouchEnd={handleEmojiTouchEnd}
+            >
+              <div className={styles.sheetHandle} />
 
-        <EmojiPicker
-          height={360}
-          width="100%"
-          previewConfig={{ showPreview: false }}
-          onEmojiClick={(e) => {
-            onReact(m, e.emoji);
-            setShowMobileEmojiSheet(false);
-          }}
-        />
-      </div>
-    </div>,
-    document.body
-  )}
-
+              <EmojiPicker
+                height={360}
+                width="100%"
+                previewConfig={{ showPreview: false }}
+                onEmojiClick={(e) => {
+                  onReact(m, e.emoji);
+                  setShowMobileEmojiSheet(false);
+                }}
+              />
+            </div>
+          </div>,
+          document.body
+        )}
     </>
   );
 };

@@ -634,42 +634,73 @@ export default function ChatInterface() {
             break;
           }
 
+          // case "messageReactionUpdated": {
+          //   const { messageKey, emoji, action, reactedBy } = data;
+
+          //   setMessages((prev) =>
+          //     prev.map((m) => {
+          //       if (m.messageKey !== messageKey) return m;
+
+          //       const currentReactions = m.reactions || {};
+          //       const usersForEmoji = currentReactions[emoji] || [];
+
+          //       let updatedUsers: string[];
+
+          //       if (action === "ADDED") {
+          //         // avoid duplicates
+          //         if (usersForEmoji.includes(reactedBy)) {
+          //           return m;
+          //         }
+          //         updatedUsers = [...usersForEmoji, reactedBy];
+          //       } else if (action === "REMOVED") {
+          //         updatedUsers = usersForEmoji.filter((u) => u !== reactedBy);
+          //       } else {
+          //         return m;
+          //       }
+
+          //       const updatedReactions = { ...currentReactions };
+
+          //       if (updatedUsers.length > 0) {
+          //         updatedReactions[emoji] = updatedUsers;
+          //       } else {
+          //         delete updatedReactions[emoji];
+          //       }
+
+          //       return {
+          //         ...m,
+          //         reactions: updatedReactions,
+          //       };
+          //     })
+          //   );
+
+          //   break;
+          // }
+
           case "messageReactionUpdated": {
-            const { messageKey, emoji, action, reactedBy } = data;
+            const { messageKey, emoji, reactedBy, action } = data;
 
             setMessages((prev) =>
               prev.map((m) => {
                 if (m.messageKey !== messageKey) return m;
 
-                const currentReactions = m.reactions || {};
-                const usersForEmoji = currentReactions[emoji] || [];
+                const reactions = { ...(m.reactions || {}) };
 
-                let updatedUsers: string[];
-
-                if (action === "ADDED") {
-                  // avoid duplicates
-                  if (usersForEmoji.includes(reactedBy)) {
-                    return m;
+                // 1️⃣ Remove this user from ALL emojis (🔥❤️😂 etc)
+                Object.keys(reactions).forEach((key) => {
+                  reactions[key] = reactions[key].filter(
+                    (u) => u !== reactedBy
+                  );
+                  if (reactions[key].length === 0) {
+                    delete reactions[key];
                   }
-                  updatedUsers = [...usersForEmoji, reactedBy];
-                } else if (action === "REMOVED") {
-                  updatedUsers = usersForEmoji.filter((u) => u !== reactedBy);
-                } else {
-                  return m;
+                });
+
+                // 2️⃣ If backend says ADD → add only the latest emoji
+                if (action !== "REMOVED") {
+                  reactions[emoji] = [...(reactions[emoji] || []), reactedBy];
                 }
 
-                const updatedReactions = { ...currentReactions };
-
-                if (updatedUsers.length > 0) {
-                  updatedReactions[emoji] = updatedUsers;
-                } else {
-                  delete updatedReactions[emoji];
-                }
-
-                return {
-                  ...m,
-                  reactions: updatedReactions,
-                };
+                return { ...m, reactions };
               })
             );
 
@@ -1811,8 +1842,13 @@ export default function ChatInterface() {
                   setProfileUser(null);
                 }}
               >
-              
-                <Image src={bubble_img} alt="User" className={styles.actionIcon} width={20} height={20}/>
+                <Image
+                  src={bubble_img}
+                  alt="User"
+                  className={styles.actionIcon}
+                  width={20}
+                  height={20}
+                />
                 <span>Message</span>
               </button>
 
@@ -1829,7 +1865,13 @@ export default function ChatInterface() {
                   setProfileUser(null);
                 }}
               >
-               <Image src={user_img} alt="User" className={styles.actionIcon} width={20} height={20} />
+                <Image
+                  src={user_img}
+                  alt="User"
+                  className={styles.actionIcon}
+                  width={20}
+                  height={20}
+                />
                 <span>Profile</span>
               </button>
             </div>
