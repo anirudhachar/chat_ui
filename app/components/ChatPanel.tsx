@@ -29,6 +29,7 @@ import {
   IoTimeOutline,
 } from "react-icons/io5";
 import { createPortal } from "react-dom";
+import Spinner from "./SpinnerComponent";
 
 interface ChatPanelProps {
   selectedUser: User | null;
@@ -1035,9 +1036,10 @@ ChatPanelProps) {
       {/* MESSAGES AREA */}
       <div className={styles.messagesArea} ref={messagesAreaRef}>
         {isLoading && (
-          <div className={styles.loadingContainer}>
-            <div className={styles.spinner} />
-          </div>
+          // <div className={styles.loadingContainer}>
+          //   <div className={styles.spinner} />
+          // </div>
+          <Spinner/>
         )}
 
         {!isLoading && messages.length === 0 && (
