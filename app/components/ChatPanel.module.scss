@@ -727,36 +727,6 @@
   }
 }
 
-.sent .messageBubble::after {
-  content: "";
-  position: absolute;
-  right: -6px;
-  bottom: 8px;
-
-  width: 0;
-  height: 0;
-
-  border-left: 6px solid #e0f2fe; // same as sent bubble bg
-  border-top: 6px solid transparent;
-  border-bottom: 6px solid transparent;
-}
-
-/* ==========================
-   RECEIVED (Left side tail)
-   ========================== */
-.received .messageBubble::after {
-  content: "";
-  position: absolute;
-  left: -6px;
-  bottom: 8px;
-
-  width: 0;
-  height: 0;
-
-  border-right: 6px solid #ffffff; // same as received bubble bg
-  border-top: 6px solid transparent;
-  border-bottom: 6px solid transparent;
-}
 /* 🔥 Emoji reaction bar */
 // .reactionBar {
 //   position: absolute;
