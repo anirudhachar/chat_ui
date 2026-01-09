@@ -695,7 +695,6 @@ export default function ChatInterface() {
                   }
                 });
 
-                // 2️⃣ If backend says ADD → add only the latest emoji
                 if (action !== "REMOVED") {
                   reactions[emoji] = [...(reactions[emoji] || []), reactedBy];
                 }

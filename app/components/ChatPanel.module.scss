@@ -193,10 +193,10 @@
   border-top-right-radius: 12px;
   border-bottom-right-radius: 12px;
 }
-@media(max-width: 480px) {
+@media (max-width: 480px) {
   .chatHeader {
- border-top-right-radius: 0px;
-  border-bottom-right-radius: 0px;
+    border-top-right-radius: 0px;
+    border-bottom-right-radius: 0px;
   }
 }
 .backButton {
@@ -356,7 +356,6 @@
   margin-right: 3px;
   display: flex;
   flex-direction: column;
- 
 }
 
 .defaultAvatar {
@@ -610,7 +609,7 @@
   width: 100%;
 }
 
-@media(max-width: 480px) {
+@media (max-width: 480px) {
   .editContainer {
     min-width: 170px;
   }
@@ -728,6 +727,36 @@
   }
 }
 
+.sent .messageBubble::after {
+  content: "";
+  position: absolute;
+  right: -6px;
+  bottom: 8px;
+
+  width: 0;
+  height: 0;
+
+  border-left: 6px solid #e0f2fe; // same as sent bubble bg
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+}
+
+/* ==========================
+   RECEIVED (Left side tail)
+   ========================== */
+.received .messageBubble::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  bottom: 8px;
+
+  width: 0;
+  height: 0;
+
+  border-right: 6px solid #ffffff; // same as received bubble bg
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+}
 /* 🔥 Emoji reaction bar */
 // .reactionBar {
 //   position: absolute;
@@ -895,17 +924,17 @@
 }
 
 .tickIcon {
-  font-size: 18px; 
+  font-size: 18px;
   color: #8696a0; // WhatsApp neutral gray
   vertical-align: middle;
   margin-left: 2px;
-  
+
   /* Fixes the "blurry/thin" look */
   stroke: currentColor;
-  stroke-width: 0.5px; 
+  stroke-width: 0.5px;
 
   &.read {
-    color: #34B7F1; // WhatsApp Cyan
+    color: #34b7f1; // WhatsApp Cyan
   }
 }
 
@@ -1576,18 +1605,20 @@
   span:nth-child(1) {
     animation-delay: -0.32s;
   }
-  
+
   span:nth-child(2) {
     animation-delay: -0.16s;
   }
 }
 
 @keyframes bounce {
-  0%, 80%, 100% { 
+  0%,
+  80%,
+  100% {
     transform: scale(0);
     opacity: 0.5;
   }
-  40% { 
+  40% {
     transform: scale(1);
     opacity: 1;
   }
@@ -1606,7 +1637,6 @@
   justify-content: center;
   user-select: none;
 }
-
 
 .loadingContainer {
   display: flex;
@@ -1627,7 +1657,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .emojiPickerPortal {
@@ -1637,7 +1669,6 @@
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
 }
-
 
 .mobileSheetOverlay {
   position: fixed;
@@ -1718,7 +1749,6 @@
   pointer-events: none;
 }
 
-
 @keyframes fadeUp {
   0% {
     opacity: 0.9;
@@ -1742,10 +1772,9 @@
   animation: slideUp 0.25s ease-out;
   transition: transform 0.25s ease;
 
-  touch-action: pan-y;     // ✅ allow vertical swipe
+  touch-action: pan-y; // ✅ allow vertical swipe
   will-change: transform; // ✅ smooth dragging
 }
-
 
 .sheetHandle {
   width: 36px;
