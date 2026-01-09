@@ -117,6 +117,41 @@ const MessageRow = ({
 
   // Close popups on click outside
   const [showMobileSheet, setShowMobileSheet] = useState(false);
+  const [showMobileEmojiSheet, setShowMobileEmojiSheet] = useState(false);
+  const emojiSheetRef = useRef<HTMLDivElement | null>(null);
+const startYRef = useRef(0);
+const currentYRef = useRef(0);
+const [isDraggingEmoji, setIsDraggingEmoji] = useState(false);
+const handleEmojiTouchStart = (e: React.TouchEvent) => {
+  startYRef.current = e.touches[0].clientY;
+  setIsDraggingEmoji(true);
+};
+
+const handleEmojiTouchMove = (e: React.TouchEvent) => {
+  if (!isDraggingEmoji || !emojiSheetRef.current) return;
+
+  currentYRef.current = e.touches[0].clientY;
+  const diff = currentYRef.current - startYRef.current;
+
+  if (diff > 0) {
+    emojiSheetRef.current.style.transform = `translateY(${diff}px)`;
+  }
+};
+
+const handleEmojiTouchEnd = () => {
+  if (!emojiSheetRef.current) return;
+
+  const diff = currentYRef.current - startYRef.current;
+  setIsDraggingEmoji(false);
+
+  if (diff > 120) {
+    setShowMobileEmojiSheet(false);
+  } else {
+    emojiSheetRef.current.style.transform = "translateY(0)";
+  }
+};
+
+
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const isMobile = isMobileDevice();
   const handleTouchStart = () => {
@@ -684,20 +719,8 @@ const MessageRow = ({
                 ))}
                 <button
                   onClick={() => {
-                    const rect = document
-                      .getElementById(`msg-${m.id}`)
-                      ?.getBoundingClientRect();
-
                     closeMobileSheet();
-
-                    if (rect) {
-                      setTimeout(() => {
-                        setPickerPosition({
-                          top: Math.max(16, rect.top - 360),
-                          left: rect.left + 12,
-                        });
-                      }, 60); // small delay = LinkedIn feel
-                    }
+                    setShowMobileEmojiSheet(true);
                   }}
                 >
                   <FiSmile />
@@ -748,6 +771,37 @@ const MessageRow = ({
           </div>,
           document.body
         )}
+
+    {showMobileEmojiSheet &&
+  createPortal(
+    <div
+      className={styles.mobileSheetOverlay}
+      onClick={() => setShowMobileEmojiSheet(false)}
+    >
+      <div
+        ref={emojiSheetRef}
+        className={styles.mobileEmojiSheet}
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleEmojiTouchStart}
+        onTouchMove={handleEmojiTouchMove}
+        onTouchEnd={handleEmojiTouchEnd}
+      >
+        <div className={styles.sheetHandle} />
+
+        <EmojiPicker
+          height={360}
+          width="100%"
+          previewConfig={{ showPreview: false }}
+          onEmojiClick={(e) => {
+            onReact(m, e.emoji);
+            setShowMobileEmojiSheet(false);
+          }}
+        />
+      </div>
+    </div>,
+    document.body
+  )}
+
     </>
   );
 };
@@ -1077,9 +1131,8 @@ ChatPanelProps) {
       />
 
       {showGlobalCopyToast && (
-  <div className={styles.mobileCopiedToast}>Copied</div>
-)}
-
+        <div className={styles.mobileCopiedToast}>Copied</div>
+      )}
     </div>
   );
 }

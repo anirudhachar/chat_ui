@@ -1729,3 +1729,37 @@
     transform: translateX(-50%) translateY(-16px);
   }
 }
+
+.mobileEmojiSheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  z-index: 201;
+
+  animation: slideUp 0.25s ease-out;
+  transition: transform 0.25s ease;
+
+  touch-action: pan-y;     // ✅ allow vertical swipe
+  will-change: transform; // ✅ smooth dragging
+}
+
+
+.sheetHandle {
+  width: 36px;
+  height: 4px;
+  background: #ccc;
+  border-radius: 2px;
+  margin: 6px auto 10px;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
