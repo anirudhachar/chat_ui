@@ -135,6 +135,8 @@ export default function ChatInterface() {
     return match ? match[0] : null;
   };
 
+  
+
   const fetchLinkPreview = async (messageId: string, url: string) => {
     try {
       const res = await fetch("/api/preview", {
@@ -759,10 +761,15 @@ export default function ChatInterface() {
             break;
           }
 
-          case "messageSentAck": {
-            console.log("✅ Message acknowledged by server");
-            break;
-          }
+        case "messageSentAck": {
+  const { conversationId } = data;
+
+  // 🔥 MULTI-DEVICE SYNC (ChatPanel)
+  syncConversationMessages(conversationId);
+
+  break;
+}
+
 
           default:
             console.log("⚠️ Unknown WS event", payload);
@@ -1097,6 +1104,28 @@ export default function ChatInterface() {
     },
     []
   );
+
+
+  const syncInProgressRef = useRef(false);
+
+const syncConversationMessages = useCallback(
+  (cid: string) => {
+    // Only sync active conversation
+    if (!cid || cid !== conversationIdRef.current) return;
+    if (!parentToken || !loggedInUserId) return;
+
+    // Prevent double fetch
+    if (syncInProgressRef.current) return;
+    syncInProgressRef.current = true;
+
+    fetchMessages(cid, parentToken, loggedInUserId, null)
+      .finally(() => {
+        syncInProgressRef.current = false;
+      });
+  },
+  [fetchMessages, parentToken, loggedInUserId]
+);
+
 
   // Dependencies: empty since all required dependencies are passed as arguments or are stable state/props
 
