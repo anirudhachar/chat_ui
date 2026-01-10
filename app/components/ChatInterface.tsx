@@ -1524,6 +1524,23 @@ export default function ChatInterface() {
           };
 
           setMessages((prev) => [...prev, optimisticOffer]);
+          // 🔥 SIDEBAR – optimistic OFFER update
+
+          setUsers((prev) => {
+            const updatedUser: User = {
+              ...selectedUser,
+              lastMessage: payload.text || "Sent an offer",
+              lastMessageTime: timeString,
+              lastMessageStatus: "sending",
+              lastMessageSenderId: loggedInUserId ?? undefined,
+              unread: 0,
+            };
+
+            const exists = prev.find((u) => u.id === selectedUser.id);
+            return exists
+              ? [updatedUser, ...prev.filter((u) => u.id !== selectedUser.id)]
+              : [updatedUser, ...prev];
+          });
 
           // 🔥 store offer as text/json in backend
           const apiContent = JSON.stringify({
@@ -1549,10 +1566,29 @@ export default function ChatInterface() {
                   : m
               )
             );
+            // 🔥 SIDEBAR – mark OFFER as sent
+            setUsers((prev) =>
+              prev.map((u) =>
+                u.id === selectedUser.id
+                  ? {
+                      ...u,
+                      lastMessageStatus: "sent",
+                      lastMessageSenderId: loggedInUserId ?? undefined,
+                    }
+                  : u
+              )
+            );
           } catch {
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === optimisticOffer.id ? { ...m, status: "failed" } : m
+              )
+            );
+            setUsers((prev) =>
+              prev.map((u) =>
+                u.id === selectedUser.id
+                  ? { ...u, lastMessageStatus: "failed" }
+                  : u
               )
             );
           }
