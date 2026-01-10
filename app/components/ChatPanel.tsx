@@ -82,6 +82,54 @@ const getCopyText = (msg: Message): string => {
       return msg.content || "";
   }
 };
+
+const getDateLabel = (ts: number) => {
+  const d = new Date(ts);
+  const today = new Date();
+
+  const startToday = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+
+  const startMsg = new Date(
+    d.getFullYear(),
+    d.getMonth(),
+    d.getDate()
+  );
+
+  const diff =
+    (startToday.getTime() - startMsg.getTime()) / (1000 * 60 * 60 * 24);
+
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+
+  return d.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const shouldShowDateSeparator = (
+  current: Message,
+  prev?: Message
+) => {
+  if (!prev) return true;
+
+  const c = new Date(current.createdAt);
+  const p = new Date(prev.createdAt);
+
+  return (
+    c.getFullYear() !== p.getFullYear() ||
+    c.getMonth() !== p.getMonth() ||
+    c.getDate() !== p.getDate()
+  );
+};
+
+
+
 const MessageRow = ({
   m,
   isMine,
@@ -622,8 +670,7 @@ const MessageRow = ({
           )}
 
           {/* 📨 MESSAGE BUBBLE */}
-          <div
-            className={`${styles.messageBubble}`} >
+          <div className={`${styles.messageBubble}`}>
             {/* <svg
               viewBox="0 0 8 13"
               width="8"
@@ -1039,7 +1086,7 @@ ChatPanelProps) {
           // <div className={styles.loadingContainer}>
           //   <div className={styles.spinner} />
           // </div>
-          <Spinner/>
+          <Spinner />
         )}
 
         {!isLoading && messages.length === 0 && (
@@ -1065,21 +1112,31 @@ ChatPanelProps) {
               {isLoadingOlderRef.current && <MessageSkeleton />}
             </div>
           )}
+          {messages.map((m, index) => {
+            const prevMsg = messages[index - 1];
+            const showDate = shouldShowDateSeparator(m, prevMsg);
 
-          {messages.map((m) => (
-            <MessageRow
-              key={m.id}
-              m={m}
-              isMine={m.sent}
-              onReply={handleReply}
-              onCopy={handleCopy}
-              // 🔥 PASSING EDIT HANDLER with new signature
-              onEdit={onEditMessage || (() => {})}
-              onDelete={onDeleteMessage || (() => {})}
-              onReact={onReact}
-              copiedMessageId={copiedMessageId}
-            />
-          ))}
+            return (
+              <div key={m.id}>
+                {showDate && (
+                  <div className={styles.dateSeparator}>
+                    <span>{getDateLabel(m.createdAt)}</span>
+                  </div>
+                )}
+
+                <MessageRow
+                  m={m}
+                  isMine={m.sent}
+                  onReply={handleReply}
+                  onCopy={handleCopy}
+                  onEdit={onEditMessage || (() => {})}
+                  onDelete={onDeleteMessage || (() => {})}
+                  onReact={onReact}
+                  copiedMessageId={copiedMessageId}
+                />
+              </div>
+            );
+          })}
 
           {isPartnerTyping && (
             <div className={`${styles.messageRow} ${styles.theirRow}`}>
