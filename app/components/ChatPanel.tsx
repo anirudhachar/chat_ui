@@ -267,19 +267,7 @@ const MessageRow = ({
     }
   }, [isEditing]);
 
-  useEffect(() => {
-    if (!showMenu) return;
 
-    const remaining = EDIT_WINDOW_MS - (Date.now() - m.createdAt);
-
-    if (remaining <= 0) {
-      setShowMenu(false);
-      return;
-    }
-
-    const t = setTimeout(() => setShowMenu(false), remaining);
-    return () => clearTimeout(t);
-  }, [showMenu]);
 
   const renderContent = () => {
     // ✏️ 1. EDIT MODE (Only for text messages)
