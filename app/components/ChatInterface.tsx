@@ -593,41 +593,22 @@ export default function ChatInterface() {
           // Inside ws.onmessage
 
           case "messageEdited": {
-            const { messageKey, messageId, newContent } = data;
-
-            // 1️⃣ Update ChatPanel (unchanged, just cleaned up)
             setMessages((prev) =>
               prev.map((m) => {
+                // Check both to be safe
                 const isMatch =
-                  m.messageKey === messageKey || m.id === messageId;
+                  m.messageKey === data.messageKey || m.id === data.messageId;
 
-                if (!isMatch) return m;
-
-                return {
-                  ...m,
-                  content: newContent,
-                  isEdited: true, // optional
-                };
+                if (isMatch) {
+                  return {
+                    ...m,
+                    content: data.newContent,
+                    // (m as any).isEdited = true; // Optional if you added isEdited to interface
+                  };
+                }
+                return m;
               })
             );
-
-            // 2️⃣ Update SIDEBAR preview (if last message)
-            setUsers((prev) => {
-              const index = prev.findIndex((u) =>
-                u.lastMessage === undefined ? false : true
-              );
-
-              if (index === -1) return prev;
-
-              const updatedUser = {
-                ...prev[index],
-                lastMessage: newContent,
-              };
-
-              const others = prev.filter((_, i) => i !== index);
-              return [updatedUser, ...others];
-            });
-
             break;
           }
 
@@ -727,6 +708,7 @@ export default function ChatInterface() {
 
             break;
           }
+
           case "conversationUpdated": {
             setUsers((prev) => {
               // Find the user to update
@@ -755,19 +737,11 @@ export default function ChatInterface() {
               const others = prev.filter((_, i) => i !== index);
               return [updatedUser, ...others];
             });
-
-            // 🔥 ADD THIS LINE (ChatPanel sync)
-            syncConversationMessages(data.conversationId);
-
             break;
           }
 
           case "messageSentAck": {
-            const { conversationId } = data;
-
-            // 🔥 MULTI-DEVICE SYNC (ChatPanel)
-            syncConversationMessages(conversationId);
-
+            console.log("✅ Message acknowledged by server");
             break;
           }
 
@@ -1114,25 +1088,9 @@ export default function ChatInterface() {
     }
   };
 
-  const syncInProgressRef = useRef(false);
-
-  const syncConversationMessages = useCallback(
-    (cid: string) => {
-      // Only sync active conversation
-      if (!cid || cid !== conversationIdRef.current) return;
-      if (!parentToken || !loggedInUserId) return;
-
-      // Prevent double fetch
-      if (syncInProgressRef.current) return;
-      syncInProgressRef.current = true;
-
-      fetchMessages(cid, parentToken, loggedInUserId, null).finally(() => {
-        syncInProgressRef.current = false;
-      });
-    },
-    [fetchMessages, parentToken, loggedInUserId]
-  );
-
+  // ───────────────────────────────────────────────
+  // SEND MESSAGE
+  // ───────────────────────────────────────────────
   const sendMessageToApi = async (
     cid: string,
     content: string,
@@ -1432,10 +1390,13 @@ export default function ChatInterface() {
       setSearchQuery,
       setSearchResults,
       setIsSearching,
-      myAvatar,
+      myAvatar, // Added as dependency
     ]
   );
 
+  // ───────────────────────────────────────────────
+  // PARENT WINDOW EVENTS
+  // ───────────────────────────────────────────────
   useEffect(() => {
     window.parent.postMessage({ type: "CHAT_READY" }, "*");
 
