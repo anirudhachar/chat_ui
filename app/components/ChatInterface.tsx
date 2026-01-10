@@ -48,7 +48,7 @@ export interface Message {
   senderName?: string;
   senderAvatar?: string;
   reactions?: Record<string, string[]>;
-    createdAt: number;  
+  createdAt: number;
 
   offer?: {
     offerId: string;
@@ -432,7 +432,7 @@ export default function ChatInterface() {
                         // Required Message types (fill with dummies for reply preview)
                         timestamp: "",
                         sent: false,
-                      })as any
+                      } as any)
                     : undefined,
                 },
               ]);
@@ -1246,7 +1246,7 @@ export default function ChatInterface() {
       const optimistic: Message = {
         id: tempId,
         content,
-         createdAt: now,
+        createdAt: now,
         timestamp: timeString,
         sent: true,
         type: detectedUrl ? "link" : type,
@@ -1483,7 +1483,7 @@ export default function ChatInterface() {
             hour: "numeric",
             minute: "2-digit",
           });
-const now = Date.now();
+          const now = Date.now();
 
           const optimisticOffer: Message = {
             id: `offer-${payload.offerId}`,
@@ -1491,7 +1491,7 @@ const now = Date.now();
             timestamp: timeString,
             sent: true,
             type: "offer",
-              createdAt: now,
+            createdAt: now,
             status: "sending",
             offer: {
               offerId: payload.offerId,
