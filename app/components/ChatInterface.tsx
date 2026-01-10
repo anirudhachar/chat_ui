@@ -1543,17 +1543,16 @@ export default function ChatInterface() {
       }
 
       if (event.data.type === "CHAT_PAGE_OPENED") {
-        console.log("📨 Message page opened → refetch conversations");
+  console.log("📨 Message page opened → refetch conversations");
 
-        if (!parentToken) return;
+  if (!parentToken) return;
 
-        // 🔥 FULL SIDEBAR REFRESH
-        setUsers([]);
-        setCursor(null);
-        setHasMoreUsers(true);
+  setUsers([]);
+  setCursor(null);
+  setHasMoreUsers(true);
 
-        fetchUsers(null, true);
-      }
+  fetchUsers(null, true);
+}
 
       if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
         console.log("got message");
