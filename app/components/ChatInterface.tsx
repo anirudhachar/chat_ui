@@ -666,19 +666,22 @@ export default function ChatInterface() {
               })
             );
 
-            setUsers((prev) =>
-              prev.map((u) => {
-                // Only update currently active conversation
-                if (conversationId === conversationIdRef.current) {
-                  return {
-                    ...u,
-                    lastMessage: "This message was deleted",
-                    lastMessageStatus: undefined,
-                  };
-                }
-                return u;
-              })
-            );
+         setUsers((prev) =>
+  prev.map((u) => {
+    const isSameConversation =
+      u.id === selectedUserRef.current?.id &&
+      conversationIdRef.current === data.conversationId;
+
+    if (!isSameConversation) return u;
+
+    return {
+      ...u,
+      lastMessage: "This message was deleted",
+      lastMessageStatus: undefined,
+    };
+  })
+);
+
 
             break;
           }
