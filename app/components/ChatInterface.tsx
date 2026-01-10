@@ -817,7 +817,6 @@ export default function ChatInterface() {
 
   useEffect(() => {
     if (!parentToken) return;
-    if (!pathname.startsWith("/message")) return;
 
     const uid = decodeToken(parentToken);
     setLoggedInUserId(uid);
@@ -825,9 +824,8 @@ export default function ChatInterface() {
     setUsers([]);
     setCursor(null);
     setHasMoreUsers(true);
-
     fetchUsers(null, true);
-  }, [parentToken, pathname, fetchUsers]);
+  }, [parentToken, fetchUsers]);
 
   const myAvatar =
     users.find((u) => u.id === loggedInUserId)?.avatar || "/user.png";
@@ -1542,6 +1540,19 @@ export default function ChatInterface() {
         setHasMoreMessages(true);
 
         return;
+      }
+
+      if (event.data.type === "CHAT_PAGE_OPENED") {
+        console.log("📨 Message page opened → refetch conversations");
+
+        if (!parentToken) return;
+
+        // 🔥 FULL SIDEBAR REFRESH
+        setUsers([]);
+        setCursor(null);
+        setHasMoreUsers(true);
+
+        fetchUsers(null, true);
       }
 
       if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
