@@ -212,10 +212,21 @@ export default function ChatInterface() {
           })) || [];
 
         // If it's the initial fetch (cursor is null), replace the list. Otherwise, append.
-        setUsers((prev) =>
-          isInitialFetch ? mappedUsers : [...prev, ...mappedUsers]
-        );
+        setUsers((prev) => {
+          if (isInitialFetch) {
+            return mappedUsers;
+          }
 
+          // Create a Set of existing IDs for O(1) lookup
+          const existingIds = new Set(prev.map((u) => u.id));
+
+          // Only append users that don't already exist in the list
+          const uniqueNewUsers = mappedUsers.filter(
+            (u) => !existingIds.has(u.id)
+          );
+
+          return [...prev, ...uniqueNewUsers];
+        });
         const nextCursor = data?.data?.cursor || null;
         setCursor(nextCursor);
         setHasMoreUsers(!!nextCursor);
@@ -232,7 +243,8 @@ export default function ChatInterface() {
   );
 
   const loadMoreUsers = () => {
-    if (hasMoreUsers && searchQuery.length < 2) {
+    // Add !isUsersLoading to prevent parallel fetches
+    if (hasMoreUsers && searchQuery.length < 2 && !isUsersLoading) {
       fetchUsers(cursor, false);
     }
   };
