@@ -163,150 +163,73 @@ export default function ChatInterface() {
     }
   };
 
-  // const fetchUsers = useCallback(
-  //   async (currentCursor: string | null, isInitialFetch: boolean) => {
-  //     if (!parentToken) return;
+  const fetchUsers = useCallback(
+    async (currentCursor: string | null, isInitialFetch: boolean) => {
+      if (!parentToken) return;
 
-  //     if (isInitialFetch) {
-  //       setIsUsersLoading(true); // 🔥 start loading
-  //     }
-
-  //     try {
-  //       const url =
-  //         `${process.env.NEXT_PUBLIC_API_URL}/conversations/list?limit=10` +
-  //         (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
-
-  //       const res = await fetch(url, {
-  //         headers: {
-  //           Authorization: `Bearer ${parentToken}`,
-  //         },
-  //       });
-
-  //       const data = await res.json();
-  //       console.log("📥 Conversations List:", data);
-
-  //       const mappedUsers: User[] =
-  //         data?.data?.conversations?.map((c: any) => ({
-  //           id: c.user?.userId,
-  //           name: `${c.user?.firstName ?? ""} ${c.user?.lastName ?? ""}`.trim(),
-  //           avatar: c.user?.avatarUrl
-  //             ? `https://d34wmjl2ccaffd.cloudfront.net${c.user.avatarUrl}`
-  //             : undefined,
-
-  //           lastMessage: c.lastMessagePreview ?? "",
-  //           lastMessageTime: c.lastMessageAt
-  //             ? new Date(c.lastMessageAt).toLocaleTimeString("en-US", {
-  //                 hour: "numeric",
-  //                 minute: "2-digit",
-  //               })
-  //             : "",
-  //           instituteName: c.user?.instituteName,
-  //           instituteSlug: c.user?.instituteSlug,
-  //           instituteId: c.user?.instituteId,
-
-  //           online: c.user?.isOnline ?? false,
-  //           unread: c.unreadCount ?? "",
-  //           lastMessageStatus: c.lastMessageDeliveryStatus
-  //             ? (c.lastMessageDeliveryStatus.toLowerCase() as User["lastMessageStatus"])
-  //             : undefined,
-  //         })) || [];
-
-  //       // If it's the initial fetch (cursor is null), replace the list. Otherwise, append.
-  //       setUsers((prev) =>
-  //         isInitialFetch ? mappedUsers : [...prev, ...mappedUsers]
-  //       );
-
-  //       const nextCursor = data?.data?.cursor || null;
-  //       setCursor(nextCursor);
-  //       setHasMoreUsers(!!nextCursor);
-  //     } catch (error) {
-  //       console.error("❌ Failed to fetch users:", error);
-  //       setHasMoreUsers(false);
-  //     } finally {
-  //       if (isInitialFetch) {
-  //         setIsUsersLoading(false);
-  //       }
-  //     }
-  //   },
-  //   [parentToken]
-  // );
-
-  const [isFetchingUsers, setIsFetchingUsers] = useState(false); // 🔥 guard against double calls
-
-const fetchUsers = useCallback(
-  async (currentCursor: string | null, isInitialFetch: boolean) => {
-    if (!parentToken) return;
-
-    // Prevent overlapping calls
-    if (isFetchingUsers) return;
-
-    setIsFetchingUsers(true);
-
-    if (isInitialFetch) {
-      setIsUsersLoading(true); // 🔥 start loading
-    }
-
-    try {
-      const url =
-        `${process.env.NEXT_PUBLIC_API_URL}/conversations/list?limit=10` +
-        (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
-
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${parentToken}`,
-        },
-      });
-
-      const data = await res.json();
-      console.log("📥 Conversations List:", data);
-
-      const mappedUsers: User[] =
-        data?.data?.conversations?.map((c: any) => ({
-          id: c.user?.userId,
-          name: `${c.user?.firstName ?? ""} ${c.user?.lastName ?? ""}`.trim(),
-          avatar: c.user?.avatarUrl
-            ? `https://d34wmjl2ccaffd.cloudfront.net${c.user.avatarUrl}`
-            : undefined,
-
-          lastMessage: c.lastMessagePreview ?? "",
-          lastMessageTime: c.lastMessageAt
-            ? new Date(c.lastMessageAt).toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-              })
-            : "",
-          instituteName: c.user?.instituteName,
-          instituteSlug: c.user?.instituteSlug,
-          instituteId: c.user?.instituteId,
-
-          online: c.user?.isOnline ?? false,
-          unread: c.unreadCount ?? "",
-          lastMessageStatus: c.lastMessageDeliveryStatus
-            ? (c.lastMessageDeliveryStatus.toLowerCase() as User["lastMessageStatus"])
-            : undefined,
-        })) || [];
-
-      // If it's the initial fetch (cursor is null), replace the list. Otherwise, append.
-      setUsers((prev) =>
-        isInitialFetch ? mappedUsers : [...prev, ...mappedUsers]
-      );
-
-      const nextCursor = data?.data?.cursor || null;
-      setCursor(nextCursor);
-      setHasMoreUsers(!!nextCursor);
-    } catch (error) {
-      console.error("❌ Failed to fetch users:", error);
-      setHasMoreUsers(false);
-    } finally {
-      setIsFetchingUsers(false);
       if (isInitialFetch) {
-        setIsUsersLoading(false);
+        setIsUsersLoading(true); // 🔥 start loading
       }
-    }
-  },
-  [parentToken, isFetchingUsers] // make sure guard is in deps
-);
 
+      try {
+        const url =
+          `${process.env.NEXT_PUBLIC_API_URL}/conversations/list?limit=10` +
+          (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
+
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${parentToken}`,
+          },
+        });
+
+        const data = await res.json();
+        console.log("📥 Conversations List:", data);
+
+        const mappedUsers: User[] =
+          data?.data?.conversations?.map((c: any) => ({
+            id: c.user?.userId,
+            name: `${c.user?.firstName ?? ""} ${c.user?.lastName ?? ""}`.trim(),
+            avatar: c.user?.avatarUrl
+              ? `https://d34wmjl2ccaffd.cloudfront.net${c.user.avatarUrl}`
+              : undefined,
+
+            lastMessage: c.lastMessagePreview ?? "",
+            lastMessageTime: c.lastMessageAt
+              ? new Date(c.lastMessageAt).toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })
+              : "",
+            instituteName: c.user?.instituteName,
+            instituteSlug: c.user?.instituteSlug,
+            instituteId: c.user?.instituteId,
+
+            online: c.user?.isOnline ?? false,
+            unread: c.unreadCount ?? "",
+            lastMessageStatus: c.lastMessageDeliveryStatus
+              ? (c.lastMessageDeliveryStatus.toLowerCase() as User["lastMessageStatus"])
+              : undefined,
+          })) || [];
+
+        // If it's the initial fetch (cursor is null), replace the list. Otherwise, append.
+        setUsers((prev) =>
+          isInitialFetch ? mappedUsers : [...prev, ...mappedUsers]
+        );
+
+        const nextCursor = data?.data?.cursor || null;
+        setCursor(nextCursor);
+        setHasMoreUsers(!!nextCursor);
+      } catch (error) {
+        console.error("❌ Failed to fetch users:", error);
+        setHasMoreUsers(false);
+      } finally {
+        if (isInitialFetch) {
+          setIsUsersLoading(false);
+        }
+      }
+    },
+    [parentToken]
+  );
 
   const loadMoreUsers = () => {
     if (hasMoreUsers && searchQuery.length < 2) {
