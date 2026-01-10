@@ -249,6 +249,22 @@ export default function ChatInterface() {
     }
   };
 
+  useEffect(() => {
+  if (!parentToken) return;
+  if (!pathname.startsWith("/message")) return;
+
+  // 🔥 Prevent refetching if users already loaded
+  if (usersRef.current.length > 0) return;
+
+  console.log("📨 Entered /message → fetching conversations list");
+
+  setUsers([]);
+  setCursor(null);
+  setHasMoreUsers(true);
+
+  fetchUsers(null, true); // initial fetch
+}, [pathname, parentToken, fetchUsers]);
+
   // useEffect(() => {
   //   console.log(pathname, "pathname");
   //   if (!pathname.startsWith("/message")) return;
