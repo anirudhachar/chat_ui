@@ -593,22 +593,41 @@ export default function ChatInterface() {
           // Inside ws.onmessage
 
           case "messageEdited": {
+            const { messageKey, messageId, newContent } = data;
+
+            // 1️⃣ Update ChatPanel (unchanged, just cleaned up)
             setMessages((prev) =>
               prev.map((m) => {
-                // Check both to be safe
                 const isMatch =
-                  m.messageKey === data.messageKey || m.id === data.messageId;
+                  m.messageKey === messageKey || m.id === messageId;
 
-                if (isMatch) {
-                  return {
-                    ...m,
-                    content: data.newContent,
-                    // (m as any).isEdited = true; // Optional if you added isEdited to interface
-                  };
-                }
-                return m;
+                if (!isMatch) return m;
+
+                return {
+                  ...m,
+                  content: newContent,
+                  isEdited: true, // optional
+                };
               })
             );
+
+            // 2️⃣ Update SIDEBAR preview (if last message)
+            setUsers((prev) => {
+              const index = prev.findIndex((u) =>
+                u.lastMessage === undefined ? false : true
+              );
+
+              if (index === -1) return prev;
+
+              const updatedUser = {
+                ...prev[index],
+                lastMessage: newContent,
+              };
+
+              const others = prev.filter((_, i) => i !== index);
+              return [updatedUser, ...others];
+            });
+
             break;
           }
 
