@@ -30,6 +30,7 @@ import {
 } from "react-icons/io5";
 import { createPortal } from "react-dom";
 import Spinner from "./SpinnerComponent";
+import { canDeleteForEveryone, canEditMessage, EDIT_WINDOW_MS } from "../utils";
 
 interface ChatPanelProps {
   selectedUser: User | null;
@@ -93,11 +94,7 @@ const getDateLabel = (ts: number) => {
     today.getDate()
   );
 
-  const startMsg = new Date(
-    d.getFullYear(),
-    d.getMonth(),
-    d.getDate()
-  );
+  const startMsg = new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
   const diff =
     (startToday.getTime() - startMsg.getTime()) / (1000 * 60 * 60 * 24);
@@ -112,10 +109,7 @@ const getDateLabel = (ts: number) => {
   });
 };
 
-const shouldShowDateSeparator = (
-  current: Message,
-  prev?: Message
-) => {
+const shouldShowDateSeparator = (current: Message, prev?: Message) => {
   if (!prev) return true;
 
   const c = new Date(current.createdAt);
@@ -127,8 +121,6 @@ const shouldShowDateSeparator = (
     c.getDate() !== p.getDate()
   );
 };
-
-
 
 const MessageRow = ({
   m,
@@ -274,6 +266,20 @@ const MessageRow = ({
       el.focus();
     }
   }, [isEditing]);
+
+  useEffect(() => {
+    if (!showMenu) return;
+
+    const remaining = EDIT_WINDOW_MS - (Date.now() - m.createdAt);
+
+    if (remaining <= 0) {
+      setShowMenu(false);
+      return;
+    }
+
+    const t = setTimeout(() => setShowMenu(false), remaining);
+    return () => clearTimeout(t);
+  }, [showMenu]);
 
   const renderContent = () => {
     // ✏️ 1. EDIT MODE (Only for text messages)
@@ -643,7 +649,7 @@ const MessageRow = ({
                     </div>
 
                     {/* 🔥 INLINE EDIT TRIGGER */}
-                    {isMine && m.type === "text" && (
+                    {canEditMessage(m) && (
                       <div
                         onClick={handleStartEdit}
                         className={styles.dropdownItem}
@@ -652,7 +658,7 @@ const MessageRow = ({
                       </div>
                     )}
 
-                    {isMine && (
+                    {canDeleteForEveryone(m) && (
                       <div
                         onClick={() => {
                           onDelete(m);
@@ -814,7 +820,7 @@ const MessageRow = ({
                   <FiCopy /> Copy
                 </button>
 
-                {isMine && m.type === "text" && (
+                {canEditMessage(m) && (
                   <button
                     onClick={() => {
                       handleStartEdit();
@@ -825,15 +831,17 @@ const MessageRow = ({
                   </button>
                 )}
 
-                <button
-                  className={styles.danger}
-                  onClick={() => {
-                    onDelete(m);
-                    closeMobileSheet();
-                  }}
-                >
-                  <FiTrash /> Delete
-                </button>
+                {canDeleteForEveryone(m) && (
+                  <button
+                    className={styles.danger}
+                    onClick={() => {
+                      onDelete(m);
+                      closeMobileSheet();
+                    }}
+                  >
+                    <FiTrash /> Delete
+                  </button>
+                )}
               </div>
             </div>
           </div>,
