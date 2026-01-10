@@ -249,22 +249,6 @@ export default function ChatInterface() {
     }
   };
 
-  useEffect(() => {
-  if (!parentToken) return;
-  if (!pathname.startsWith("/message")) return;
-
-  // 🔥 Prevent refetching if users already loaded
-  if (usersRef.current.length > 0) return;
-
-  console.log("📨 Entered /message → fetching conversations list");
-
-  setUsers([]);
-  setCursor(null);
-  setHasMoreUsers(true);
-
-  fetchUsers(null, true); // initial fetch
-}, [pathname, parentToken, fetchUsers]);
-
   // useEffect(() => {
   //   console.log(pathname, "pathname");
   //   if (!pathname.startsWith("/message")) return;
@@ -833,6 +817,7 @@ export default function ChatInterface() {
 
   useEffect(() => {
     if (!parentToken) return;
+    if (!pathname.startsWith("/message")) return;
 
     const uid = decodeToken(parentToken);
     setLoggedInUserId(uid);
@@ -840,8 +825,9 @@ export default function ChatInterface() {
     setUsers([]);
     setCursor(null);
     setHasMoreUsers(true);
+
     fetchUsers(null, true);
-  }, [parentToken, fetchUsers]);
+  }, [parentToken, pathname, fetchUsers]);
 
   const myAvatar =
     users.find((u) => u.id === loggedInUserId)?.avatar || "/user.png";
