@@ -20,6 +20,7 @@ interface MessageInputProps {
     file?: { name: string; url: string; image?: string; description?: string }
   ) => void;
   onTyping?: () => void;
+   disabled?: boolean;
 }
 
 const extractURL = (text: string) => {
@@ -38,6 +39,7 @@ const formatTime = (seconds: number) => {
 export default function MessageInput({
   onSendMessage,
   onTyping,
+    disabled = false, 
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -260,6 +262,12 @@ export default function MessageInput({
   };
 
   const handleSend = () => {
+    if (disabled) return; 
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    setLinkPreview(null);
     if (recordedAudio) {
       sendRecordedAudio();
       return;
@@ -314,6 +322,17 @@ export default function MessageInput({
 
   const showSendButton =
     message.trim().length > 0 || selectedFile || linkPreview || recordedAudio;
+
+  useEffect(() => {
+    if (!message.trim()) {
+      setLinkPreview(null);
+      return;
+    }
+
+    const url = extractURL(message);
+    if (url) fetchPreviewDebounced(url);
+    else setLinkPreview(null);
+  }, [message]);
 
   return (
     <div className={styles.messageInputWrapper}>
@@ -511,7 +530,7 @@ export default function MessageInput({
             <button
               className={styles.sendButton}
               onClick={showSendButton ? handleSend : startRecording}
-              disabled={false}
+              disabled={disabled}
             >
               {showSendButton ? <FiSend /> : <FiSend />}
             </button>

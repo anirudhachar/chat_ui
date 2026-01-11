@@ -267,8 +267,6 @@ const MessageRow = ({
     }
   }, [isEditing]);
 
-
-
   const renderContent = () => {
     // ✏️ 1. EDIT MODE (Only for text messages)
     if (isEditing) {
@@ -898,6 +896,7 @@ ChatPanelProps) {
   const isFirstLoadRef = useRef(true);
   const isLoadingOlderRef = useRef(false);
   const prevScrollHeightRef = useRef(0);
+  const hasEverMessagedRef = useRef(false);
 
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
@@ -950,6 +949,11 @@ ChatPanelProps) {
   useEffect(() => {
     if (isLoading) isFirstLoadRef.current = true;
   }, [isLoading]);
+  useEffect(() => {
+    if (messages.length > 0) {
+      hasEverMessagedRef.current = true;
+    }
+  }, [messages.length]);
 
   /* Handlers */
   const handleReply = (msg: Message) => {
@@ -1085,7 +1089,7 @@ ChatPanelProps) {
           <Spinner />
         )}
 
-        {!isLoading && messages.length === 0 && (
+        {!isLoading && messages.length === 0 && !hasEverMessagedRef.current && (
           <div className={styles.emptyConversation}>
             <div className={styles.profileRing}>
               {selectedUser.avatar ? (
@@ -1202,6 +1206,7 @@ ChatPanelProps) {
       <MessageInput
         onSendMessage={handleInternalSendMessage}
         onTyping={onTyping}
+        disabled={isLoading}
       />
 
       {showGlobalCopyToast && (
