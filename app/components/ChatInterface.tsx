@@ -249,31 +249,7 @@ export default function ChatInterface() {
     }
   };
 
-  // useEffect(() => {
-  //   console.log(pathname, "pathname");
-  //   if (!pathname.startsWith("/message")) return;
-
-  //   // 🔥 CASE 1: /message (NO user) → UNSELECT CHAT
-  //   if (!userParam) {
-  //     // refs (critical)
-  //     conversationIdRef.current = null;
-  //     selectedUserRef.current = null;
-
-  //     // state
-  //     setConversationId(null);
-  //     setSelectedUser(null);
-  //     setMessages([]);
-  //     setIsPartnerTyping(false);
-
-  //     return;
-  //   }
-
-  //   // 🔥 CASE 2: /message?user=ID → SELECT CHAT
-  //   const user = users.find((u) => u.id === userParam);
-  //   if (!user || !parentToken || !loggedInUserId) return;
-
-  //   handleUserSelect(user);
-  // }, [userParam, pathname, users, parentToken, loggedInUserId]);
+ 
 
   useEffect(() => {
     conversationIdRef.current = conversationId;
@@ -293,15 +269,7 @@ export default function ChatInterface() {
     usersRef.current = users;
   }, [users]);
 
-  // useEffect(() => {
-  //   window.parent.postMessage(
-  //     {
-  //       type: "UNREAD_COUNT_UPDATE",
-  //       payload: { count: globalUnread },
-  //     },
-  //     "*"
-  //   );
-  // }, [globalUnread]);
+
 
   useEffect(() => {
     if (!parentToken) return;
@@ -1564,7 +1532,10 @@ export default function ChatInterface() {
           const updatedUser: User = {
             ...selectedUser,
             lastMessage: payload.message,
-
+  lastMessageTime: new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    }), 
             lastMessageStatus: "sending",
             lastMessageSenderId: loggedInUserId ?? undefined,
             unread: 0,
