@@ -97,7 +97,6 @@ export default function ChatInterface() {
   const [globalUnread, setGlobalUnread] = useState(0);
   const [profileUser, setProfileUser] = useState<User | null>(null);
   console.log(profileUser, "profileUserObject");
-  
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -1544,22 +1543,38 @@ export default function ChatInterface() {
       }
 
       if (event.data.type === "CHAT_PAGE_OPENED") {
-  console.log("📨 Message page opened → refetch conversations");
+        console.log("📨 Message page opened → refetch conversations");
 
-  if (!parentToken) return;
+        if (!parentToken) return;
 
-  setUsers([]);
-  setCursor(null);
-  setHasMoreUsers(true);
+        setUsers([]);
+        setCursor(null);
+        setHasMoreUsers(true);
 
-  fetchUsers(null, true);
-}
+        fetchUsers(null, true);
+      }
 
       if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
         console.log("got message");
         if (!selectedUser || !parentToken) return;
 
         const payload = event.data.payload;
+
+        setUsers((prev) => {
+          const updatedUser: User = {
+            ...selectedUser,
+            lastMessage: payload.message,
+
+            lastMessageStatus: "sending",
+            lastMessageSenderId: loggedInUserId ?? undefined,
+            unread: 0,
+          };
+
+          const exists = prev.find((u) => u.id === selectedUser.id);
+          return exists
+            ? [updatedUser, ...prev.filter((u) => u.id !== selectedUser.id)]
+            : [updatedUser, ...prev];
+        });
 
         // 🆕 OFFER MESSAGE
         if (payload.type === "OFFER") {
