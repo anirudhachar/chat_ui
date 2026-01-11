@@ -127,6 +127,7 @@ export default function ChatInterface() {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const lastProcessedRef = useRef<{ content: string; time: number } | null>(null);
 
   const userParam = searchParams.get("user"); // string | null
 
@@ -1532,14 +1533,32 @@ if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
   const recipients = payload.users || (payload.user ? [payload.user] : []);
   if (!recipients.length || !parentToken) return;
 
+  // ---------------------------------------------------------
+  // 🚫 DUPLICATE PREVENTION CHECK
+  // ---------------------------------------------------------
+  const now = Date.now();
+  // If we processed this exact message content in the last 2 seconds, stop.
+  if (
+    lastProcessedRef.current &&
+    lastProcessedRef.current.content === payload.message &&
+    now - lastProcessedRef.current.time < 2000
+  ) {
+    console.warn("⚠️ Duplicate message prevented");
+    return;
+  }
+  // Otherwise, mark this as processed
+  lastProcessedRef.current = { content: payload.message, time: now };
+  // ---------------------------------------------------------
+
+
   // Check if this is a Single Send or Bulk Send
   const isSingleSend = recipients.length === 1;
-  const primaryRecipient = recipients[0]; // We reference this for single send logic
+  const primaryRecipient = recipients[0]; 
 
   // ------------------------------------------------------------
   // ⭐ CONDITION: ONLY OPEN CHAT UI IF 1 USER IS SENT ⭐
   // ------------------------------------------------------------
-  let optimisticMessageId = ""; // Store ID to update status later
+  let optimisticMessageId = ""; 
 
   if (isSingleSend) {
     const primaryUserFormatted: User = {
@@ -1556,13 +1575,9 @@ if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
       unread: 0,
     };
 
-    // Force Open Chat Window
     setSelectedUser(primaryUserFormatted);
-    
-    // Clear old messages
     setMessages([]); 
 
-    // Create Optimistic Message
     optimisticMessageId = Date.now().toString();
     const optimisticMessage: Message = {
       id: optimisticMessageId,
@@ -1573,31 +1588,25 @@ if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
       createdAt: Date.now(),
       status: "sending",
     };
-    
-    // Show it immediately
     setMessages([optimisticMessage]);
   }
 
   // ------------------------------------------------------------
-  // ⭐ STEP 2: BACKGROUND LOOP (Runs for 1 or 5 users) ⭐
+  // ⭐ STEP 2: BACKGROUND LOOP ⭐
   // ------------------------------------------------------------
   const processMessageForUser = async (recipient: any) => {
     const recipientId = recipient.user_id;
 
     try {
-      // A. Get Conversation ID
       const cid = await getConversationId(recipientId, parentToken);
       if (!cid) return;
 
-      // If this is the Single Send user, save the CID so the user can keep typing
       if (isSingleSend && recipientId === primaryRecipient.user_id) {
           setConversationId(cid); 
       }
 
-      // B. Send API Request
       await sendMessageToApi(cid, payload.message, parentToken);
 
-      // C. Update Sidebar (Updates history for everyone)
       setUsers((prev: User[]) => {
         const existingUser = prev.find((u) => u.id === recipientId);
 
@@ -1618,26 +1627,20 @@ if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
         return prev; 
       });
 
-      // D. Update Chat Window (Status: "Sending" -> "Sent")
-      // We check: Is this a single send? OR is the user currently looking at this person?
       if (isSingleSend || selectedUser?.id === recipientId) {
         setMessages((prev) =>
           prev.map((m) =>
-            // If single send, we match the optimistic ID we created above.
-            // If bulk, we might need to match content or just accept the refresh.
             (m.id === optimisticMessageId || m.content === payload.message)
               ? { ...m, status: "sent" } 
               : m
           )
         );
       }
-
     } catch (error) {
       console.error(`Failed to send to ${recipient.firstName}`, error);
     }
   };
 
-  // Execute Loop
   recipients.forEach((recipient: any) => {
     processMessageForUser(recipient);
   });
