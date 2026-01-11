@@ -1515,6 +1515,25 @@ export default function ChatInterface() {
           };
 
           setSelectedUser(user);
+
+          // ✅ FORCE sidebar to know about this user
+          setUsers((prev) => {
+            const exists = prev.find((u) => u.id === user.id);
+            if (exists) return prev;
+
+            return [
+              {
+                ...user,
+                unread: 0,
+                lastMessage: "",
+                lastMessageTime: "Now",
+                lastMessageStatus: "sent",
+                lastMessageSenderId: loggedInUserId ?? undefined,
+              },
+              ...prev,
+            ];
+          });
+
           setMessages([]);
 
           // Reset message pagination state
@@ -1534,12 +1553,13 @@ export default function ChatInterface() {
         // refs
         conversationIdRef.current = null;
         selectedUserRef.current = null;
-
+  lastOpenedUserRef.current = null;
         // main state
         setConversationId(null);
         setSelectedUser(null);
         setMessages([]);
         setIsPartnerTyping(false);
+        
 
         // 🔥 SIDEBAR RESET (THIS WAS MISSING)
         setUsers((prev) =>
