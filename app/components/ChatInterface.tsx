@@ -1518,142 +1518,88 @@ export default function ChatInterface() {
         fetchUsers(null, true);
       }
 
-      if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
-        console.log("got message");
-        if (!selectedUser || !parentToken) return;
+ // Inside your useEffect...
 
-        const payload = event.data.payload;
+if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
+  console.log("📨 Received bulk/single message payload");
+  const payload = event.data.payload;
+  
+  // 1️⃣ Handle Input: Support both 'users' (array) and legacy 'user' (object)
+  const recipients = payload.users || (payload.user ? [payload.user] : []);
+  
+  if (!recipients.length || !parentToken) return;
 
-        setUsers((prev) => {
-          const updatedUser: User = {
-            ...selectedUser,
-            lastMessage: payload.message,
-            // lastMessageTime: new Date().toLocaleTimeString("en-US", {
-            //   hour: "numeric",
-            //   minute: "2-digit",
-            // }),
-            lastMessageStatus: "sending",
+  // 2️⃣ Define a helper to process a single user (to keep the loop clean)
+  const processMessageForUser = async (recipient: any) => {
+    const recipientId = recipient.user_id;
+
+    try {
+      // A. Get the Conversation ID for this specific user
+      // (Do not rely on state 'conversationId' here, as we are looping multiple people)
+      const cid = await getConversationId(recipientId, parentToken);
+      
+      if (!cid) {
+        console.error("Could not get CID for", recipientId);
+        return;
+      }
+
+      // B. Send the Text/Link to the API
+      // Note: We send payload.message which contains the text + link from your Modal
+      const apiContent = payload.message; 
+      await sendMessageToApi(cid, apiContent, parentToken);
+
+      // C. Update the Sidebar (Users List)
+      // We move this user to the top and update the snippet
+      setUsers((prev) => {
+        const existingUser = prev.find((u) => u.id === recipientId);
+        
+        // Prepare the updated user object
+        // If user exists in sidebar, update them. If not, we might need to map raw data to User type
+        // For now, we update existing or skip if not in list (to avoid complex mapping logic here)
+        if (existingUser) {
+           const updatedUser: User = {
+            ...existingUser,
+            lastMessage: apiContent,
+            lastMessageTime: new Date().toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+            }),
+            lastMessageStatus: "sent",
             lastMessageSenderId: loggedInUserId ?? undefined,
             unread: 0,
           };
+          // Return new list with this user at the top
+          return [updatedUser, ...prev.filter((u) => u.id !== recipientId)];
+        }
+        return prev;
+      });
 
-          const exists = prev.find((u) => u.id === selectedUser.id);
-          return exists
-            ? [updatedUser, ...prev.filter((u) => u.id !== selectedUser.id)]
-            : [updatedUser, ...prev];
-        });
-
-        // 🆕 OFFER MESSAGE
-        if (payload.type === "OFFER") {
-          const timeString = new Date().toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-          });
-          const now = Date.now();
-
-          const optimisticOffer: Message = {
-            id: `offer-${payload.offerId}`,
-            content: payload.text || "Sent an offer",
-            timestamp: timeString,
+      // D. Update Chat Window (ONLY if this specific user is currently open)
+      // We check against the current selectedUser state
+      if (selectedUser?.id === recipientId) {
+        const optimisticMessage: Message = {
+            id: Date.now().toString() + Math.random(), // Temp ID
+            content: apiContent,
+            timestamp: "Just now",
             sent: true,
-            type: "offer",
-            createdAt: now,
-            status: "sending",
-            offer: {
-              offerId: payload.offerId,
-              listingId: payload.listingId,
-              offerType: payload.offerType,
-              amount: payload.amount,
-              currency: payload.currency,
-              tradeDescription: payload.tradeDescription,
-              imageUrl: payload.imageUrl,
-            },
-          };
-
-          setMessages((prev) => [...prev, optimisticOffer]);
-          // 🔥 SIDEBAR – optimistic OFFER update
-
-          setUsers((prev) => {
-            const updatedUser: User = {
-              ...selectedUser,
-              lastMessage: payload.text || "Sent an offer",
-              lastMessageTime: timeString,
-              lastMessageStatus: "sending",
-              lastMessageSenderId: loggedInUserId ?? undefined,
-              unread: 0,
-            };
-
-            const exists = prev.find((u) => u.id === selectedUser.id);
-            return exists
-              ? [updatedUser, ...prev.filter((u) => u.id !== selectedUser.id)]
-              : [updatedUser, ...prev];
-          });
-
-          // 🔥 store offer as text/json in backend
-          const apiContent = JSON.stringify({
-            type: "OFFER",
-            ...payload,
-          });
-
-          let cid = conversationId;
-          if (!cid) {
-            cid = await getConversationId(selectedUser.id, parentToken);
-            if (!cid) return;
-          }
-
-          try {
-            const data = await sendMessageToApi(cid, apiContent, parentToken);
-
-            const realId = data?.data?.messageId;
-
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === optimisticOffer.id
-                  ? { ...m, id: realId, status: "sent" }
-                  : m
-              )
-            );
-            // 🔥 SIDEBAR – mark OFFER as sent
-            setUsers((prev) =>
-              prev.map((u) =>
-                u.id === selectedUser.id
-                  ? {
-                      ...u,
-                      lastMessageStatus: "sent",
-                      lastMessageSenderId: loggedInUserId ?? undefined,
-                    }
-                  : u
-              )
-            );
-          } catch {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === optimisticOffer.id ? { ...m, status: "failed" } : m
-              )
-            );
-            setUsers((prev) =>
-              prev.map((u) =>
-                u.id === selectedUser.id
-                  ? { ...u, lastMessageStatus: "failed" }
-                  : u
-              )
-            );
-          }
-
-          return;
-        }
-
-        if (payload.type === "MARKETPLACE_MESSAGE") {
-          const text = payload.text;
-          if (!text) return;
-
-          handleSendMessage(text);
-          return;
-        }
-
-        // 🟢 NORMAL TEXT MESSAGE
-        handleSendMessage(payload.message);
+            type: "text",
+            createdAt: Date.now(),
+            status: "sent",
+        };
+        setMessages((prev) => [...prev, optimisticMessage]);
       }
+
+    } catch (error) {
+      console.error(`Failed to send message to ${recipient.firstName}`, error);
+    }
+  };
+
+  // 3️⃣ Execute loop
+  // We use Promise.all to send them in parallel for speed
+  recipients.forEach((recipient: any) => {
+      processMessageForUser(recipient);
+  });
+}
     };
 
     window.addEventListener("message", handleMessage);
