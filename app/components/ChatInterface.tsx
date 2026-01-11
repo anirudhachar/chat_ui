@@ -1522,119 +1522,126 @@ export default function ChatInterface() {
 
       // Inside your useEffect...
 
-      if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
-        console.log("📨 Received bulk/single message payload");
-        const payload = event.data.payload;
+   // Inside your useEffect...
 
-        // 1️⃣ Input Handling
-        const recipients =
-          payload.users || (payload.user ? [payload.user] : []);
-        if (!recipients.length || !parentToken) return;
+if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
+  console.log("📨 Received payload");
+  const payload = event.data.payload;
 
-        // ------------------------------------------------------------
-        // ⭐ STEP 1: FORCE OPEN CHAT FOR THE FIRST USER (UX) ⭐
-        // ------------------------------------------------------------
-        const primaryRecipient = recipients[0];
+  // 1️⃣ Input Handling
+  const recipients = payload.users || (payload.user ? [payload.user] : []);
+  if (!recipients.length || !parentToken) return;
 
-        const primaryUserFormatted: User = {
-          id: primaryRecipient.user_id,
-          name: `${primaryRecipient.firstName} ${
-            primaryRecipient.lastName ?? ""
-          }`.trim(),
-          avatar: primaryRecipient.profilePhoto
-            ? `https://d34wmjl2ccaffd.cloudfront.net${primaryRecipient.profilePhoto}`
-            : undefined,
-          lastMessage: payload.message,
-          instituteName: primaryRecipient.institutionName,
-          lastMessageTime: "Now",
-          online: false,
-          // Add any other required User fields here (e.g., lastMessageStatus, unread)
-          lastMessageStatus: "sending",
-          unread: 0,
-        };
+  // Check if this is a Single Send or Bulk Send
+  const isSingleSend = recipients.length === 1;
+  const primaryRecipient = recipients[0]; // We reference this for single send logic
 
-        // Switch UI immediately
-        setSelectedUser(primaryUserFormatted);
+  // ------------------------------------------------------------
+  // ⭐ CONDITION: ONLY OPEN CHAT UI IF 1 USER IS SENT ⭐
+  // ------------------------------------------------------------
+  let optimisticMessageId = ""; // Store ID to update status later
 
-        // Clear old messages and show optimistic "Sending..." message
-        setMessages([]);
-        const optimisticMessage: Message = {
-          id: Date.now().toString(),
-          content: payload.message,
-          timestamp: "Just now",
-          sent: true,
-          type: "text",
-          createdAt: Date.now(),
-          status: "sending",
-        };
-        setMessages([optimisticMessage]);
+  if (isSingleSend) {
+    const primaryUserFormatted: User = {
+      id: primaryRecipient.user_id,
+      name: `${primaryRecipient.firstName} ${primaryRecipient.lastName ?? ""}`.trim(),
+      avatar: primaryRecipient.profilePhoto
+        ? `https://d34wmjl2ccaffd.cloudfront.net${primaryRecipient.profilePhoto}`
+        : undefined,
+      lastMessage: payload.message,
+      instituteName: primaryRecipient.institutionName,
+      lastMessageTime: "Now",
+      online: false,
+      lastMessageStatus: "sending",
+      unread: 0,
+    };
 
-        // ------------------------------------------------------------
-        // ⭐ STEP 2: BACKGROUND SENDING LOOP ⭐
-        // ------------------------------------------------------------
-        const processMessageForUser = async (recipient: any) => {
-          const recipientId = recipient.user_id;
+    // Force Open Chat Window
+    setSelectedUser(primaryUserFormatted);
+    
+    // Clear old messages
+    setMessages([]); 
 
-          try {
-            // A. Get Conversation ID
-            const cid = await getConversationId(recipientId, parentToken);
-            if (!cid) return;
+    // Create Optimistic Message
+    optimisticMessageId = Date.now().toString();
+    const optimisticMessage: Message = {
+      id: optimisticMessageId,
+      content: payload.message,
+      timestamp: "Just now",
+      sent: true,
+      type: "text",
+      createdAt: Date.now(),
+      status: "sending",
+    };
+    
+    // Show it immediately
+    setMessages([optimisticMessage]);
+  }
 
-            // Update the main ref if this is the active user
-            if (recipientId === primaryRecipient.user_id) {
-              setConversationId(cid);
-            }
+  // ------------------------------------------------------------
+  // ⭐ STEP 2: BACKGROUND LOOP (Runs for 1 or 5 users) ⭐
+  // ------------------------------------------------------------
+  const processMessageForUser = async (recipient: any) => {
+    const recipientId = recipient.user_id;
 
-            // B. Send API Request
-            await sendMessageToApi(cid, payload.message, parentToken);
+    try {
+      // A. Get Conversation ID
+      const cid = await getConversationId(recipientId, parentToken);
+      if (!cid) return;
 
-            // C. Update Sidebar (Fixing the TypeScript Error here)
-            setUsers((prev: User[]) => {
-              const existingUser = prev.find((u) => u.id === recipientId);
-
-              if (existingUser) {
-                const updatedUser: User = {
-                  ...existingUser,
-                  lastMessage: payload.message,
-                  lastMessageTime: new Date().toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  }),
-                  lastMessageStatus: "sent",
-                  lastMessageSenderId: loggedInUserId ?? undefined,
-                  unread: 0,
-                };
-
-                // ✅ MUST RETURN: New array with updated user at the top
-                return [
-                  updatedUser,
-                  ...prev.filter((u) => u.id !== recipientId),
-                ];
-              }
-
-              // ✅ MUST RETURN: Even if user not found, return previous state
-              return prev;
-            });
-
-            // D. Update Chat Window (ONLY if this specific user is currently open)
-            // Use "ref" or check against the primary ID to be safe
-            if (recipientId === primaryRecipient.user_id) {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === optimisticMessage.id ? { ...m, status: "sent" } : m
-                )
-              );
-            }
-          } catch (error) {
-            console.error(`Failed to send to ${recipient.firstName}`, error);
-          }
-        };
-
-        // Execute Loop
-        recipients.forEach((recipient: any) => {
-          processMessageForUser(recipient);
-        });
+      // If this is the Single Send user, save the CID so the user can keep typing
+      if (isSingleSend && recipientId === primaryRecipient.user_id) {
+          setConversationId(cid); 
       }
+
+      // B. Send API Request
+      await sendMessageToApi(cid, payload.message, parentToken);
+
+      // C. Update Sidebar (Updates history for everyone)
+      setUsers((prev: User[]) => {
+        const existingUser = prev.find((u) => u.id === recipientId);
+
+        if (existingUser) {
+          const updatedUser: User = {
+            ...existingUser,
+            lastMessage: payload.message,
+            lastMessageTime: new Date().toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+            }),
+            lastMessageStatus: "sent",
+            lastMessageSenderId: loggedInUserId ?? undefined,
+            unread: 0,
+          };
+          return [updatedUser, ...prev.filter((u) => u.id !== recipientId)];
+        }
+        return prev; 
+      });
+
+      // D. Update Chat Window (Status: "Sending" -> "Sent")
+      // We check: Is this a single send? OR is the user currently looking at this person?
+      if (isSingleSend || selectedUser?.id === recipientId) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            // If single send, we match the optimistic ID we created above.
+            // If bulk, we might need to match content or just accept the refresh.
+            (m.id === optimisticMessageId || m.content === payload.message)
+              ? { ...m, status: "sent" } 
+              : m
+          )
+        );
+      }
+
+    } catch (error) {
+      console.error(`Failed to send to ${recipient.firstName}`, error);
+    }
+  };
+
+  // Execute Loop
+  recipients.forEach((recipient: any) => {
+    processMessageForUser(recipient);
+  });
+}
     };
 
     window.addEventListener("message", handleMessage);
