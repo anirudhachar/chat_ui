@@ -1527,6 +1527,8 @@ export default function ChatInterface() {
 
 // Inside your useEffect...
 
+// Inside your useEffect...
+
 if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
   console.log("📨 Received payload", event.data.payload);
   const payload = event.data.payload;
@@ -1534,10 +1536,53 @@ if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
   if (!parentToken) return;
 
   // ---------------------------------------------------------
-  // 1. 🚫 GLOBAL DUPLICATE PREVENTION (Handles Offers & Texts)
+  // 1. 🔍 GET RECIPIENT (CRITICAL STEP)
+  // We must know WHO to send to. If the chat is closed, selectedUser is null.
+  // We use this 'targetUser' for all logic below.
+  // ---------------------------------------------------------
+  const recipients = payload.users || (payload.user ? [payload.user] : []);
+  const targetUserRaw = recipients[0]; // The person we are sending to
+
+  // If we don't know who to send to, and no chat is open, we must stop.
+  if (!targetUserRaw && !selectedUser) {
+    console.error("❌ No user provided in payload and no chat open.");
+    return;
+  }
+
+  // Helper: Format the raw user data into your User type
+  const targetUser: User = targetUserRaw
+    ? {
+        id: targetUserRaw.user_id,
+        name: `${targetUserRaw.firstName} ${targetUserRaw.lastName ?? ""}`.trim(),
+        avatar: targetUserRaw.profilePhoto
+          ? `https://d34wmjl2ccaffd.cloudfront.net${targetUserRaw.profilePhoto}`
+          : undefined,
+        lastMessage: payload.message || payload.text || "New message",
+        instituteName: targetUserRaw.institutionName,
+        lastMessageTime: "Now",
+        online: false,
+        lastMessageStatus: "sending",
+        unread: 0,
+      }
+    : selectedUser!; // Fallback to currently open user if payload has no user
+
+  // ---------------------------------------------------------
+  // 2. ⚡ UI SYNC: FORCE OPEN THE CHAT
+  // If the chat isn't open for this person, open it now.
+  // ---------------------------------------------------------
+  const isSwitchingUser = !selectedUser || selectedUser.id !== targetUser.id;
+
+  if (isSwitchingUser) {
+    console.log("🔄 Switching user to:", targetUser.name);
+    setSelectedUser(targetUser);
+    setMessages([]); // Clear old messages
+    // Note: We cannot rely on 'conversationId' state yet, we must fetch it below.
+  }
+
+  // ---------------------------------------------------------
+  // 3. 🚫 DUPLICATE CHECK
   // ---------------------------------------------------------
   const now = Date.now();
-  // Create a unique key based on the type of message
   const uniqueKey = payload.offerId || payload.message || payload.text;
 
   if (
@@ -1548,22 +1593,18 @@ if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
     console.warn("⚠️ Duplicate message prevented");
     return;
   }
-  // Mark this content as processed
   lastProcessedRef.current = { content: uniqueKey, time: now };
 
 
   // ---------------------------------------------------------
-  // 2. 🏷️ OFFER LOGIC (Your Existing Code)
+  // 4. 🏷️ OFFER LOGIC (Fixed to use targetUser)
   // ---------------------------------------------------------
   if (payload.type === "OFFER") {
-    // Offers usually depend on an active conversation
-    if (!selectedUser) return; 
-
     const timeString = new Date().toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "2-digit",
     });
-    
+
     const optimisticOffer: Message = {
       id: `offer-${payload.offerId}`,
       content: payload.text || "Sent an offer",
@@ -1583,124 +1624,107 @@ if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
       },
     };
 
+    // UI Update
     setMessages((prev) => [...prev, optimisticOffer]);
     
-    // 🔥 SIDEBAR – optimistic OFFER update
+    // Sidebar Update
     setUsers((prev) => {
-      const updatedUser: User = {
-        ...selectedUser,
-        lastMessage: payload.text || "Sent an offer",
-        lastMessageTime: timeString,
-        lastMessageStatus: "sending",
-        lastMessageSenderId: loggedInUserId ?? undefined,
-        unread: 0,
-      };
-
-      const exists = prev.find((u) => u.id === selectedUser.id);
-      return exists
-        ? [updatedUser, ...prev.filter((u) => u.id !== selectedUser.id)]
-        : [updatedUser, ...prev];
+      const updatedUser = { ...targetUser, lastMessage: "Sent an offer" };
+      return [updatedUser, ...prev.filter((u) => u.id !== targetUser.id)];
     });
 
-    // 🔥 store offer as text/json in backend
-    const apiContent = JSON.stringify({
-      type: "OFFER",
-      ...payload,
-    });
-
+    // API Call
     const sendOfferAsync = async () => {
-        let cid = conversationId;
-        if (!cid) {
-          cid = await getConversationId(selectedUser.id, parentToken);
-          if (!cid) return;
-        }
+      // Fetch CID specifically for this target user
+      const cid = await getConversationId(targetUser.id, parentToken);
+      if (!cid) return;
 
-        try {
-          const data = await sendMessageToApi(cid, apiContent, parentToken);
-          const realId = data?.data?.messageId;
+      // Update global state if we are looking at this chat
+      if (isSwitchingUser) setConversationId(cid);
 
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === optimisticOffer.id
-                ? { ...m, id: realId, status: "sent" }
-                : m
-            )
-          );
-          // 🔥 SIDEBAR – mark OFFER as sent
-          setUsers((prev) =>
-            prev.map((u) =>
-              u.id === selectedUser.id
-                ? {
-                    ...u,
-                    lastMessageStatus: "sent",
-                    lastMessageSenderId: loggedInUserId ?? undefined,
-                  }
-                : u
-            )
-          );
-        } catch {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === optimisticOffer.id ? { ...m, status: "failed" } : m
-            )
-          );
-          setUsers((prev) =>
-            prev.map((u) =>
-              u.id === selectedUser.id
-                ? { ...u, lastMessageStatus: "failed" }
-                : u
-            )
-          );
-        }
+      const apiContent = JSON.stringify({ type: "OFFER", ...payload });
+
+      try {
+        const data = await sendMessageToApi(cid, apiContent, parentToken);
+        const realId = data?.data?.messageId;
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === optimisticOffer.id ? { ...m, id: realId, status: "sent" } : m
+          )
+        );
+      } catch (e) {
+        console.error("Offer failed", e);
+        setMessages((prev) =>
+          prev.map((m) => m.id === optimisticOffer.id ? { ...m, status: "failed" } : m)
+        );
+      }
     };
-    
     sendOfferAsync();
-    return; // 🛑 EXIT HERE
+    return; // 🛑 EXIT
   }
 
 
   // ---------------------------------------------------------
-  // 3. 🏪 MARKETPLACE LOGIC (Your Existing Code)
+  // 5. 🏪 MARKETPLACE LOGIC (Fixed: Don't use handleSendMessage)
   // ---------------------------------------------------------
   if (payload.type === "MARKETPLACE_MESSAGE") {
     const text = payload.text;
     if (!text) return;
 
-    handleSendMessage(text);
-    return; // 🛑 EXIT HERE
+    // We CANNOT use handleSendMessage() here because it relies on 
+    // 'selectedUser' state which might not have updated yet.
+    // We must manually duplicate the send logic here.
+
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg: Message = {
+      id: tempId,
+      content: text,
+      timestamp: "Now",
+      sent: true,
+      type: "text",
+      createdAt: Date.now(),
+      status: "sending",
+    };
+
+    setMessages((prev) => [...prev, optimisticMsg]);
+
+    const sendMarketplaceAsync = async () => {
+       const cid = await getConversationId(targetUser.id, parentToken);
+       if (!cid) return;
+       if (isSwitchingUser) setConversationId(cid);
+
+       try {
+         const data = await sendMessageToApi(cid, text, parentToken);
+         const realId = data?.data?.messageId;
+         
+         setMessages((prev) =>
+           prev.map((m) => m.id === tempId ? { ...m, id: realId, status: "sent" } : m)
+         );
+         
+         // Update sidebar
+         setUsers((prev) => {
+            const updatedUser = { ...targetUser, lastMessage: text };
+            return [updatedUser, ...prev.filter((u) => u.id !== targetUser.id)];
+         });
+
+       } catch (e) {
+         setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, status: "failed" } : m));
+       }
+    };
+    sendMarketplaceAsync();
+    return; // 🛑 EXIT
   }
 
 
   // ---------------------------------------------------------
-  // 4. 🚀 BULK / SINGLE MESSAGE LOGIC (The New Feature)
+  // 6. 🚀 STANDARD TEXT / BULK LOGIC
   // ---------------------------------------------------------
-  const recipients = payload.users || (payload.user ? [payload.user] : []);
-  if (!recipients.length) return;
-
-  const isSingleSend = recipients.length === 1;
-  const primaryRecipient = recipients[0]; 
-
+  // This runs if it's NOT an offer and NOT marketplace
+  
+  // Optimistic UI for Single User
   let optimisticMessageId = ""; 
-
-  // A. Force Open Chat UI (Only if Single Send)
-  if (isSingleSend) {
-    const primaryUserFormatted: User = {
-      id: primaryRecipient.user_id,
-      name: `${primaryRecipient.firstName} ${primaryRecipient.lastName ?? ""}`.trim(),
-      avatar: primaryRecipient.profilePhoto
-        ? `https://d34wmjl2ccaffd.cloudfront.net${primaryRecipient.profilePhoto}`
-        : undefined,
-      lastMessage: payload.message,
-      instituteName: primaryRecipient.institutionName,
-      lastMessageTime: "Now",
-      online: false,
-      lastMessageStatus: "sending",
-      unread: 0,
-    };
-
-    setSelectedUser(primaryUserFormatted);
-    setMessages([]); 
-
+  if (isSwitchingUser || recipients.length === 1) {
     optimisticMessageId = Date.now().toString();
     const optimisticMessage: Message = {
       id: optimisticMessageId,
@@ -1711,61 +1735,36 @@ if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
       createdAt: Date.now(),
       status: "sending",
     };
-    setMessages([optimisticMessage]);
+    setMessages((prev) => [...prev, optimisticMessage]);
   }
 
-  // B. Background Sending Loop
-  const processMessageForUser = async (recipient: any) => {
-    const recipientId = recipient.user_id;
-
+  // Background Loop
+  const processMessageForUser = async (recipientRaw: any) => {
+    const rId = recipientRaw.user_id;
     try {
-      const cid = await getConversationId(recipientId, parentToken);
+      const cid = await getConversationId(rId, parentToken);
       if (!cid) return;
-
-      if (isSingleSend && recipientId === primaryRecipient.user_id) {
-          setConversationId(cid); 
-      }
+      
+      if (rId === targetUser.id) setConversationId(cid);
 
       await sendMessageToApi(cid, payload.message, parentToken);
 
-      setUsers((prev: User[]) => {
-        const existingUser = prev.find((u) => u.id === recipientId);
-
-        if (existingUser) {
-          const updatedUser: User = {
-            ...existingUser,
-            lastMessage: payload.message,
-            lastMessageTime: new Date().toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-            }),
-            lastMessageStatus: "sent",
-            lastMessageSenderId: loggedInUserId ?? undefined,
-            unread: 0,
-          };
-          return [updatedUser, ...prev.filter((u) => u.id !== recipientId)];
+      setUsers((prev) => {
+        const existing = prev.find(u => u.id === rId);
+        if (existing) {
+             const updated = { ...existing, lastMessage: payload.message, lastMessageTime: "Now" };
+             return [updated, ...prev.filter(u => u.id !== rId)];
         }
-        return prev; 
+        return prev;
       });
 
-      // Update the message status if this chat is open
-      if (isSingleSend || selectedUser?.id === recipientId) {
-        setMessages((prev) =>
-          prev.map((m) =>
-            (m.id === optimisticMessageId || m.content === payload.message)
-              ? { ...m, status: "sent" } 
-              : m
-          )
-        );
+      if (rId === targetUser.id) {
+         setMessages((prev) => prev.map(m => m.id === optimisticMessageId ? {...m, status: "sent"} : m));
       }
-    } catch (error) {
-      console.error(`Failed to send to ${recipient.firstName}`, error);
-    }
+    } catch (e) { console.error(e); }
   };
 
-  recipients.forEach((recipient: any) => {
-    processMessageForUser(recipient);
-  });
+  recipients.forEach((r: any) => processMessageForUser(r));
 }
     };
 
