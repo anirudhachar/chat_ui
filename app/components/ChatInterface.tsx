@@ -249,8 +249,6 @@ export default function ChatInterface() {
     }
   };
 
- 
-
   useEffect(() => {
     conversationIdRef.current = conversationId;
   }, [conversationId]);
@@ -268,8 +266,6 @@ export default function ChatInterface() {
   useEffect(() => {
     usersRef.current = users;
   }, [users]);
-
-
 
   useEffect(() => {
     if (!parentToken) return;
@@ -1532,10 +1528,10 @@ export default function ChatInterface() {
           const updatedUser: User = {
             ...selectedUser,
             lastMessage: payload.message,
-  lastMessageTime: new Date().toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    }), 
+            // lastMessageTime: new Date().toLocaleTimeString("en-US", {
+            //   hour: "numeric",
+            //   minute: "2-digit",
+            // }),
             lastMessageStatus: "sending",
             lastMessageSenderId: loggedInUserId ?? undefined,
             unread: 0,
