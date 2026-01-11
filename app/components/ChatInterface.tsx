@@ -97,6 +97,7 @@ export default function ChatInterface() {
   const [globalUnread, setGlobalUnread] = useState(0);
   const [profileUser, setProfileUser] = useState<User | null>(null);
   console.log(profileUser, "profileUserObject");
+  const lastOpenedUserRef = useRef<string | null>(null);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -1479,6 +1480,19 @@ export default function ChatInterface() {
       if (event.data.type === "OPEN_CHAT") {
         const token = event.data.payload?.token;
         const incomingUser = event.data.payload?.user;
+
+        if (!incomingUser?.user_id) return;
+
+        if (lastOpenedUserRef.current === incomingUser.user_id) {
+          console.log(
+            "⏭️ Duplicate OPEN_CHAT ignored for user",
+            incomingUser.user_id
+          );
+          return;
+        }
+
+        // ✅ mark this user as opened
+        lastOpenedUserRef.current = incomingUser.user_id;
         console.log(incomingUser, "incomingUser");
         setParentToken(token);
         const uid = decodeToken(token);
@@ -1543,16 +1557,16 @@ export default function ChatInterface() {
       }
 
       if (event.data.type === "CHAT_PAGE_OPENED") {
-  console.log("📨 Message page opened → refetch conversations");
+        console.log("📨 Message page opened → refetch conversations");
 
-  if (!parentToken) return;
+        if (!parentToken) return;
 
-  setUsers([]);
-  setCursor(null);
-  setHasMoreUsers(true);
+        setUsers([]);
+        setCursor(null);
+        setHasMoreUsers(true);
 
-  fetchUsers(null, true);
-}
+        fetchUsers(null, true);
+      }
 
       if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
         console.log("got message");
