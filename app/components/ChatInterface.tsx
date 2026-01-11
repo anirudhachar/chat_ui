@@ -1525,41 +1525,164 @@ export default function ChatInterface() {
 
    // Inside your useEffect...
 
+// Inside your useEffect...
+
 if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
-  console.log("📨 Received payload");
+  console.log("📨 Received payload", event.data.payload);
   const payload = event.data.payload;
 
-  // 1️⃣ Input Handling
-  const recipients = payload.users || (payload.user ? [payload.user] : []);
-  if (!recipients.length || !parentToken) return;
+  if (!parentToken) return;
 
   // ---------------------------------------------------------
-  // 🚫 DUPLICATE PREVENTION CHECK
+  // 1. 🚫 GLOBAL DUPLICATE PREVENTION (Handles Offers & Texts)
   // ---------------------------------------------------------
   const now = Date.now();
-  // If we processed this exact message content in the last 2 seconds, stop.
+  // Create a unique key based on the type of message
+  const uniqueKey = payload.offerId || payload.message || payload.text;
+
   if (
     lastProcessedRef.current &&
-    lastProcessedRef.current.content === payload.message &&
+    lastProcessedRef.current.content === uniqueKey &&
     now - lastProcessedRef.current.time < 2000
   ) {
     console.warn("⚠️ Duplicate message prevented");
     return;
   }
-  // Otherwise, mark this as processed
-  lastProcessedRef.current = { content: payload.message, time: now };
+  // Mark this content as processed
+  lastProcessedRef.current = { content: uniqueKey, time: now };
+
+
   // ---------------------------------------------------------
+  // 2. 🏷️ OFFER LOGIC (Your Existing Code)
+  // ---------------------------------------------------------
+  if (payload.type === "OFFER") {
+    // Offers usually depend on an active conversation
+    if (!selectedUser) return; 
+
+    const timeString = new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    
+    const optimisticOffer: Message = {
+      id: `offer-${payload.offerId}`,
+      content: payload.text || "Sent an offer",
+      timestamp: timeString,
+      sent: true,
+      type: "offer",
+      createdAt: now,
+      status: "sending",
+      offer: {
+        offerId: payload.offerId,
+        listingId: payload.listingId,
+        offerType: payload.offerType,
+        amount: payload.amount,
+        currency: payload.currency,
+        tradeDescription: payload.tradeDescription,
+        imageUrl: payload.imageUrl,
+      },
+    };
+
+    setMessages((prev) => [...prev, optimisticOffer]);
+    
+    // 🔥 SIDEBAR – optimistic OFFER update
+    setUsers((prev) => {
+      const updatedUser: User = {
+        ...selectedUser,
+        lastMessage: payload.text || "Sent an offer",
+        lastMessageTime: timeString,
+        lastMessageStatus: "sending",
+        lastMessageSenderId: loggedInUserId ?? undefined,
+        unread: 0,
+      };
+
+      const exists = prev.find((u) => u.id === selectedUser.id);
+      return exists
+        ? [updatedUser, ...prev.filter((u) => u.id !== selectedUser.id)]
+        : [updatedUser, ...prev];
+    });
+
+    // 🔥 store offer as text/json in backend
+    const apiContent = JSON.stringify({
+      type: "OFFER",
+      ...payload,
+    });
+
+    const sendOfferAsync = async () => {
+        let cid = conversationId;
+        if (!cid) {
+          cid = await getConversationId(selectedUser.id, parentToken);
+          if (!cid) return;
+        }
+
+        try {
+          const data = await sendMessageToApi(cid, apiContent, parentToken);
+          const realId = data?.data?.messageId;
+
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === optimisticOffer.id
+                ? { ...m, id: realId, status: "sent" }
+                : m
+            )
+          );
+          // 🔥 SIDEBAR – mark OFFER as sent
+          setUsers((prev) =>
+            prev.map((u) =>
+              u.id === selectedUser.id
+                ? {
+                    ...u,
+                    lastMessageStatus: "sent",
+                    lastMessageSenderId: loggedInUserId ?? undefined,
+                  }
+                : u
+            )
+          );
+        } catch {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === optimisticOffer.id ? { ...m, status: "failed" } : m
+            )
+          );
+          setUsers((prev) =>
+            prev.map((u) =>
+              u.id === selectedUser.id
+                ? { ...u, lastMessageStatus: "failed" }
+                : u
+            )
+          );
+        }
+    };
+    
+    sendOfferAsync();
+    return; // 🛑 EXIT HERE
+  }
 
 
-  // Check if this is a Single Send or Bulk Send
+  // ---------------------------------------------------------
+  // 3. 🏪 MARKETPLACE LOGIC (Your Existing Code)
+  // ---------------------------------------------------------
+  if (payload.type === "MARKETPLACE_MESSAGE") {
+    const text = payload.text;
+    if (!text) return;
+
+    handleSendMessage(text);
+    return; // 🛑 EXIT HERE
+  }
+
+
+  // ---------------------------------------------------------
+  // 4. 🚀 BULK / SINGLE MESSAGE LOGIC (The New Feature)
+  // ---------------------------------------------------------
+  const recipients = payload.users || (payload.user ? [payload.user] : []);
+  if (!recipients.length) return;
+
   const isSingleSend = recipients.length === 1;
   const primaryRecipient = recipients[0]; 
 
-  // ------------------------------------------------------------
-  // ⭐ CONDITION: ONLY OPEN CHAT UI IF 1 USER IS SENT ⭐
-  // ------------------------------------------------------------
   let optimisticMessageId = ""; 
 
+  // A. Force Open Chat UI (Only if Single Send)
   if (isSingleSend) {
     const primaryUserFormatted: User = {
       id: primaryRecipient.user_id,
@@ -1591,9 +1714,7 @@ if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
     setMessages([optimisticMessage]);
   }
 
-  // ------------------------------------------------------------
-  // ⭐ STEP 2: BACKGROUND LOOP ⭐
-  // ------------------------------------------------------------
+  // B. Background Sending Loop
   const processMessageForUser = async (recipient: any) => {
     const recipientId = recipient.user_id;
 
@@ -1627,6 +1748,7 @@ if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
         return prev; 
       });
 
+      // Update the message status if this chat is open
       if (isSingleSend || selectedUser?.id === recipientId) {
         setMessages((prev) =>
           prev.map((m) =>
