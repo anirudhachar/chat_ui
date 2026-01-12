@@ -1577,6 +1577,11 @@ if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
     setSelectedUser(targetUser);
     setMessages([]); // Clear old messages
     // Note: We cannot rely on 'conversationId' state yet, we must fetch it below.
+
+    if (window.innerWidth < 768) {
+    setShowSidebar(false); 
+    }
+    
   }
 
   // ---------------------------------------------------------
