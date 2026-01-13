@@ -1180,7 +1180,7 @@ ChatPanelProps) {
             </div>
           )}
 
-          {messages.map((m, index) => {
+          {localMessages.map((m, index) => {
             const prevMsg = messages[index - 1];
             const showDate = shouldShowDateSeparator(m, prevMsg);
 
