@@ -929,7 +929,7 @@ ChatPanelProps) {
       const newScrollHeight = container.scrollHeight;
       container.scrollTop = newScrollHeight - prevScrollHeightRef.current;
       isLoadingOlderRef.current = false;
-       setLoadingOlder(false);
+      setLoadingOlder(false);
       return;
     }
 
@@ -944,11 +944,11 @@ ChatPanelProps) {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-           if (isLoadingOlderRef.current) return;
+          if (isLoadingOlderRef.current) return;
           const container = messagesAreaRef.current;
           if (!container) return;
           isLoadingOlderRef.current = true;
-           setLoadingOlder(true);
+          setLoadingOlder(true);
           prevScrollHeightRef.current = container.scrollHeight;
           onLoadMoreMessages();
         }
@@ -1125,8 +1125,9 @@ ChatPanelProps) {
             <div ref={topMessageSentinelRef} className="pagination-spinner">
               {loadingOlder && (
                 <span
-                  className="spinner-border spinner-border-sm text-secondary"
+                  className="spinner-border"
                   role="status"
+                  aria-hidden="true"
                 />
               )}
             </div>

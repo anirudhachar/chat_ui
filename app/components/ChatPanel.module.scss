@@ -1812,3 +1812,19 @@
   }
 }
 
+
+.pagination-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 0;
+  min-height: 40px;
+}
+
+.pagination-spinner .spinner-border {
+  width: 28px;
+  height: 28px;
+  border-width: 3px;
+  color: #666; /* darker = visible */
+}
+
