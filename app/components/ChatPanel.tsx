@@ -900,6 +900,8 @@ ChatPanelProps) {
 
   const [loadingOlder, setLoadingOlder] = useState(false);
   const observerLockedRef = useRef(false);
+  const prevMessageHeightsRef = useRef<Map<string, number>>(new Map());
+
 
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
@@ -916,31 +918,42 @@ ChatPanelProps) {
     setReplyingTo(null);
   }, [resetKey]);
 
-  useEffect(() => {
-    const container = messagesAreaRef.current;
-    if (!container || messages.length === 0) return;
+ useEffect(() => {
+  const container = messagesAreaRef.current;
+  if (!container || messages.length === 0) return;
 
-    if (isFirstLoadRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
-      isFirstLoadRef.current = false;
-      return;
-    }
+  if (isFirstLoadRef.current) {
+    messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+    isFirstLoadRef.current = false;
+    return;
+  }
 
-    if (isLoadingOlderRef.current) {
-      const newScrollHeight = container.scrollHeight;
-      container.scrollTop = newScrollHeight - prevScrollHeightRef.current;
+  if (isLoadingOlderRef.current) {
+    const newScrollHeight = container.scrollHeight;
+    container.scrollTop = newScrollHeight - prevScrollHeightRef.current;
 
-      isLoadingOlderRef.current = false;
-      observerLockedRef.current = false; // 🔥 IMPORTANT
-      setLoadingOlder(false);
-      return;
-    }
+    isLoadingOlderRef.current = false;
+    observerLockedRef.current = false;
+    setLoadingOlder(false);
+    return;
+  }
 
-    // 🔥 KEY FIX
-    if (isNearBottom()) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages.length]);
+  // 🔥 Handles link preview / image height expansion
+  if (isNearBottom()) {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+}, [
+  messages.length,
+  JSON.stringify(
+    messages.map(m => ({
+      id: m.id,
+      type: m.type,
+      linkTitle: m.linkTitle,
+      fileUrl: m.fileUrl
+    }))
+  )
+]);
+
 
   useEffect(() => {
     if (isLoading || !hasMoreMessages || messages.length === 0) return;
