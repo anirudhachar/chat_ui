@@ -1122,7 +1122,7 @@ ChatPanelProps) {
 
         <div className={styles.messagesContainer}>
           {hasMoreMessages && (
-            <div ref={topMessageSentinelRef} className="pagination-spinner">
+            <div ref={topMessageSentinelRef}  className={styles.paginationSpinner}>
               {loadingOlder && (
                 <span
                   className="spinner-border"
