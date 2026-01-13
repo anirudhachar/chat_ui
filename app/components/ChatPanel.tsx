@@ -938,9 +938,9 @@ ChatPanelProps) {
     }
 
     // 🔥 KEY FIX
-    if (isNearBottom()) {
+   
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
+    
   }, [messages]);
 
   useEffect(() => {
