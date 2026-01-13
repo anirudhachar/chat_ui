@@ -898,9 +898,17 @@ ChatPanelProps) {
   const prevScrollHeightRef = useRef(0);
   const hasEverMessagedRef = useRef(false);
 
+  const [loadingOlder, setLoadingOlder] = useState(false);
+
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [showGlobalCopyToast, setShowGlobalCopyToast] = useState(false);
+
+  const isNearBottom = () => {
+    const el = messagesAreaRef.current;
+    if (!el) return false;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  };
 
   useEffect(() => {
     isFirstLoadRef.current = true;
@@ -921,10 +929,14 @@ ChatPanelProps) {
       const newScrollHeight = container.scrollHeight;
       container.scrollTop = newScrollHeight - prevScrollHeightRef.current;
       isLoadingOlderRef.current = false;
+       setLoadingOlder(false);
       return;
     }
 
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // 🔥 KEY FIX
+    if (isNearBottom()) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages.length]);
 
   useEffect(() => {
@@ -932,9 +944,11 @@ ChatPanelProps) {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
+           if (isLoadingOlderRef.current) return;
           const container = messagesAreaRef.current;
           if (!container) return;
           isLoadingOlderRef.current = true;
+           setLoadingOlder(true);
           prevScrollHeightRef.current = container.scrollHeight;
           onLoadMoreMessages();
         }
@@ -1108,10 +1122,16 @@ ChatPanelProps) {
 
         <div className={styles.messagesContainer}>
           {hasMoreMessages && (
-            <div ref={topMessageSentinelRef}>
-              {isLoadingOlderRef.current && <MessageSkeleton />}
+            <div ref={topMessageSentinelRef} className="pagination-spinner">
+              {loadingOlder && (
+                <span
+                  className="spinner-border spinner-border-sm text-secondary"
+                  role="status"
+                />
+              )}
             </div>
           )}
+
           {messages.map((m, index) => {
             const prevMsg = messages[index - 1];
             const showDate = shouldShowDateSeparator(m, prevMsg);
