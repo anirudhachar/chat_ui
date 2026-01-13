@@ -57,6 +57,15 @@ interface ChatPanelProps {
   onOpenProfile: (user: User) => void;
 }
 
+function isValidUrl(text: string) {
+  try {
+    new URL(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const isMobileDevice = () =>
   typeof window !== "undefined" &&
   (window.innerWidth < 768 || "ontouchstart" in window);
@@ -904,6 +913,40 @@ ChatPanelProps) {
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [showGlobalCopyToast, setShowGlobalCopyToast] = useState(false);
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  useEffect(() => {
+    // Initialize localMessages from props
+    setLocalMessages(messages);
+
+    // Process URL messages
+    messages.forEach(async (msg) => {
+      // Only process text messages that look like URLs
+      if (msg.type === "text" && isValidUrl(msg.content)) {
+        try {
+          const res = await fetch("/api/preview", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: msg.content }),
+          });
+
+          if (!res.ok) return;
+
+          const previewData = await res.json();
+
+          // Update the specific message in localMessages
+          setLocalMessages((prev) =>
+            prev.map((m) =>
+              m.id === msg.id
+                ? { ...m, ...previewData, type: "link" } // convert to link type
+                : m
+            )
+          );
+        } catch (err) {
+          console.error("Failed to fetch link preview:", err);
+        }
+      }
+    });
+  }, [messages]);
 
   const isNearBottom = () => {
     const el = messagesAreaRef.current;
