@@ -57,15 +57,6 @@ interface ChatPanelProps {
   onOpenProfile: (user: User) => void;
 }
 
-function isValidUrl(text: string) {
-  try {
-    new URL(text);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 const isMobileDevice = () =>
   typeof window !== "undefined" &&
   (window.innerWidth < 768 || "ontouchstart" in window);
@@ -128,6 +119,32 @@ const shouldShowDateSeparator = (current: Message, prev?: Message) => {
     c.getFullYear() !== p.getFullYear() ||
     c.getMonth() !== p.getMonth() ||
     c.getDate() !== p.getDate()
+  );
+};
+const renderTextWithLinks = (text: string) => {
+  if (!text) return null;
+
+  // Split by URLs
+  const parts = text.split(/(https?:\/\/[^\s]+)/g);
+
+  return (
+    <p className={styles.messageText}>
+      {parts.map((part, idx) =>
+        part.match(/^https?:\/\/[^\s]+$/) ? (
+          <a
+            key={idx}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.messageTextLink}
+          >
+            {part}
+          </a>
+        ) : (
+          part
+        )
+      )}
+    </p>
   );
 };
 
@@ -493,7 +510,7 @@ const MessageRow = ({
     }
 
     // 💬 TEXT
-    return wrapWithReply(<p className={styles.messageText}>{m.content}</p>);
+   return wrapWithReply(renderTextWithLinks(m.content));
   };
 
   const getStatusIcon = (status?: string) => {
@@ -913,40 +930,6 @@ ChatPanelProps) {
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [showGlobalCopyToast, setShowGlobalCopyToast] = useState(false);
-  const [localMessages, setLocalMessages] = useState<Message[]>([]);
-  useEffect(() => {
-    // Initialize localMessages from props
-    setLocalMessages(messages);
-
-    // Process URL messages
-    messages.forEach(async (msg) => {
-      // Only process text messages that look like URLs
-      if (msg.type === "text" && isValidUrl(msg.content)) {
-        try {
-          const res = await fetch("/api/preview", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url: msg.content }),
-          });
-
-          if (!res.ok) return;
-
-          const previewData = await res.json();
-
-          // Update the specific message in localMessages
-          setLocalMessages((prev) =>
-            prev.map((m) =>
-              m.id === msg.id
-                ? { ...m, ...previewData, type: "link" } // convert to link type
-                : m
-            )
-          );
-        } catch (err) {
-          console.error("Failed to fetch link preview:", err);
-        }
-      }
-    });
-  }, [messages]);
 
   const isNearBottom = () => {
     const el = messagesAreaRef.current;
@@ -1180,7 +1163,7 @@ ChatPanelProps) {
             </div>
           )}
 
-          {localMessages.map((m, index) => {
+          {messages.map((m, index) => {
             const prevMsg = messages[index - 1];
             const showDate = shouldShowDateSeparator(m, prevMsg);
 

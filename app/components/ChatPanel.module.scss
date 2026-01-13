@@ -1837,3 +1837,20 @@
 }
 
 
+
+
+.messageTextLink {
+  color: #007aff;          // Classic link blue
+  text-decoration: underline; // Make it obvious it's a link
+  word-break: break-word;   // Wrap long URLs
+  cursor: pointer;          // Pointer on hover
+  transition: color 0.2s;
+
+  &:hover {
+    color: #0051a8;         // Darker blue on hover
+  }
+
+  &:active {
+    color: #003a70;         // Even darker when clicked
+  }
+}
