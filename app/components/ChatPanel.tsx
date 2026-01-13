@@ -1126,9 +1126,8 @@ ChatPanelProps) {
               ref={topMessageSentinelRef}
               className={styles.paginationSpinner}
             >
-              {loadingOlder && (
-              <span>Loading</span>
-              )}
+            {loadingOlder && <span className={styles.spinner} />}
+
             </div>
           )}
 
