@@ -899,6 +899,7 @@ ChatPanelProps) {
   const hasEverMessagedRef = useRef(false);
 
   const [loadingOlder, setLoadingOlder] = useState(false);
+  const observerLockedRef = useRef(false);
 
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
@@ -928,7 +929,9 @@ ChatPanelProps) {
     if (isLoadingOlderRef.current) {
       const newScrollHeight = container.scrollHeight;
       container.scrollTop = newScrollHeight - prevScrollHeightRef.current;
+
       isLoadingOlderRef.current = false;
+      observerLockedRef.current = false; // 🔥 IMPORTANT
       setLoadingOlder(false);
       return;
     }
@@ -943,15 +946,19 @@ ChatPanelProps) {
     if (isLoading || !hasMoreMessages || messages.length === 0) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          if (isLoadingOlderRef.current) return;
-          const container = messagesAreaRef.current;
-          if (!container) return;
-          isLoadingOlderRef.current = true;
-          setLoadingOlder(true);
-          prevScrollHeightRef.current = container.scrollHeight;
-          onLoadMoreMessages();
-        }
+        if (!entries[0].isIntersecting) return;
+
+        if (isLoadingOlderRef.current || observerLockedRef.current) return;
+
+        const container = messagesAreaRef.current;
+        if (!container) return;
+
+        observerLockedRef.current = true;
+        isLoadingOlderRef.current = true;
+        setLoadingOlder(true);
+        prevScrollHeightRef.current = container.scrollHeight;
+
+        onLoadMoreMessages();
       },
       { root: messagesAreaRef.current, threshold: 0.1 }
     );
@@ -1126,8 +1133,7 @@ ChatPanelProps) {
               ref={topMessageSentinelRef}
               className={styles.paginationSpinner}
             >
-            {loadingOlder && <span className={styles.spinner} />}
-
+              {loadingOlder && <span className={styles.spinner} />}
             </div>
           )}
 
