@@ -1122,13 +1122,12 @@ ChatPanelProps) {
 
         <div className={styles.messagesContainer}>
           {hasMoreMessages && (
-            <div ref={topMessageSentinelRef}  className={styles.paginationSpinner}>
+            <div
+              ref={topMessageSentinelRef}
+              className={styles.paginationSpinner}
+            >
               {loadingOlder && (
-                <span
-                  className="spinner-border"
-                  role="status"
-                  aria-hidden="true"
-                />
+              <span>Loading</span>
               )}
             </div>
           )}
