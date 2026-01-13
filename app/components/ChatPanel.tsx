@@ -121,32 +121,6 @@ const shouldShowDateSeparator = (current: Message, prev?: Message) => {
     c.getDate() !== p.getDate()
   );
 };
-const renderTextWithLinks = (text: string) => {
-  if (!text) return null;
-
-  // Split by URLs
-  const parts = text.split(/(https?:\/\/[^\s]+)/g);
-
-  return (
-    <p className={styles.messageText}>
-      {parts.map((part, idx) =>
-        part.match(/^https?:\/\/[^\s]+$/) ? (
-          <a
-            key={idx}
-            href={part}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.messageTextLink}
-          >
-            {part}
-          </a>
-        ) : (
-          part
-        )
-      )}
-    </p>
-  );
-};
 
 const MessageRow = ({
   m,
@@ -502,7 +476,7 @@ const MessageRow = ({
           href={m.linkUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className={styles.messageText}
+          className={styles.messageTextLink}
         >
           {m.content || m.linkUrl}
         </a>
@@ -510,7 +484,7 @@ const MessageRow = ({
     }
 
     // 💬 TEXT
-   return wrapWithReply(renderTextWithLinks(m.content));
+    return wrapWithReply(<p className={styles.messageText}>{m.content}</p>);
   };
 
   const getStatusIcon = (status?: string) => {
