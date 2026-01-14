@@ -1654,6 +1654,9 @@ export default function ChatInterface() {
                 lastMessage: "Sent an offer",
                 lastMessageTime: "Now" // Ensure time updates too
             };
+
+            console.log("Previous Users:", prev.length);
+  console.log("New Top User:", updatedUser);
             return [updatedUser, ...prev.filter((u) => u.id !== targetUser.id)];
           });
 
