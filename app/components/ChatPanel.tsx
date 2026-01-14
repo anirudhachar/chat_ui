@@ -544,6 +544,7 @@ const MessageRow = ({
               target="_blank"
               rel="noopener noreferrer"
               className={styles.messageLinkPreview}
+              style={{width:"320px"}}
             >
               {linkPreview.image && (
                 <img
