@@ -1611,80 +1611,13 @@ export default function ChatInterface() {
         // ---------------------------------------------------------
         // 4. 🏷️ OFFER LOGIC
         // ---------------------------------------------------------
-        // if (payload.type === "OFFER") {
-        //   const timeString = new Date().toLocaleTimeString("en-US", {
-        //     hour: "numeric",
-        //     minute: "2-digit",
-        //   });
-        //   console.log(payload, "payload");
-
-        //   const optimisticOffer: Message = {
-        //     id: `offer-${payload.offerId}`,
-        //     content: payload.text || "Sent an offer",
-        //     timestamp: timeString,
-        //     sent: true,
-        //     type: "offer",
-        //     createdAt: now,
-        //     status: "sending",
-        //     offer: {
-        //       offerId: payload.offerId,
-        //       listingId: payload.listingId,
-        //       offerType: payload.offerType,
-        //       amount: payload.amount,
-        //       currency: payload.currency,
-        //       tradeDescription: payload.tradeDescription,
-        //       imageUrl: payload.imageUrl,
-        //       text: payload.text,
-        //       title: payload.title,
-        //     },
-        //   };
-
-        //   setMessages((prev) => [...prev, optimisticOffer]);
-
-        //   setUsers((prev) => {
-        //     const updatedUser = { ...targetUser, lastMessage: "Sent an offer" };
-        //     return [updatedUser, ...prev.filter((u) => u.id !== targetUser.id)];
-        //   });
-
-        //   const sendOfferAsync = async () => {
-        //     const cid = await getConversationId(targetUser.id, parentToken);
-        //     if (!cid) return;
-        //     if (isSingleRecipient && isSwitchingUser) setConversationId(cid);
-
-        //     const apiContent = JSON.stringify({ type: "OFFER", ...payload });
-        //     try {
-        //       const data = await sendMessageToApi(cid, apiContent, parentToken);
-        //       const realId = data?.data?.messageId;
-
-        //       setMessages((prev) =>
-        //         prev.map((m) =>
-        //           m.id === optimisticOffer.id
-        //             ? { ...m, id: realId, status: "sent" }
-        //             : m
-        //         )
-        //       );
-        //     } catch (e) {
-        //       console.error("Offer failed", e);
-        //       setMessages((prev) =>
-        //         prev.map((m) =>
-        //           m.id === optimisticOffer.id ? { ...m, status: "failed" } : m
-        //         )
-        //       );
-        //     }
-        //   };
-        //   sendOfferAsync();
-        //   return; // Exit
-        // }
-// ---------------------------------------------------------
-        // 4. 🏷️ OFFER LOGIC (FIXED)
-        // ---------------------------------------------------------
         if (payload.type === "OFFER") {
           const timeString = new Date().toLocaleTimeString("en-US", {
             hour: "numeric",
             minute: "2-digit",
           });
-          
-          // 1. Update Chat Panel (Optimistic)
+          console.log(payload, "payload");
+
           const optimisticOffer: Message = {
             id: `offer-${payload.offerId}`,
             content: payload.text || "Sent an offer",
@@ -1708,31 +1641,33 @@ export default function ChatInterface() {
 
           setMessages((prev) => [...prev, optimisticOffer]);
 
-          // 2. Update Sidebar (Optimistic - Show "Sending...")
-          setUsers((prev) => {
-            const existingUser = prev.find((u) => u.id === targetUser.id);
-            
-            // 🔥 CRITICAL: Explicitly cast to ': User' to fix TS errors
-            const updatedUser: User = existingUser
-              ? {
-                  ...existingUser,
-                  lastMessage: payload.text || "Sent an offer",
-                  lastMessageTime: timeString,
-                  lastMessageStatus: "sending",       // Show clock icon
-                  lastMessageSenderId: loggedInUserId ?? undefined, // 🔥 REQUIRED for tick logic
-                  unread: 0,
-                }
-              : {
-                  ...targetUser,
-                  lastMessage: payload.text || "Sent an offer",
-                  lastMessageTime: timeString,
-                  lastMessageStatus: "sending",
-                  lastMessageSenderId: loggedInUserId ?? undefined,
-                  unread: 0,
-                };
+          // setUsers((prev) => {
+          //   const updatedUser = { ...targetUser, lastMessage: "Sent an offer" };
+          //   return [updatedUser, ...prev.filter((u) => u.id !== targetUser.id)];
+          // });
 
-            return [updatedUser, ...prev.filter((u) => u.id !== targetUser.id)];
-          });
+          setUsers((prev) =>
+            prev.some((u) => u.id === targetUser.id)
+              ? prev.map((u) =>
+                  u.id === targetUser.id
+                    ? {
+                        ...u,
+                        lastMessage: "Sent an offer",
+                        lastMessageTime: "Now",
+                        lastMessageStatus: "sending",
+                      }
+                    : u
+                )
+              : [
+                  {
+                    ...(targetUser as User),
+                    lastMessage: "Sent an offer",
+                    lastMessageTime: "Now",
+                    lastMessageStatus: "sending",
+                  },
+                  ...prev,
+                ]
+          );
 
           const sendOfferAsync = async () => {
             const cid = await getConversationId(targetUser.id, parentToken);
@@ -1740,12 +1675,10 @@ export default function ChatInterface() {
             if (isSingleRecipient && isSwitchingUser) setConversationId(cid);
 
             const apiContent = JSON.stringify({ type: "OFFER", ...payload });
-            
             try {
               const data = await sendMessageToApi(cid, apiContent, parentToken);
               const realId = data?.data?.messageId;
 
-              // 3. Update Chat Panel (Success)
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === optimisticOffer.id
@@ -1753,17 +1686,6 @@ export default function ChatInterface() {
                     : m
                 )
               );
-
-              // 4. Update Sidebar (Success - Show Tick)
-              // 🔥 This was missing! We must update the sidebar status to "sent"
-              setUsers((prev) => 
-                prev.map((u) => 
-                  u.id === targetUser.id 
-                    ? { ...u, lastMessageStatus: "sent" } // Change clock to tick
-                    : u
-                )
-              );
-
             } catch (e) {
               console.error("Offer failed", e);
               setMessages((prev) =>
@@ -1776,6 +1698,7 @@ export default function ChatInterface() {
           sendOfferAsync();
           return; // Exit
         }
+
         // ---------------------------------------------------------
         // 5. 🏪 MARKETPLACE LOGIC
         // ---------------------------------------------------------
