@@ -131,6 +131,7 @@ export default function ChatInterface() {
     null
   );
 
+  
   const userParam = searchParams.get("user"); // string | null
 
   const extractUrl = (text: string) => {

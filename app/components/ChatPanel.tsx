@@ -167,6 +167,17 @@ const MessageRow = ({
     startYRef.current = e.touches[0].clientY;
     setIsDraggingEmoji(true);
   };
+// 🔗 Link preview state
+const [linkPreview, setLinkPreview] = useState<{
+  title?: string;
+  description?: string;
+  image?: string;
+  url: string;
+} | null>(null);
+
+const [previewLoading, setPreviewLoading] = useState(false);
+
+  
 
   const handleEmojiTouchMove = (e: React.TouchEvent) => {
     if (!isDraggingEmoji || !emojiSheetRef.current) return;
@@ -217,6 +228,61 @@ const MessageRow = ({
 
     return () => window.removeEventListener("click", close);
   }, [pickerPosition]);
+
+
+  useEffect(() => {
+  if (m.type !== "link" || !m.linkUrl) return;
+    const url = m.linkUrl;
+
+  // If backend already sent preview, use it
+  if (m.linkTitle || m.linkImage || m.linkDescription) {
+    setLinkPreview({
+      title: m.linkTitle,
+      description: m.linkDescription,
+      image: m.linkImage,
+      url: m.linkUrl,
+    });
+    return;
+  }
+
+  let cancelled = false;
+
+  const fetchPreview = async () => {
+    try {
+      setPreviewLoading(true);
+
+      const res = await fetch("/api/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: m.linkUrl }),
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      if (!cancelled) {
+        setLinkPreview({
+          title: data.title,
+          description: data.description,
+          image: data.image,
+          url,
+        });
+      }
+    } catch (err) {
+      console.error("Link preview fetch failed", err);
+    } finally {
+      if (!cancelled) setPreviewLoading(false);
+    }
+  };
+
+  fetchPreview();
+
+  return () => {
+    cancelled = true;
+  };
+}, [m.type, m.linkUrl]);
+
 
   const closeMobileSheet = () => {
     setShowMobileSheet(false);
@@ -437,51 +503,62 @@ const MessageRow = ({
       );
     }
 
-    // 🔗 LINK
-    if (m.type === "link" && m.linkUrl) {
-      if (m.linkTitle) {
-        return wrapWithReply(
-          <>
-            <a
-              href={m.linkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.messageLinkPreview}
-            >
-              {m.linkImage && (
-                <img
-                  src={m.linkImage}
-                  alt={m.linkTitle}
-                  className={styles.linkImage}
-                />
-              )}
-              <div className={styles.linkContent}>
-                <p className={styles.linkSource}>
-                  {new URL(m.linkUrl).hostname}
-                </p>
-                <p className={styles.linkTitle}>{m.linkTitle}</p>
-                {m.linkDescription && (
-                  <p className={styles.linkDescription}>{m.linkDescription}</p>
-                )}
-              </div>
-            </a>
-            {m.content && m.content.trim() !== m.linkUrl.trim() && (
-              <p className={styles.messageText}>{m.content}</p>
-            )}
-          </>
-        );
-      }
-      return wrapWithReply(
+  // 🔗 LINK
+if (m.type === "link" && m.linkUrl) {
+  if (linkPreview) {
+    return wrapWithReply(
+      <>
         <a
-          href={m.linkUrl}
+          href={linkPreview.url}
           target="_blank"
           rel="noopener noreferrer"
-          className={styles.messageTextLink}
+          className={styles.messageLinkPreview}
         >
-          {m.content || m.linkUrl}
+          {linkPreview.image && (
+            <img
+              src={linkPreview.image}
+              alt={linkPreview.title}
+              className={styles.linkImage}
+            />
+          )}
+
+          <div className={styles.linkContent}>
+            <p className={styles.linkSource}>
+              {new URL(linkPreview.url).hostname}
+            </p>
+
+            {linkPreview.title && (
+              <p className={styles.linkTitle}>{linkPreview.title}</p>
+            )}
+
+            {linkPreview.description && (
+              <p className={styles.linkDescription}>
+                {linkPreview.description}
+              </p>
+            )}
+          </div>
         </a>
-      );
-    }
+
+        {m.content && m.content.trim() !== m.linkUrl.trim() && (
+          <p className={styles.messageText}>{m.content}</p>
+        )}
+      </>
+    );
+  }
+
+  // ⏳ Loading / fallback
+  return wrapWithReply(
+    <a
+      href={m.linkUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={styles.messageTextLink}
+    >
+      {previewLoading ? "Loading preview…" : m.content || m.linkUrl}
+    </a>
+  );
+}
+
 
     // 💬 TEXT
     return wrapWithReply(<p className={styles.messageText}>{m.content}</p>);
@@ -892,6 +969,7 @@ ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
   const topMessageSentinelRef = useRef<HTMLDivElement>(null);
+  
 
   const isFirstLoadRef = useRef(true);
   const isLoadingOlderRef = useRef(false);
@@ -905,6 +983,7 @@ ChatPanelProps) {
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [showGlobalCopyToast, setShowGlobalCopyToast] = useState(false);
+
 
   const isNearBottom = () => {
     const el = messagesAreaRef.current;
