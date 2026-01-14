@@ -1015,6 +1015,7 @@ export default function ChatInterface() {
                   currency: parsedOffer.currency,
                   tradeDescription: parsedOffer.tradeDescription,
                   imageUrl: parsedOffer.imageUrl,
+                  text: parsedOffer.text,
                 }
               : undefined,
 
