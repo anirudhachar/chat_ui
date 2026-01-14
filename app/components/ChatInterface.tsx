@@ -1641,11 +1641,35 @@ export default function ChatInterface() {
 
           setMessages((prev) => [...prev, optimisticOffer]);
 
+          // setUsers((prev) => {
+          //   const updatedUser = { ...targetUser, lastMessage: "Sent an offer" };
+          //   return [updatedUser, ...prev.filter((u) => u.id !== targetUser.id)];
+          // });
+
           setUsers((prev) => {
-            const updatedUser = { ...targetUser, lastMessage: "Sent an offer" };
+            const existingUser = prev.find((u) => u.id === targetUser.id);
+
+            // 1. Explicitly add ': User' type here to satisfy the compiler
+            const updatedUser: User = existingUser
+              ? {
+                  ...existingUser,
+                  lastMessage: payload.text || "Sent an offer",
+                  lastMessageTime: timeString,
+                  lastMessageStatus: "sending", // Matches User type definition now
+                  lastMessageSenderId: loggedInUserId ?? undefined,
+                  unread: 0,
+                }
+              : {
+                  ...targetUser,
+                  lastMessage: payload.text || "Sent an offer",
+                  lastMessageTime: timeString,
+                  lastMessageStatus: "sending",
+                  lastMessageSenderId: loggedInUserId ?? undefined,
+                  unread: 0,
+                };
+
             return [updatedUser, ...prev.filter((u) => u.id !== targetUser.id)];
           });
-
           const sendOfferAsync = async () => {
             const cid = await getConversationId(targetUser.id, parentToken);
             if (!cid) return;
