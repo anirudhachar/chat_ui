@@ -1139,6 +1139,7 @@ ChatPanelProps) {
           )}
 
           {messages.map((m, index) => {
+            console.log(messages,"messages array")
             const prevMsg = messages[index - 1];
             const showDate = shouldShowDateSeparator(m, prevMsg);
 
