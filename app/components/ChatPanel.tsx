@@ -535,17 +535,9 @@ const MessageRow = ({
     // 🔗 LINK
     if (m.type === "link" && m.linkUrl) {
       if (linkPreview) {
-        console.log(linkPreview,"linkPreview")
+        console.log(linkPreview, "linkPreview");
         return wrapWithReply(
           <>
-            <a
-              href={m.linkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.messageTextLink}
-            >
-              {m.content || m.linkUrl}
-            </a>
             <a
               href={linkPreview.url}
               target="_blank"
@@ -580,6 +572,16 @@ const MessageRow = ({
             {m.content && m.content.trim() !== m.linkUrl.trim() && (
               <p className={styles.messageText}>{m.content}</p>
             )}
+
+            <a
+              href={m.linkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{marginTop:"5px"}}
+              className={styles.messageTextLink}
+            >
+              {m.content || m.linkUrl}
+            </a>
           </>
         );
       }
