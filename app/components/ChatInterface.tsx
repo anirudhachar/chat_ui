@@ -1641,33 +1641,10 @@ export default function ChatInterface() {
 
           setMessages((prev) => [...prev, optimisticOffer]);
 
-          // setUsers((prev) => {
-          //   const updatedUser = { ...targetUser, lastMessage: "Sent an offer" };
-          //   return [updatedUser, ...prev.filter((u) => u.id !== targetUser.id)];
-          // });
-
-          setUsers((prev) =>
-            prev.some((u) => u.id === targetUser.id)
-              ? prev.map((u) =>
-                  u.id === targetUser.id
-                    ? {
-                        ...u,
-                        lastMessage: "Sent an offer",
-                        lastMessageTime: "Now",
-                        lastMessageStatus: "sending",
-                      }
-                    : u
-                )
-              : [
-                  {
-                    ...(targetUser as User),
-                    lastMessage: "Sent an offer",
-                    lastMessageTime: "Now",
-                    lastMessageStatus: "sending",
-                  },
-                  ...prev,
-                ]
-          );
+          setUsers((prev) => {
+            const updatedUser = { ...targetUser, lastMessage: "Sent an offer" };
+            return [updatedUser, ...prev.filter((u) => u.id !== targetUser.id)];
+          });
 
           const sendOfferAsync = async () => {
             const cid = await getConversationId(targetUser.id, parentToken);
@@ -2024,11 +2001,15 @@ export default function ChatInterface() {
   const listToShow = searchQuery.length >= 2 ? searchResults : users;
   const isSearchActive = searchQuery.length >= 2;
 
+  console.log(users,"userselected")
+
   return (
     <div className={styles.chatInterface}>
       <div
         className={`${styles.sidebarWrapper} ${showSidebar ? styles.show : ""}`}
       >
+
+        
         <UserSidebar
           users={listToShow}
           selectedUser={selectedUser}
