@@ -131,7 +131,7 @@ const MessageRow = ({
   onDelete,
   onReact,
   copiedMessageId,
-  messagesAreaRef
+  messagesAreaRef,
 }: {
   m: Message;
   isMine: boolean;
@@ -141,8 +141,7 @@ const MessageRow = ({
   onDelete: (m: Message) => void;
   onReact: (m: Message, e: string) => void;
   copiedMessageId?: string | null;
-   messagesAreaRef: React.RefObject<HTMLDivElement | null>;
-
+  messagesAreaRef: React.RefObject<HTMLDivElement | null>;
 }) => {
   const [pickerPosition, setPickerPosition] = useState<{
     top: number;
@@ -150,7 +149,7 @@ const MessageRow = ({
   } | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const messageBubbleRef = useRef<HTMLDivElement>(null);
-const prevHeightRef = useRef<number | null>(null);
+  const prevHeightRef = useRef<number | null>(null);
 
   // ✏️ NEW: Local Editing State
   const [isEditing, setIsEditing] = useState(false);
@@ -172,17 +171,15 @@ const prevHeightRef = useRef<number | null>(null);
     startYRef.current = e.touches[0].clientY;
     setIsDraggingEmoji(true);
   };
-// 🔗 Link preview state
-const [linkPreview, setLinkPreview] = useState<{
-  title?: string;
-  description?: string;
-  image?: string;
-  url: string;
-} | null>(null);
+  // 🔗 Link preview state
+  const [linkPreview, setLinkPreview] = useState<{
+    title?: string;
+    description?: string;
+    image?: string;
+    url: string;
+  } | null>(null);
 
-const [previewLoading, setPreviewLoading] = useState(false);
-
-  
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const handleEmojiTouchMove = (e: React.TouchEvent) => {
     if (!isDraggingEmoji || !emojiSheetRef.current) return;
@@ -234,90 +231,87 @@ const [previewLoading, setPreviewLoading] = useState(false);
     return () => window.removeEventListener("click", close);
   }, [pickerPosition]);
 
-
   useEffect(() => {
-  if (m.type !== "link" || !m.linkUrl) return;
+    if (m.type !== "link" || !m.linkUrl) return;
 
-  const bubble = messageBubbleRef.current;
-  if (bubble) {
-    prevHeightRef.current = bubble.offsetHeight;
-  }
+    const bubble = messageBubbleRef.current;
+    if (bubble) {
+      prevHeightRef.current = bubble.offsetHeight;
+    }
     const url = m.linkUrl;
 
-  // If backend already sent preview, use it
-  if (m.linkTitle || m.linkImage || m.linkDescription) {
-    setLinkPreview({
-      title: m.linkTitle,
-      description: m.linkDescription,
-      image: m.linkImage,
-      url: m.linkUrl,
-    });
-    return;
-  }
-
-  let cancelled = false;
-
-  const fetchPreview = async () => {
-    try {
-      setPreviewLoading(true);
-
-      const res = await fetch("/api/preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: m.linkUrl }),
+    // If backend already sent preview, use it
+    if (m.linkTitle || m.linkImage || m.linkDescription) {
+      setLinkPreview({
+        title: m.linkTitle,
+        description: m.linkDescription,
+        image: m.linkImage,
+        url: m.linkUrl,
       });
+      return;
+    }
 
-      if (!res.ok) return;
+    let cancelled = false;
 
-      const data = await res.json();
+    const fetchPreview = async () => {
+      try {
+        setPreviewLoading(true);
 
-      if (!cancelled) {
-        setLinkPreview({
-          title: data.title,
-          description: data.description,
-          image: data.image,
-          url,
+        const res = await fetch("/api/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: m.linkUrl }),
         });
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        if (!cancelled) {
+          setLinkPreview({
+            title: data.title,
+            description: data.description,
+            image: data.image,
+            url,
+          });
+        }
+      } catch (err) {
+        console.error("Link preview fetch failed", err);
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
       }
-    } catch (err) {
-      console.error("Link preview fetch failed", err);
-    } finally {
-      if (!cancelled) setPreviewLoading(false);
+    };
+
+    fetchPreview();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [m.type, m.linkUrl]);
+
+  useEffect(() => {
+    if (!linkPreview) return;
+
+    const bubble = messageBubbleRef.current;
+    const prevHeight = prevHeightRef.current;
+
+    if (!bubble || prevHeight == null) return;
+
+    const newHeight = bubble.offsetHeight;
+    const diff = newHeight - prevHeight;
+
+    if (diff > 0) {
+      const container = messagesAreaRef?.current;
+
+      // Adjust scroll ONLY if this message is not the last one
+      if (container) {
+        container.scrollTop += diff;
+      }
     }
-  };
 
-  fetchPreview();
-
-  return () => {
-    cancelled = true;
-  };
-}, [m.type, m.linkUrl]);
-
-useEffect(() => {
-  if (!linkPreview) return;
-
-  const bubble = messageBubbleRef.current;
-  const prevHeight = prevHeightRef.current;
-
-  if (!bubble || prevHeight == null) return;
-
-  const newHeight = bubble.offsetHeight;
-  const diff = newHeight - prevHeight;
-
-  if (diff > 0) {
-    const container = messagesAreaRef?.current;
-
-    // Adjust scroll ONLY if this message is not the last one
-    if (container) {
-      container.scrollTop += diff;
-    }
-  }
-
-  // Reset after applying
-  prevHeightRef.current = null;
-}, [linkPreview]);
-
-
+    // Reset after applying
+    prevHeightRef.current = null;
+  }, [linkPreview]);
 
   const closeMobileSheet = () => {
     setShowMobileSheet(false);
@@ -538,62 +532,70 @@ useEffect(() => {
       );
     }
 
-  // 🔗 LINK
-if (m.type === "link" && m.linkUrl) {
-  if (linkPreview) {
-    return wrapWithReply(
-      <>
+    // 🔗 LINK
+    if (m.type === "link" && m.linkUrl) {
+      if (linkPreview) {
+        console.log(linkPreview,"linkPreview")
+        return wrapWithReply(
+          <>
+            <a
+              href={m.linkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.messageTextLink}
+            >
+              {m.content || m.linkUrl}
+            </a>
+            <a
+              href={linkPreview.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.messageLinkPreview}
+            >
+              {linkPreview.image && (
+                <img
+                  src={linkPreview.image}
+                  alt={linkPreview.title}
+                  className={styles.linkImage}
+                />
+              )}
+
+              <div className={styles.linkContent}>
+                <p className={styles.linkSource}>
+                  {new URL(linkPreview.url).hostname}
+                </p>
+
+                {linkPreview.title && (
+                  <p className={styles.linkTitle}>{linkPreview.title}</p>
+                )}
+
+                {linkPreview.description && (
+                  <p className={styles.linkDescription}>
+                    {linkPreview.description}
+                  </p>
+                )}
+              </div>
+            </a>
+
+            {m.content && m.content.trim() !== m.linkUrl.trim() && (
+              <p className={styles.messageText}>{m.content}</p>
+            )}
+          </>
+        );
+      }
+
+      // ⏳ Loading / fallback
+      return wrapWithReply(
         <a
-          href={linkPreview.url}
+          href={m.linkUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className={styles.messageLinkPreview}
+          className={styles.messageTextLink}
         >
-          {linkPreview.image && (
-            <img
-              src={linkPreview.image}
-              alt={linkPreview.title}
-              className={styles.linkImage}
-            />
-          )}
-
-          <div className={styles.linkContent}>
-            <p className={styles.linkSource}>
-              {new URL(linkPreview.url).hostname}
-            </p>
-
-            {linkPreview.title && (
-              <p className={styles.linkTitle}>{linkPreview.title}</p>
-            )}
-
-            {linkPreview.description && (
-              <p className={styles.linkDescription}>
-                {linkPreview.description}
-              </p>
-            )}
-          </div>
+          {previewLoading ? "Loading preview…" : m.content || m.linkUrl}
         </a>
-
-        {m.content && m.content.trim() !== m.linkUrl.trim() && (
-          <p className={styles.messageText}>{m.content}</p>
-        )}
-      </>
-    );
-  }
-
-  // ⏳ Loading / fallback
-  return wrapWithReply(
-    <a
-      href={m.linkUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={styles.messageTextLink}
-    >
-      {previewLoading ? "Loading preview…" : m.content || m.linkUrl}
-    </a>
-  );
-}
-
+      );
+    }
 
     // 💬 TEXT
     return wrapWithReply(<p className={styles.messageText}>{m.content}</p>);
@@ -774,7 +776,7 @@ if (m.type === "link" && m.linkUrl) {
           )}
 
           {/* 📨 MESSAGE BUBBLE */}
-          <div className={`${styles.messageBubble}`}   ref={messageBubbleRef}>
+          <div className={`${styles.messageBubble}`} ref={messageBubbleRef}>
             {/* <svg
               viewBox="0 0 8 13"
               width="8"
@@ -1004,7 +1006,6 @@ ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
   const topMessageSentinelRef = useRef<HTMLDivElement>(null);
-  
 
   const isFirstLoadRef = useRef(true);
   const isLoadingOlderRef = useRef(false);
@@ -1013,12 +1014,10 @@ ChatPanelProps) {
 
   const [loadingOlder, setLoadingOlder] = useState(false);
   const observerLockedRef = useRef(false);
-  
 
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [showGlobalCopyToast, setShowGlobalCopyToast] = useState(false);
-
 
   const isNearBottom = () => {
     const el = messagesAreaRef.current;
@@ -1052,9 +1051,8 @@ ChatPanelProps) {
     }
 
     // 🔥 KEY FIX
-   
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    
+
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
@@ -1253,7 +1251,7 @@ ChatPanelProps) {
           )}
 
           {messages.map((m, index) => {
-            console.log(messages,"messages array")
+            console.log(messages, "messages array");
             const prevMsg = messages[index - 1];
             const showDate = shouldShowDateSeparator(m, prevMsg);
 
