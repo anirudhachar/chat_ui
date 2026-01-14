@@ -131,6 +131,7 @@ const MessageRow = ({
   onDelete,
   onReact,
   copiedMessageId,
+  messagesAreaRef
 }: {
   m: Message;
   isMine: boolean;
@@ -140,12 +141,16 @@ const MessageRow = ({
   onDelete: (m: Message) => void;
   onReact: (m: Message, e: string) => void;
   copiedMessageId?: string | null;
+   messagesAreaRef: React.RefObject<HTMLDivElement | null>;
+
 }) => {
   const [pickerPosition, setPickerPosition] = useState<{
     top: number;
     left: number;
   } | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const messageBubbleRef = useRef<HTMLDivElement>(null);
+const prevHeightRef = useRef<number | null>(null);
 
   // ✏️ NEW: Local Editing State
   const [isEditing, setIsEditing] = useState(false);
@@ -232,6 +237,11 @@ const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
   if (m.type !== "link" || !m.linkUrl) return;
+
+  const bubble = messageBubbleRef.current;
+  if (bubble) {
+    prevHeightRef.current = bubble.offsetHeight;
+  }
     const url = m.linkUrl;
 
   // If backend already sent preview, use it
@@ -282,6 +292,31 @@ const [previewLoading, setPreviewLoading] = useState(false);
     cancelled = true;
   };
 }, [m.type, m.linkUrl]);
+
+useEffect(() => {
+  if (!linkPreview) return;
+
+  const bubble = messageBubbleRef.current;
+  const prevHeight = prevHeightRef.current;
+
+  if (!bubble || prevHeight == null) return;
+
+  const newHeight = bubble.offsetHeight;
+  const diff = newHeight - prevHeight;
+
+  if (diff > 0) {
+    const container = messagesAreaRef?.current;
+
+    // Adjust scroll ONLY if this message is not the last one
+    if (container) {
+      container.scrollTop += diff;
+    }
+  }
+
+  // Reset after applying
+  prevHeightRef.current = null;
+}, [linkPreview]);
+
 
 
   const closeMobileSheet = () => {
@@ -739,7 +774,7 @@ if (m.type === "link" && m.linkUrl) {
           )}
 
           {/* 📨 MESSAGE BUBBLE */}
-          <div className={`${styles.messageBubble}`}>
+          <div className={`${styles.messageBubble}`}   ref={messageBubbleRef}>
             {/* <svg
               viewBox="0 0 8 13"
               width="8"
@@ -1239,6 +1274,7 @@ ChatPanelProps) {
                   onDelete={onDeleteMessage || (() => {})}
                   onReact={onReact}
                   copiedMessageId={copiedMessageId}
+                  messagesAreaRef={messagesAreaRef}
                 />
               </div>
             );
