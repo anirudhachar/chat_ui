@@ -479,7 +479,7 @@ const MessageRow = ({
             )}
             <div className={styles.productInfo}>
               <p className={styles.productTitle}>{m.offer.text}</p>
-              <p className={styles.productPrice}>{m.offer.amount}</p>
+              <p className={styles.productPrice}>${m.offer.amount}</p>
             </div>
           </div>
           <div className={styles.offerAmount}>

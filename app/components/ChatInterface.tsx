@@ -1629,6 +1629,7 @@ export default function ChatInterface() {
         currency: payload.currency,
         tradeDescription: payload.tradeDescription,
         imageUrl: payload.imageUrl,
+        text:payload.text
       },
     };
 
