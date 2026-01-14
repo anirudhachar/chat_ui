@@ -478,7 +478,7 @@ const MessageRow = ({
               />
             )}
             <div className={styles.productInfo}>
-              <p className={styles.productTitle}>{m.offer.text}</p>
+              <p className={styles.productTitle}>{m.offer.title}</p>
               <p className={styles.productPrice}>${m.offer.amount}</p>
             </div>
           </div>
