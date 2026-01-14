@@ -544,7 +544,7 @@ const MessageRow = ({
               target="_blank"
               rel="noopener noreferrer"
               className={styles.messageLinkPreview}
-              style={{width:"320px"}}
+             
             >
               {linkPreview.image && (
                 <img
@@ -579,7 +579,7 @@ const MessageRow = ({
               href={m.linkUrl}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ marginTop: "5px" }}
+              style={{ marginTop: "5px",width:"310px" }}
               className={styles.messageTextLink}
             >
               {m.content || m.linkUrl}
