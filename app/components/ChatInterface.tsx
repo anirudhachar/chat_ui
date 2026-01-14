@@ -1611,7 +1611,7 @@ export default function ChatInterface() {
         // ---------------------------------------------------------
         // 4. 🏷️ OFFER LOGIC
         // ---------------------------------------------------------
-     // ---------------------------------------------------------
+        // ---------------------------------------------------------
         // 4. 🏷️ OFFER LOGIC
         // ---------------------------------------------------------
         if (payload.type === "OFFER") {
@@ -1649,15 +1649,24 @@ export default function ChatInterface() {
           // 3. Update Sidebar (Optimistic)
           // This runs immediately after the chat updates, moving the user to top
           setUsers((prev) => {
-            const updatedUser = { 
-                ...targetUser, 
-                lastMessage: "Sent an offer",
-                lastMessageTime: "Now" // Ensure time updates too
+            const updatedUser = {
+              ...targetUser,
+              lastMessage: "Sent an offer",
+              lastMessageTime: "Now", // Ensure time updates too
             };
 
             console.log("Previous Users:", prev.length);
-  console.log("New Top User:", updatedUser);
-            return [updatedUser, ...prev.filter((u) => u.id !== targetUser.id)];
+            console.log("New Top User:", updatedUser);
+            const newList = [
+              updatedUser,
+              ...prev.filter((u) => u.id !== targetUser.id),
+            ];
+
+            // 2. Console log the final list
+            console.log("Sidebar Update - New List:", newList);
+
+            // 3. Return the variable
+            return newList;
           });
 
           // 4. Send to API (Async)
@@ -1679,9 +1688,8 @@ export default function ChatInterface() {
                     : m
                 )
               );
-              
-              // Note: We do NOT need to call setUsers here because we did it in Step 3
 
+              // Note: We do NOT need to call setUsers here because we did it in Step 3
             } catch (e) {
               console.error("Offer failed", e);
               setMessages((prev) =>
