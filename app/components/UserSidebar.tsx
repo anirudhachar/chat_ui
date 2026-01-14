@@ -64,6 +64,7 @@ export default function UserSidebar({
   const loadingIndicatorRef = useRef<HTMLDivElement>(null);
   const userListRef = useRef<HTMLDivElement>(null);
 
+  console.log(users, "users");
   const router = useRouter();
   /* Infinite scroll (disabled during search) */
   useEffect(() => {
@@ -210,7 +211,28 @@ export default function UserSidebar({
                       user.isTyping ? styles.typingText : ""
                     }`}
                   >
-                    {user.isTyping ? "Typing…" : user.lastMessage}
+                    {user.isTyping
+                      ? "Typing…"
+                      : (() => {
+                          if (typeof user.lastMessage !== "string")
+                            return user.lastMessage;
+
+                          // Only attempt JSON parse if it looks like JSON
+                          if (user.lastMessage.startsWith("{")) {
+                            try {
+                              const parsed = JSON.parse(user.lastMessage);
+
+                              // ✅ OFFER: show offer text instead of raw JSON
+                              if (parsed?.type === "OFFER") {
+                                return parsed.text || "Sent an offer";
+                              }
+                            } catch {
+                              // ignore parse errors
+                            }
+                          }
+
+                          return user.lastMessage;
+                        })()}
                   </p>
 
                   {Number(user.unread) > 0 && (

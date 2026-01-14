@@ -59,7 +59,7 @@ export interface Message {
     tradeDescription?: string;
     imageUrl?: string;
     text?: string;
-    title?:string;
+    title?: string;
   };
   replyTo?: Message;
 }
@@ -392,7 +392,7 @@ export default function ChatInterface() {
                         tradeDescription: parsedOffer.tradeDescription,
                         imageUrl: parsedOffer.imageUrl,
                         text: parsedOffer.text,
-                        title:parsedOffer.title
+                        title: parsedOffer.title,
                       }
                     : undefined,
                   linkUrl: detectedUrl ?? undefined,
@@ -1018,7 +1018,7 @@ export default function ChatInterface() {
                   tradeDescription: parsedOffer.tradeDescription,
                   imageUrl: parsedOffer.imageUrl,
                   text: parsedOffer.text,
-                  title:parsedOffer.title
+                  title: parsedOffer.title,
                 }
               : undefined,
 
@@ -1635,7 +1635,7 @@ export default function ChatInterface() {
               tradeDescription: payload.tradeDescription,
               imageUrl: payload.imageUrl,
               text: payload.text,
-              title:payload.title
+              title: payload.title,
             },
           };
 
