@@ -477,7 +477,7 @@ const MessageRow = ({
               />
             )}
             <div className={styles.productInfo}>
-              <p className={styles.productTitle}>MacBook Pro 13&quot; 2021</p>
+              <p className={styles.productTitle}>{m.offer.text}</p>
               <p className={styles.productPrice}>$967.00</p>
             </div>
           </div>
@@ -577,7 +577,7 @@ const MessageRow = ({
               href={m.linkUrl}
               target="_blank"
               rel="noopener noreferrer"
-              style={{marginTop:"5px"}}
+              style={{ marginTop: "5px" }}
               className={styles.messageTextLink}
             >
               {m.content || m.linkUrl}

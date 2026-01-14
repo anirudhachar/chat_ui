@@ -58,6 +58,7 @@ export interface Message {
     currency?: string;
     tradeDescription?: string;
     imageUrl?: string;
+    text?:string
   };
   replyTo?: Message;
 }
