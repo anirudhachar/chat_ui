@@ -1614,7 +1614,7 @@ export default function ChatInterface() {
         // ---------------------------------------------------------
         // 4. 🏷️ OFFER LOGIC
         // ---------------------------------------------------------
-    if (payload.type === "OFFER") {
+        if (payload.type === "OFFER") {
           const timeString = new Date().toLocaleTimeString("en-US", {
             hour: "numeric",
             minute: "2-digit",
@@ -1671,30 +1671,35 @@ export default function ChatInterface() {
               // 5. ✅ UPDATE SIDEBAR HERE (After success)
               // This ensures we don't mess up the list if the API fails
               setUsers((prev) => {
-                const updatedUser = { 
-                    ...targetUser, 
-                    lastMessage: "Sent an offer",
-                    lastMessageTime: "Now" 
+                const updatedUser = {
+                  ...targetUser,
+                  lastMessage: payload.text,
+                  lastMessageTime: "Now",
                 };
-                
+
                 // Move to top
-                const newList = [updatedUser, ...prev.filter((u) => u.id !== targetUser.id)];
-                
+                const newList = [
+                  updatedUser,
+                  ...prev.filter((u) => u.id !== targetUser.id),
+                ];
+
                 console.log("✅ Sidebar updated after API success");
                 return newList;
               });
 
               // Optional: Update search results too if needed
               if (searchQuery.length >= 2) {
-                 setSearchResults((prev) => {
-                    const exists = prev.find((u) => u.id === targetUser.id);
-                    if (exists) {
-                       return [{ ...targetUser, lastMessage: "Sent an offer" }, ...prev.filter((u) => u.id !== targetUser.id)];
-                    }
-                    return prev;
-                 });
+                setSearchResults((prev) => {
+                  const exists = prev.find((u) => u.id === targetUser.id);
+                  if (exists) {
+                    return [
+                      { ...targetUser, lastMessage: "Sent an offer" },
+                      ...prev.filter((u) => u.id !== targetUser.id),
+                    ];
+                  }
+                  return prev;
+                });
               }
-              
             } catch (e) {
               console.error("Offer failed", e);
               setMessages((prev) =>
