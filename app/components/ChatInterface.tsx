@@ -1611,6 +1611,9 @@ export default function ChatInterface() {
         // ---------------------------------------------------------
         // 4. 🏷️ OFFER LOGIC
         // ---------------------------------------------------------
+     // ---------------------------------------------------------
+        // 4. 🏷️ OFFER LOGIC
+        // ---------------------------------------------------------
         if (payload.type === "OFFER") {
           const timeString = new Date().toLocaleTimeString("en-US", {
             hour: "numeric",
@@ -1618,6 +1621,7 @@ export default function ChatInterface() {
           });
           console.log(payload, "payload");
 
+          // 1. Create Optimistic Offer Object
           const optimisticOffer: Message = {
             id: `offer-${payload.offerId}`,
             content: payload.text || "Sent an offer",
@@ -1639,13 +1643,21 @@ export default function ChatInterface() {
             },
           };
 
+          // 2. Update Chat Panel (Optimistic)
           setMessages((prev) => [...prev, optimisticOffer]);
 
+          // 3. Update Sidebar (Optimistic)
+          // This runs immediately after the chat updates, moving the user to top
           setUsers((prev) => {
-            const updatedUser = { ...targetUser, lastMessage: "Sent an offer" };
+            const updatedUser = { 
+                ...targetUser, 
+                lastMessage: "Sent an offer",
+                lastMessageTime: "Now" // Ensure time updates too
+            };
             return [updatedUser, ...prev.filter((u) => u.id !== targetUser.id)];
           });
 
+          // 4. Send to API (Async)
           const sendOfferAsync = async () => {
             const cid = await getConversationId(targetUser.id, parentToken);
             if (!cid) return;
@@ -1656,6 +1668,7 @@ export default function ChatInterface() {
               const data = await sendMessageToApi(cid, apiContent, parentToken);
               const realId = data?.data?.messageId;
 
+              // Update only the message status/ID on success
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === optimisticOffer.id
@@ -1663,6 +1676,9 @@ export default function ChatInterface() {
                     : m
                 )
               );
+              
+              // Note: We do NOT need to call setUsers here because we did it in Step 3
+
             } catch (e) {
               console.error("Offer failed", e);
               setMessages((prev) =>
@@ -2001,15 +2017,11 @@ export default function ChatInterface() {
   const listToShow = searchQuery.length >= 2 ? searchResults : users;
   const isSearchActive = searchQuery.length >= 2;
 
-  console.log(users,"userselected")
-
   return (
     <div className={styles.chatInterface}>
       <div
         className={`${styles.sidebarWrapper} ${showSidebar ? styles.show : ""}`}
       >
-
-        
         <UserSidebar
           users={listToShow}
           selectedUser={selectedUser}
