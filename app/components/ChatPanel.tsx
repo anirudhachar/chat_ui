@@ -462,6 +462,7 @@ const MessageRow = ({
 
     // 📦 OFFER
     if (m.type === "offer" && m.offer) {
+      console.log(m,"offerbaddy")
       return wrapWithReply(
         <div
           className={`${styles.offerCard} ${
@@ -478,7 +479,7 @@ const MessageRow = ({
             )}
             <div className={styles.productInfo}>
               <p className={styles.productTitle}>{m.offer.text}</p>
-              <p className={styles.productPrice}>$967.00</p>
+              <p className={styles.productPrice}>{m.offer.amount}</p>
             </div>
           </div>
           <div className={styles.offerAmount}>
