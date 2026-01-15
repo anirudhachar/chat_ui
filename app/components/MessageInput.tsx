@@ -20,7 +20,7 @@ interface MessageInputProps {
     file?: { name: string; url: string; image?: string; description?: string }
   ) => void;
   onTyping?: () => void;
-   disabled?: boolean;
+  disabled?: boolean;
 }
 
 const extractURL = (text: string) => {
@@ -39,7 +39,7 @@ const formatTime = (seconds: number) => {
 export default function MessageInput({
   onSendMessage,
   onTyping,
-    disabled = false, 
+  disabled = false,
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -262,7 +262,7 @@ export default function MessageInput({
   };
 
   const handleSend = () => {
-    if (disabled) return; 
+    if (disabled) return;
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
       debounceRef.current = null;
