@@ -30,25 +30,6 @@ export interface User {
   lastMessageSenderId?: string;
 }
 
-const upsertUserToSidebar = (
-  prev: User[],
-  patch: Partial<User> & { id: string }
-): User[] => {
-  const existing = prev.find((u) => u.id === patch.id);
-
-  if (existing) {
-    return [
-      {
-        ...existing, // 🔒 preserve lastMessage, preview
-        ...patch, // ✏️ update only changed fields
-      },
-      ...prev.filter((u) => u.id !== patch.id),
-    ];
-  }
-
-  return [patch as User, ...prev];
-};
-
 export interface Message {
   id: string;
   content: string;
@@ -1333,39 +1314,26 @@ export default function ChatInterface() {
       setSearchResults([]);
       setIsSearching(false);
 
-      // setUsers((prev) => {
-      //   const updatedUser: User = {
-      //     ...selectedUser,
-      //     lastMessage: content,
-      //     lastMessageTime: timeString,
-      //     lastMessageStatus: "sending",
-      //     lastMessageSenderId: loggedInUserId ?? undefined,
+      setUsers((prev) => {
+        const updatedUser: User = {
+          ...selectedUser,
+          lastMessage: content,
+          lastMessageTime: timeString,
+          lastMessageStatus: "sending",
+          lastMessageSenderId: loggedInUserId ?? undefined,
 
-      //     unread: 0,
-      //   };
+          unread: 0,
+        };
 
-      //   const exists = prev.find((u) => u.id === selectedUser.id);
-      //   return exists
-      //     ? [updatedUser, ...prev.filter((u) => u.id !== selectedUser.id)]
-      //     : [updatedUser, ...prev];
-      // });
+        const exists = prev.find((u) => u.id === selectedUser.id);
+        return exists
+          ? [updatedUser, ...prev.filter((u) => u.id !== selectedUser.id)]
+          : [updatedUser, ...prev];
+      });
 
       // ─────────────────────────────────────────────
       // 📡 4. SEND TO API
       // ─────────────────────────────────────────────
-
-     setUsers((prev) =>
-  upsertUserToSidebar(prev, {
-    id: selectedUser.id,
-    lastMessage: content,
-    lastMessageTime: timeString,
-    lastMessageStatus: "sending",
-    lastMessageSenderId: loggedInUserId ?? undefined,
-    unread: 0,
-  })
-);
-
-
       const apiContent =
         type === "text" ? content : file?.url || file?.name || content;
 
@@ -1408,13 +1376,17 @@ export default function ChatInterface() {
               : m
           )
         );
-    setUsers((prev) =>
-  upsertUserToSidebar(prev, {
-    id: selectedUser.id,
-    lastMessageStatus: "sent",
-  })
-);
-
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === selectedUser.id
+              ? {
+                  ...u,
+                  lastMessageStatus: "sent",
+                  lastMessageSenderId: loggedInUserId ?? undefined,
+                } // ✓ single tick
+              : u
+          )
+        );
 
         // ─────────────────────────────────────────────
         // 🔗 5. FETCH LINK PREVIEW (After Send)
