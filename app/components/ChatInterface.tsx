@@ -1354,12 +1354,17 @@ export default function ChatInterface() {
       // 📡 4. SEND TO API
       // ─────────────────────────────────────────────
 
-      setUsers((prev) =>
-        upsertUserToSidebar(prev, {
-          id: selectedUser.id,
-          lastMessageStatus: "sent",
-        })
-      );
+     setUsers((prev) =>
+  upsertUserToSidebar(prev, {
+    id: selectedUser.id,
+    lastMessage: content,
+    lastMessageTime: timeString,
+    lastMessageStatus: "sending",
+    lastMessageSenderId: loggedInUserId ?? undefined,
+    unread: 0,
+  })
+);
+
 
       const apiContent =
         type === "text" ? content : file?.url || file?.name || content;
@@ -1403,16 +1408,13 @@ export default function ChatInterface() {
               : m
           )
         );
-        setUsers((prev) =>
-          upsertUserToSidebar(prev, {
-            id: selectedUser.id,
-            lastMessage: content,
-            lastMessageTime: timeString,
-            lastMessageStatus: "sending",
-            lastMessageSenderId: loggedInUserId ?? undefined,
-            unread: 0,
-          })
-        );
+    setUsers((prev) =>
+  upsertUserToSidebar(prev, {
+    id: selectedUser.id,
+    lastMessageStatus: "sent",
+  })
+);
+
 
         // ─────────────────────────────────────────────
         // 🔗 5. FETCH LINK PREVIEW (After Send)
