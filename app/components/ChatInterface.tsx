@@ -1358,7 +1358,6 @@ export default function ChatInterface() {
         upsertUserToSidebar(prev, {
           id: selectedUser.id,
           lastMessageStatus: "sent",
-          lastMessageSenderId: loggedInUserId ?? undefined,
         })
       );
 
@@ -1410,6 +1409,7 @@ export default function ChatInterface() {
             lastMessage: content,
             lastMessageTime: timeString,
             lastMessageStatus: "sending",
+            lastMessageSenderId: loggedInUserId ?? undefined,
             unread: 0,
           })
         );
