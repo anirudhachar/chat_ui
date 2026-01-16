@@ -30,15 +30,23 @@ export interface User {
   lastMessageSenderId?: string;
 }
 
-const upsertUserToSidebar = (prev: User[], user: User): User[] => {
-  const exists = prev.find((u) => u.id === user.id);
+const upsertUserToSidebar = (
+  prev: User[],
+  patch: Partial<User> & { id: string }
+): User[] => {
+  const existing = prev.find((u) => u.id === patch.id);
 
-  if (exists) {
-    return [{ ...exists, ...user }, ...prev.filter((u) => u.id !== user.id)];
+  if (existing) {
+    return [
+      {
+        ...existing, // 🔒 preserve lastMessage, preview
+        ...patch, // ✏️ update only changed fields
+      },
+      ...prev.filter((u) => u.id !== patch.id),
+    ];
   }
 
-  // 🔥 user not in sidebar → add optimistically
-  return [user, ...prev];
+  return [patch as User, ...prev];
 };
 
 export interface Message {
@@ -1348,12 +1356,9 @@ export default function ChatInterface() {
 
       setUsers((prev) =>
         upsertUserToSidebar(prev, {
-          ...selectedUser,
-          lastMessage: content,
-          lastMessageTime: timeString,
-          lastMessageStatus: "sending",
+          id: selectedUser.id,
+          lastMessageStatus: "sent",
           lastMessageSenderId: loggedInUserId ?? undefined,
-          unread: 0,
         })
       );
 
@@ -1399,14 +1404,15 @@ export default function ChatInterface() {
               : m
           )
         );
-     setUsers((prev) =>
-  upsertUserToSidebar(prev, {
-    ...selectedUser,
-    lastMessageStatus: "sent",
-    lastMessageSenderId: loggedInUserId ?? undefined,
-  })
-);
-
+        setUsers((prev) =>
+          upsertUserToSidebar(prev, {
+            id: selectedUser.id,
+            lastMessage: content,
+            lastMessageTime: timeString,
+            lastMessageStatus: "sending",
+            unread: 0,
+          })
+        );
 
         // ─────────────────────────────────────────────
         // 🔗 5. FETCH LINK PREVIEW (After Send)
