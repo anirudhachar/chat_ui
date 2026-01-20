@@ -10,11 +10,7 @@ import {
   FiTrash2,
   FiSquare, // Icon for stop
 } from "react-icons/fi";
-import EmojiPicker, {
-  EmojiClickData,
-  EmojiStyle,
-} from "emoji-picker-react";
-
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import styles from "./MessageInput.module.scss";
 
 interface MessageInputProps {
@@ -26,7 +22,6 @@ interface MessageInputProps {
   onTyping?: () => void;
   disabled?: boolean;
 }
-
 
 const extractURL = (text: string) => {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -426,11 +421,7 @@ export default function MessageInput({
                   onClick={() => setShowEmojiPicker(false)}
                 />
                 <div className={styles.emojiPickerWrapper}>
-                 <EmojiPicker
-  onEmojiClick={handleEmojiClick}
-  emojiStyle={EmojiStyle.APPLE}
-/>
-
+                  <EmojiPicker onEmojiClick={handleEmojiClick} />
                 </div>
               </>
             )}
@@ -453,12 +444,10 @@ export default function MessageInput({
                 >
                   <div className={styles.sheetHandle} />
                   <EmojiPicker
-  onEmojiClick={handleEmojiClick}
-  emojiStyle={EmojiStyle.APPLE}
-  height={350}
-  width="100%"
-/>
-
+                    onEmojiClick={handleEmojiClick}
+                    height={350}
+                    width="100%"
+                  />
                 </div>
               </>
             )}
