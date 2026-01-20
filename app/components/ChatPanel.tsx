@@ -42,7 +42,7 @@ interface ChatPanelProps {
     content: string,
     type?: "text" | "image" | "document" | "link" | "audio",
     file?: any,
-    replyTo?: Message
+    replyTo?: Message,
   ) => void;
   onBack: () => void;
   onLoadMoreMessages: () => void;
@@ -91,7 +91,7 @@ const getDateLabel = (ts: number) => {
   const startToday = new Date(
     today.getFullYear(),
     today.getMonth(),
-    today.getDate()
+    today.getDate(),
   );
 
   const startMsg = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -456,13 +456,13 @@ const MessageRow = ({
           {m.content && m.content !== "🎤 Voice Message" && (
             <p className={styles.messageCaption}>{m.content}</p>
           )}
-        </div>
+        </div>,
       );
     }
 
     // 📦 OFFER
     if (m.type === "offer" && m.offer) {
-      console.log(m,"offerbaddy")
+      console.log(m, "offerbaddy");
       return wrapWithReply(
         <div
           className={`${styles.offerCard} ${
@@ -489,7 +489,7 @@ const MessageRow = ({
             </strong>
           </div>
           {m.content && <p className={styles.offerMessage}>{m.content}</p>}
-        </div>
+        </div>,
       );
     }
 
@@ -505,7 +505,7 @@ const MessageRow = ({
           {m.content && m.content.trim() !== "📷 Photo" && (
             <p className={styles.messageCaption}>{m.content}</p>
           )}
-        </div>
+        </div>,
       );
     }
 
@@ -529,7 +529,7 @@ const MessageRow = ({
               <p className={styles.documentSize}>{m.content}</p>
             )}
           </div>
-        </a>
+        </a>,
       );
     }
 
@@ -544,15 +544,16 @@ const MessageRow = ({
               target="_blank"
               rel="noopener noreferrer"
               className={styles.messageLinkPreview}
-             
             >
-              {linkPreview.image && (
-                <img
-                  src={linkPreview.image}
-                  alt={linkPreview.title}
-                  className={styles.linkImage}
-                />
-              )}
+              {linkPreview.image &&
+                linkPreview.image !== "null" &&
+                linkPreview.image !== "undefined" && (
+                  <img
+                    src={linkPreview.image}
+                    alt={linkPreview.title || "Link preview"}
+                    className={styles.linkImage}
+                  />
+                )}
 
               <div className={styles.linkContent}>
                 <p className={styles.linkSource}>
@@ -579,12 +580,12 @@ const MessageRow = ({
               href={m.linkUrl}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ marginTop: "5px",width:"310px" }}
+              style={{ marginTop: "5px", width: "310px" }}
               className={styles.messageTextLink}
             >
               {m.content || m.linkUrl}
             </a>
-          </>
+          </>,
         );
       }
 
@@ -597,7 +598,7 @@ const MessageRow = ({
           className={styles.messageTextLink}
         >
           {previewLoading ? "Loading preview…" : m.content || m.linkUrl}
-        </a>
+        </a>,
       );
     }
 
@@ -707,8 +708,8 @@ const MessageRow = ({
                     VIEWPORT_PADDING,
                     Math.min(
                       left,
-                      window.innerWidth - PICKER_WIDTH - VIEWPORT_PADDING
-                    )
+                      window.innerWidth - PICKER_WIDTH - VIEWPORT_PADDING,
+                    ),
                   );
 
                   setPickerPosition({
@@ -841,7 +842,7 @@ const MessageRow = ({
                         {userIds.length}
                       </span>
                     </button>
-                  )
+                  ),
               )}
             </div>
           )}
@@ -869,7 +870,7 @@ const MessageRow = ({
               previewConfig={{ showPreview: false }}
             />
           </div>,
-          document.body
+          document.body,
         )}
 
       {showMobileSheet &&
@@ -949,7 +950,7 @@ const MessageRow = ({
               </div>
             </div>
           </div>,
-          document.body
+          document.body,
         )}
 
       {showMobileEmojiSheet &&
@@ -979,7 +980,7 @@ const MessageRow = ({
               />
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </>
   );
@@ -1077,7 +1078,7 @@ ChatPanelProps) {
 
         onLoadMoreMessages();
       },
-      { root: messagesAreaRef.current, threshold: 0.1 }
+      { root: messagesAreaRef.current, threshold: 0.1 },
     );
     if (topMessageSentinelRef.current)
       observer.observe(topMessageSentinelRef.current);
@@ -1118,7 +1119,7 @@ ChatPanelProps) {
   const handleInternalSendMessage = (
     content: string,
     type?: "text" | "image" | "document" | "link" | "audio",
-    file?: any
+    file?: any,
   ) => {
     onSendMessage(content, type, file, replyingTo || undefined);
     setReplyingTo(null);
