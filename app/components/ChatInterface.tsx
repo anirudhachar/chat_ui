@@ -1361,18 +1361,6 @@ export default function ChatInterface() {
       setIsMessagesLoading(false);
     }
   };
-useEffect(() => {
-  const cid = conversationIdRef.current;
-  if (!cid) return;
-
-  const cached = messagesCacheRef.current.get(cid);
-  if (!cached) return;
-
-  setMessages(cached.messages);
-  setMessageCursor(cached.cursor);
-  setHasMoreMessages(cached.hasMore);
-  setIsMessagesLoading(false);
-}, [selectedUser?.id]);
 
   useEffect(() => {
     if (!showSidebar && window.innerWidth < 768) {
