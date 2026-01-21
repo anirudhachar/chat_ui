@@ -110,6 +110,8 @@ export default function ChatInterface() {
       }
     >
   >(new Map());
+  // Map targetUserId -> conversationId
+  const conversationIdCacheRef = useRef<Map<string, string>>(new Map());
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -1014,6 +1016,16 @@ export default function ChatInterface() {
   }, [selectedUser]);
 
   const getConversationId = async (targetUserId: string, token: string) => {
+    // 1️⃣ Use cached conversationId if exists
+    const cachedCid = conversationIdCacheRef.current.get(targetUserId);
+    if (cachedCid) {
+      console.log("📌 Using cached conversationId:", cachedCid);
+      setConversationId(cachedCid);
+      conversationIdRef.current = cachedCid;
+      return cachedCid;
+    }
+
+    // 2️⃣ Call API only if not cached
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/conversations/create`,
@@ -1031,7 +1043,11 @@ export default function ChatInterface() {
       console.log("📥 Conversation Create:", data);
 
       const cid = data?.data?.conversationId;
-      setConversationId(cid);
+      if (cid) {
+        conversationIdCacheRef.current.set(targetUserId, cid); // ✅ cache it
+        setConversationId(cid);
+        conversationIdRef.current = cid;
+      }
       return cid;
     } catch (err) {
       console.error("❌ Failed to create conversation:", err);
