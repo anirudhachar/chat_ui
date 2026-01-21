@@ -101,7 +101,6 @@ export default function ChatInterface() {
   console.log(profileUser, "profileUserObject");
   const [hasStartedLoading, setHasStartedLoading] = useState(false);
 
-
   const messagesCacheRef = useRef<
     Map<
       string,
@@ -1348,8 +1347,8 @@ export default function ChatInterface() {
     setUsers((prev) =>
       prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u)),
     );
-     setHasStartedLoading(true);
-  setIsMessagesLoading(true);
+    setHasStartedLoading(true);
+    setIsMessagesLoading(true);
 
     try {
       // 🔁 CREATE / GET CONVERSATION
@@ -1688,7 +1687,7 @@ export default function ChatInterface() {
         // refs
         conversationIdRef.current = null;
         selectedUserRef.current = null;
-
+        messagesCacheRef.current.clear();
         // main state
         setConversationId(null);
         setSelectedUser(null);
@@ -2265,7 +2264,7 @@ export default function ChatInterface() {
             setShowSidebar(true);
             conversationIdRef.current = null;
           }}
-           hasStartedLoading={hasStartedLoading} 
+          hasStartedLoading={hasStartedLoading}
           onLoadMoreMessages={loadMoreMessages}
           hasMoreMessages={hasMoreMessages}
           resetKey={selectedUser?.id}

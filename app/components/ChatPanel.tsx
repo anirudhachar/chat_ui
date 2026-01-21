@@ -55,7 +55,7 @@ interface ChatPanelProps {
   onTyping: () => void;
   // onInputBlur: () => void;
   onOpenProfile: (user: User) => void;
-    hasStartedLoading: boolean; 
+  hasStartedLoading: boolean;
 }
 
 const isMobileDevice = () =>
@@ -1006,7 +1006,7 @@ export default function ChatPanel({
   isPartnerTyping,
   onTyping,
   onOpenProfile,
-  hasStartedLoading
+  hasStartedLoading,
 }: // onInputBlur,
 ChatPanelProps) {
   console.log(messages, "messagesbeingsent");
@@ -1320,7 +1320,7 @@ ChatPanelProps) {
       </div> */}
 
       <div className={styles.messagesArea} ref={messagesAreaRef}>
-        {(!hasStartedLoading || isLoading) ? (
+        {!hasStartedLoading || isLoading ? (
           <Spinner />
         ) : messages.length === 0 && !hasEverMessagedRef.current ? (
           <div className={styles.emptyConversation}>
