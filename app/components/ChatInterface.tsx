@@ -99,6 +99,10 @@ export default function ChatInterface() {
   const [globalUnread, setGlobalUnread] = useState(0);
   const [profileUser, setProfileUser] = useState<User | null>(null);
   console.log(profileUser, "profileUserObject");
+  const messageCacheRef = useRef<
+  Record<string, { messages: Message[]; cursor: string | null }>
+>({});
+
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -1164,53 +1168,114 @@ export default function ChatInterface() {
       throw err;
     }
   };
+  
+
+  // const handleUserSelect = async (user: User) => {
+  //   if (!parentToken || !loggedInUserId) return;
+    
+
+  //   conversationIdRef.current = null;
+
+  //   // 🔥 START LOADING FIRST
+  //   setIsMessagesLoading(true);
+  //   setMessages([]);
+
+  //   // 🔥 Disable sidebar mutations on mobile
+  //   if (window.innerWidth < 768) {
+  //     setEnableInfiniteScroll(false);
+  //     setShowSidebar(false);
+  //   }
+
+  //   // 🔥 Defer heavy ChatPanel mount by 1 frame
+  //   setSelectedUser(null);
+  //   requestAnimationFrame(() => {
+  //     setSelectedUser(user);
+  //   });
+
+  //   // reset pagination
+  //   setMessageCursor(null);
+  //   setHasMoreMessages(true);
+
+  //   // reset unread
+  //   setUsers((prev) =>
+  //     prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
+  //   );
+
+  //   try {
+  //     // 🔁 CREATE / GET CONVERSATION
+  //     const cid = await getConversationId(user.id, parentToken);
+
+  //     if (!cid) {
+  //       setIsMessagesLoading(false);
+  //       return;
+  //     }
+
+  //     // 📥 FETCH MESSAGES
+  //     await fetchMessages(cid, parentToken, loggedInUserId, null);
+  //   } catch (e) {
+  //     console.error(e);
+  //     setIsMessagesLoading(false);
+  //   }
+  // };
+
 
   const handleUserSelect = async (user: User) => {
-    if (!parentToken || !loggedInUserId) return;
+  if (!parentToken || !loggedInUserId) return;
 
-    conversationIdRef.current = null;
+  // 🛑 SAME USER → DO NOTHING
+  if (selectedUserRef.current?.id === user.id) {
+    console.log("⏭ Same user selected – skipping refetch");
+    return;
+  }
 
-    // 🔥 START LOADING FIRST
-    setIsMessagesLoading(true);
-    setMessages([]);
+  // 🔥 Set selected user ONCE (do NOT null it)
+  setSelectedUser(user);
+  selectedUserRef.current = user;
 
-    // 🔥 Disable sidebar mutations on mobile
-    if (window.innerWidth < 768) {
-      setEnableInfiniteScroll(false);
-      setShowSidebar(false);
+  // Mobile sidebar handling
+  if (window.innerWidth < 768) {
+    setEnableInfiniteScroll(false);
+    setShowSidebar(false);
+  }
+
+  // reset unread
+  setUsers((prev) =>
+    prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
+  );
+
+  setIsMessagesLoading(true);
+
+  try {
+    // 🔁 CREATE / GET CONVERSATION
+    const cid = await getConversationId(user.id, parentToken);
+    if (!cid) {
+      setIsMessagesLoading(false);
+      return;
     }
 
-    // 🔥 Defer heavy ChatPanel mount by 1 frame
-    setSelectedUser(null);
-    requestAnimationFrame(() => {
-      setSelectedUser(user);
-    });
+    // 🔐 SAME CONVERSATION → DO NOT REFETCH
+    if (conversationIdRef.current === cid && messages.length > 0) {
+      console.log("⚡ Messages already loaded for this conversation");
+      setIsMessagesLoading(false);
+      return;
+    }
 
-    // reset pagination
+    conversationIdRef.current = cid;
+    setConversationId(cid);
+
+    // reset pagination ONLY when switching conversations
     setMessageCursor(null);
     setHasMoreMessages(true);
+    setMessages([]);
 
-    // reset unread
-    setUsers((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
-    );
-
-    try {
-      // 🔁 CREATE / GET CONVERSATION
-      const cid = await getConversationId(user.id, parentToken);
-
-      if (!cid) {
-        setIsMessagesLoading(false);
-        return;
-      }
-
-      // 📥 FETCH MESSAGES
-      await fetchMessages(cid, parentToken, loggedInUserId, null);
-    } catch (e) {
-      console.error(e);
-      setIsMessagesLoading(false);
-    }
-  };
+    // 📥 FETCH MESSAGES ONCE
+    await fetchMessages(cid, parentToken, loggedInUserId, null);
+  } catch (e) {
+    console.error(e);
+  } finally {
+    setIsMessagesLoading(false);
+  }
+};
 
   useEffect(() => {
     if (!showSidebar && window.innerWidth < 768) {
