@@ -136,7 +136,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //     content: string,
 //     type?: "text" | "image" | "document" | "link" | "audio",
 //     file?: any,
-//     replyTo?: Message
+//     replyTo?: Message,
 //   ) => void;
 //   onBack: () => void;
 //   onLoadMoreMessages: () => void;
@@ -185,7 +185,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //   const startToday = new Date(
 //     today.getFullYear(),
 //     today.getMonth(),
-//     today.getDate()
+//     today.getDate(),
 //   );
 
 //   const startMsg = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -225,6 +225,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //   onDelete,
 //   onReact,
 //   copiedMessageId,
+//   messagesAreaRef,
 // }: {
 //   m: Message;
 //   isMine: boolean;
@@ -234,12 +235,15 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //   onDelete: (m: Message) => void;
 //   onReact: (m: Message, e: string) => void;
 //   copiedMessageId?: string | null;
+//   messagesAreaRef: React.RefObject<HTMLDivElement | null>;
 // }) => {
 //   const [pickerPosition, setPickerPosition] = useState<{
 //     top: number;
 //     left: number;
 //   } | null>(null);
 //   const [showMenu, setShowMenu] = useState(false);
+//   const messageBubbleRef = useRef<HTMLDivElement>(null);
+//   const prevHeightRef = useRef<number | null>(null);
 
 //   // ✏️ NEW: Local Editing State
 //   const [isEditing, setIsEditing] = useState(false);
@@ -261,6 +265,15 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //     startYRef.current = e.touches[0].clientY;
 //     setIsDraggingEmoji(true);
 //   };
+//   // 🔗 Link preview state
+//   const [linkPreview, setLinkPreview] = useState<{
+//     title?: string;
+//     description?: string;
+//     image?: string;
+//     url: string;
+//   } | null>(null);
+
+//   const [previewLoading, setPreviewLoading] = useState(false);
 
 //   const handleEmojiTouchMove = (e: React.TouchEvent) => {
 //     if (!isDraggingEmoji || !emojiSheetRef.current) return;
@@ -311,6 +324,88 @@ export default function Spinner({ loadingText = "Loading..." }) {
 
 //     return () => window.removeEventListener("click", close);
 //   }, [pickerPosition]);
+
+//   useEffect(() => {
+//     if (m.type !== "link" || !m.linkUrl) return;
+
+//     const bubble = messageBubbleRef.current;
+//     if (bubble) {
+//       prevHeightRef.current = bubble.offsetHeight;
+//     }
+//     const url = m.linkUrl;
+
+//     // If backend already sent preview, use it
+//     if (m.linkTitle || m.linkImage || m.linkDescription) {
+//       setLinkPreview({
+//         title: m.linkTitle,
+//         description: m.linkDescription,
+//         image: m.linkImage,
+//         url: m.linkUrl,
+//       });
+//       return;
+//     }
+
+//     let cancelled = false;
+
+//     const fetchPreview = async () => {
+//       try {
+//         setPreviewLoading(true);
+
+//         const res = await fetch("/api/preview", {
+//           method: "POST",
+//           headers: { "Content-Type": "application/json" },
+//           body: JSON.stringify({ url: m.linkUrl }),
+//         });
+
+//         if (!res.ok) return;
+
+//         const data = await res.json();
+
+//         if (!cancelled) {
+//           setLinkPreview({
+//             title: data.title,
+//             description: data.description,
+//             image: data.image,
+//             url,
+//           });
+//         }
+//       } catch (err) {
+//         console.error("Link preview fetch failed", err);
+//       } finally {
+//         if (!cancelled) setPreviewLoading(false);
+//       }
+//     };
+
+//     fetchPreview();
+
+//     return () => {
+//       cancelled = true;
+//     };
+//   }, [m.type, m.linkUrl]);
+
+//   useEffect(() => {
+//     if (!linkPreview) return;
+
+//     const bubble = messageBubbleRef.current;
+//     const prevHeight = prevHeightRef.current;
+
+//     if (!bubble || prevHeight == null) return;
+
+//     const newHeight = bubble.offsetHeight;
+//     const diff = newHeight - prevHeight;
+
+//     if (diff > 0) {
+//       const container = messagesAreaRef?.current;
+
+//       // Adjust scroll ONLY if this message is not the last one
+//       if (container) {
+//         container.scrollTop += diff;
+//       }
+//     }
+
+//     // Reset after applying
+//     prevHeightRef.current = null;
+//   }, [linkPreview]);
 
 //   const closeMobileSheet = () => {
 //     setShowMobileSheet(false);
@@ -455,12 +550,13 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //           {m.content && m.content !== "🎤 Voice Message" && (
 //             <p className={styles.messageCaption}>{m.content}</p>
 //           )}
-//         </div>
+//         </div>,
 //       );
 //     }
 
 //     // 📦 OFFER
 //     if (m.type === "offer" && m.offer) {
+//       console.log(m, "offerbaddy");
 //       return wrapWithReply(
 //         <div
 //           className={`${styles.offerCard} ${
@@ -476,8 +572,8 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //               />
 //             )}
 //             <div className={styles.productInfo}>
-//               <p className={styles.productTitle}>MacBook Pro 13&quot; 2021</p>
-//               <p className={styles.productPrice}>$967.00</p>
+//               <p className={styles.productTitle}>{m.offer.title}</p>
+//               <p className={styles.productPrice}>${m.offer.amount}</p>
 //             </div>
 //           </div>
 //           <div className={styles.offerAmount}>
@@ -487,7 +583,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //             </strong>
 //           </div>
 //           {m.content && <p className={styles.offerMessage}>{m.content}</p>}
-//         </div>
+//         </div>,
 //       );
 //     }
 
@@ -503,7 +599,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //           {m.content && m.content.trim() !== "📷 Photo" && (
 //             <p className={styles.messageCaption}>{m.content}</p>
 //           )}
-//         </div>
+//         </div>,
 //       );
 //     }
 
@@ -527,44 +623,67 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //               <p className={styles.documentSize}>{m.content}</p>
 //             )}
 //           </div>
-//         </a>
+//         </a>,
 //       );
 //     }
 
 //     // 🔗 LINK
 //     if (m.type === "link" && m.linkUrl) {
-//       if (m.linkTitle) {
+//       if (linkPreview) {
+//         console.log(linkPreview, "linkPreview");
 //         return wrapWithReply(
 //           <>
 //             <a
-//               href={m.linkUrl}
+//               href={linkPreview.url}
 //               target="_blank"
 //               rel="noopener noreferrer"
 //               className={styles.messageLinkPreview}
 //             >
-//               {m.linkImage && (
-//                 <img
-//                   src={m.linkImage}
-//                   alt={m.linkTitle}
-//                   className={styles.linkImage}
-//                 />
-//               )}
+//               {linkPreview.image &&
+//                 linkPreview.image !== "null" &&
+//                 linkPreview.image !== "undefined" && (
+//                   <img
+//                     src={linkPreview.image}
+//                     alt={linkPreview.title || "Link preview"}
+//                     className={styles.linkImage}
+//                   />
+//                 )}
+
 //               <div className={styles.linkContent}>
 //                 <p className={styles.linkSource}>
-//                   {new URL(m.linkUrl).hostname}
+//                   {new URL(linkPreview.url).hostname}
 //                 </p>
-//                 <p className={styles.linkTitle}>{m.linkTitle}</p>
-//                 {m.linkDescription && (
-//                   <p className={styles.linkDescription}>{m.linkDescription}</p>
+
+//                 {linkPreview.title && (
+//                   <p className={styles.linkTitle}>{linkPreview.title}</p>
+//                 )}
+
+//                 {linkPreview.description && (
+//                   <p className={styles.linkDescription}>
+//                     {linkPreview.description}
+//                   </p>
 //                 )}
 //               </div>
 //             </a>
+
 //             {m.content && m.content.trim() !== m.linkUrl.trim() && (
 //               <p className={styles.messageText}>{m.content}</p>
 //             )}
-//           </>
+
+//             <a
+//               href={m.linkUrl}
+//               target="_blank"
+//               rel="noopener noreferrer"
+//               style={{ marginTop: "5px", width: "310px" }}
+//               className={styles.messageTextLink}
+//             >
+//               {m.content || m.linkUrl}
+//             </a>
+//           </>,
 //         );
 //       }
+
+//       // ⏳ Loading / fallback
 //       return wrapWithReply(
 //         <a
 //           href={m.linkUrl}
@@ -572,8 +691,8 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //           rel="noopener noreferrer"
 //           className={styles.messageTextLink}
 //         >
-//           {m.content || m.linkUrl}
-//         </a>
+//           {previewLoading ? "Loading preview…" : m.content || m.linkUrl}
+//         </a>,
 //       );
 //     }
 
@@ -683,8 +802,8 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //                     VIEWPORT_PADDING,
 //                     Math.min(
 //                       left,
-//                       window.innerWidth - PICKER_WIDTH - VIEWPORT_PADDING
-//                     )
+//                       window.innerWidth - PICKER_WIDTH - VIEWPORT_PADDING,
+//                     ),
 //                   );
 
 //                   setPickerPosition({
@@ -756,7 +875,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //           )}
 
 //           {/* 📨 MESSAGE BUBBLE */}
-//           <div className={`${styles.messageBubble}`}>
+//           <div className={`${styles.messageBubble}`} ref={messageBubbleRef}>
 //             {/* <svg
 //               viewBox="0 0 8 13"
 //               width="8"
@@ -817,7 +936,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //                         {userIds.length}
 //                       </span>
 //                     </button>
-//                   )
+//                   ),
 //               )}
 //             </div>
 //           )}
@@ -845,7 +964,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //               previewConfig={{ showPreview: false }}
 //             />
 //           </div>,
-//           document.body
+//           document.body,
 //         )}
 
 //       {showMobileSheet &&
@@ -925,7 +1044,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //               </div>
 //             </div>
 //           </div>,
-//           document.body
+//           document.body,
 //         )}
 
 //       {showMobileEmojiSheet &&
@@ -955,7 +1074,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //               />
 //             </div>
 //           </div>,
-//           document.body
+//           document.body,
 //         )}
 //     </>
 //   );
@@ -994,7 +1113,6 @@ export default function Spinner({ loadingText = "Loading..." }) {
 
 //   const [loadingOlder, setLoadingOlder] = useState(false);
 //   const observerLockedRef = useRef(false);
-  
 
 //   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
 //   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
@@ -1032,9 +1150,8 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //     }
 
 //     // 🔥 KEY FIX
-   
-//       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    
+
+//     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 //   }, [messages]);
 
 //   useEffect(() => {
@@ -1055,7 +1172,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
 
 //         onLoadMoreMessages();
 //       },
-//       { root: messagesAreaRef.current, threshold: 0.1 }
+//       { root: messagesAreaRef.current, threshold: 0.1 },
 //     );
 //     if (topMessageSentinelRef.current)
 //       observer.observe(topMessageSentinelRef.current);
@@ -1096,7 +1213,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //   const handleInternalSendMessage = (
 //     content: string,
 //     type?: "text" | "image" | "document" | "link" | "audio",
-//     file?: any
+//     file?: any,
 //   ) => {
 //     onSendMessage(content, type, file, replyingTo || undefined);
 //     setReplyingTo(null);
@@ -1233,6 +1350,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //           )}
 
 //           {messages.map((m, index) => {
+//             console.log(messages, "messages array");
 //             const prevMsg = messages[index - 1];
 //             const showDate = shouldShowDateSeparator(m, prevMsg);
 
@@ -1253,6 +1371,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //                   onDelete={onDeleteMessage || (() => {})}
 //                   onReact={onReact}
 //                   copiedMessageId={copiedMessageId}
+//                   messagesAreaRef={messagesAreaRef}
 //                 />
 //               </div>
 //             );
@@ -1327,6 +1446,7 @@ export default function Spinner({ loadingText = "Loading..." }) {
 //         onSendMessage={handleInternalSendMessage}
 //         onTyping={onTyping}
 //         disabled={isLoading}
+//          replyingTo={replyingTo}
 //       />
 
 //       {showGlobalCopyToast && (
