@@ -1457,7 +1457,20 @@ export default function ChatInterface() {
         replyTo: replyTo, // ✅ Pass reply object so UI shows it immediately
       };
 
-      setMessages((prev) => [...prev, optimistic]);
+      setMessages((prev) => {
+        const updated = [...prev, optimistic];
+
+        const cid = conversationIdRef.current;
+        if (cid) {
+          messagesCacheRef.current.set(cid, {
+            messages: updated,
+            cursor: messageCursor,
+            hasMore: hasMoreMessages,
+          });
+        }
+
+        return updated;
+      });
 
       // 🔥 Clear Search & Move User to Top
       setSearchQuery("");
@@ -1507,14 +1520,14 @@ export default function ChatInterface() {
         const realKey =
           data?.data?.messageKey ?? data?.data?.message?.messageKey;
 
-        setMessages((prev) =>
-          prev.map((m) =>
+        setMessages((prev) => {
+          const updated = prev.map((m) =>
             m.id === tempId
-              ? {
+              ? ({
                   ...m,
                   id: realId ?? m.id,
-                  messageKey: realKey, // ✅ Save the key so we can Edit/Reply/Delete this message later
-                  status: "sent",
+                  messageKey: realKey,
+                  status: "sent", // ✅ this is compatible with Message['status']
                   timestamp: realTime
                     ? new Date(realTime).toLocaleTimeString("en-US", {
                         hour: "numeric",
@@ -1522,10 +1535,22 @@ export default function ChatInterface() {
                       })
                     : m.timestamp,
                   senderAvatar: myAvatar,
-                }
+                } as Message)
               : m,
-          ),
-        );
+          );
+
+          const cid = conversationIdRef.current;
+          if (cid) {
+            messagesCacheRef.current.set(cid, {
+              messages: updated,
+              cursor: messageCursor,
+              hasMore: hasMoreMessages,
+            });
+          }
+
+          return updated;
+        });
+
         setUsers((prev) =>
           prev.map((u) =>
             u.id === selectedUser.id
@@ -1533,7 +1558,7 @@ export default function ChatInterface() {
                   ...u,
                   lastMessageStatus: "sent",
                   lastMessageSenderId: loggedInUserId ?? undefined,
-                } // ✓ single tick
+                }
               : u,
           ),
         );
