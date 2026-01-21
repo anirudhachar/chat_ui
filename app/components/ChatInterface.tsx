@@ -99,10 +99,6 @@ export default function ChatInterface() {
   const [globalUnread, setGlobalUnread] = useState(0);
   const [profileUser, setProfileUser] = useState<User | null>(null);
   console.log(profileUser, "profileUserObject");
-  const messageCacheRef = useRef<
-  Record<string, { messages: Message[]; cursor: string | null }>
->({});
-
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -942,334 +938,171 @@ export default function ChatInterface() {
     return normalized;
   };
 
-  // const fetchMessages = useCallback(
-  //   async (
-  //     cid: string,
-  //     token: string,
-  //     myUserId: string | null,
-  //     currentCursor: string | null
-  //   ) => {
-  //     if (!myUserId || !cid) return;
-
-  //     try {
-  //       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-
-  //       const url =
-  //         `${baseUrl}/message/${cid}/list?limit=10` +
-  //         (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
-
-  //       const res = await fetch(url, {
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       });
-
-  //       if (!res.ok) {
-  //         throw new Error("Failed to fetch messages");
-  //       }
-
-  //       const data = await res.json();
-  //       console.log("📥 Messages:", data);
-
-  //       const apiMessages = data?.data?.messages ?? [];
-
-  //       // 🔥 MAP BACKEND → UI SHAPE (NO STATE ACCESS HERE)
-  //       const mappedMessages: Message[] = apiMessages.map((msg: any) => {
-  //         console.log(msg, "messgesrecieved");
-  //         let parsedOffer = null;
-
-  //         try {
-  //           const parsed = JSON.parse(msg.content);
-  //           if (parsed.type === "OFFER") parsedOffer = parsed;
-  //         } catch {}
-
-  //         const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
-  //         const sender = msg.sender;
-
-  //         return {
-  //           id: msg.messageId,
-  //           messageKey: msg.messageKey,
-
-  //           content: parsedOffer?.text || msg.content,
-  //           createdAt: new Date(msg.createdAt).getTime(),
-
-  //           timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
-  //             hour: "numeric",
-  //             minute: "2-digit",
-  //           }),
-
-  //           sent: msg.senderUserId === myUserId,
-
-  //           senderId: sender?.userId,
-  //           senderName:
-  //             msg.senderUserId === myUserId
-  //               ? "You"
-  //               : `${sender?.firstName ?? ""} ${sender?.lastName ?? ""}`.trim(),
-
-  //           senderAvatar: sender?.avatarUrl
-  //             ? `${process.env.NEXT_PUBLIC_CLOUDFRONT_URL}${sender.avatarUrl}`
-  //             : undefined,
-
-  //           type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
-
-  //           offer: parsedOffer
-  //             ? {
-  //                 offerId: parsedOffer.offerId,
-  //                 listingId: parsedOffer.listingId,
-  //                 offerType: parsedOffer.offerType,
-  //                 amount: parsedOffer.amount,
-  //                 currency: parsedOffer.currency,
-  //                 tradeDescription: parsedOffer.tradeDescription,
-  //                 imageUrl: parsedOffer.imageUrl,
-  //                 text: parsedOffer.text,
-  //                 title: parsedOffer.title,
-  //               }
-  //             : undefined,
-
-  //           linkUrl: detectedUrl ?? undefined,
-
-  //           // 🔥 NORMALIZED REACTIONS
-  //           reactions: normalizeReactions(msg.reactions, myUserId),
-
-  //           status:
-  //             msg.deliveryStatus === "READ"
-  //               ? "read"
-  //               : msg.deliveryStatus === "DELIVERED"
-  //               ? "delivered"
-  //               : "sent",
-  //         };
-  //       });
-
-  //       // ─────────────────────────────────────────────
-  //       // 🔥 MERGE WITH EXISTING STATE (CRITICAL)
-  //       // ─────────────────────────────────────────────
-  //       setMessages((prev) => {
-  //         const existingMap = new Map(
-  //           prev.map((m) => [m.messageKey || m.id, m])
-  //         );
-
-  //         const merged = mappedMessages.map((msg) => {
-  //           const prevMsg = existingMap.get(msg.messageKey || msg.id);
-
-  //           return {
-  //             ...prevMsg,
-  //             ...msg,
-  //             status:
-  //               STATUS_PRIORITY[msg.status ?? "sent"] >=
-  //               STATUS_PRIORITY[prevMsg?.status ?? "sent"]
-  //                 ? msg.status ?? prevMsg?.status ?? "sent"
-  //                 : prevMsg?.status ?? msg.status ?? "sent",
-
-  //             reactions: msg.reactions ?? prevMsg?.reactions ?? {},
-  //           };
-  //         });
-
-  //         const ordered = merged.reverse();
-
-  //         return currentCursor ? [...ordered, ...prev] : ordered;
-  //       });
-
-  //       // ─────────────────────────────────────────────
-  //       // Pagination
-  //       // ─────────────────────────────────────────────
-  //       const nextCursor = data?.data?.cursor ?? null;
-  //       setMessageCursor(nextCursor);
-  //       setHasMoreMessages(Boolean(nextCursor));
-
-  //       // ─────────────────────────────────────────────
-  //       // 🔥 ACK READ
-  //       // ─────────────────────────────────────────────
-  //       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-  //         const unreadMessageIds = apiMessages
-  //           .filter((m: any) => m.senderUserId !== myUserId && !m.readAt)
-  //           .map((m: any) => m.messageKey || m.messageId);
-
-  //         if (unreadMessageIds.length > 0) {
-  //           console.log("📤 Sending ackRead for:", unreadMessageIds);
-
-  //           wsRef.current.send(
-  //             JSON.stringify({
-  //               event: "ackRead",
-  //               data: {
-  //                 conversationId: cid,
-  //                 messageIds: unreadMessageIds,
-  //               },
-  //             })
-  //           );
-  //         }
-  //       }
-  //     } catch (error) {
-  //       console.error("❌ Failed to fetch messages:", error);
-  //       setHasMoreMessages(false);
-  //     } finally {
-  //       setIsMessagesLoading(false);
-  //     }
-  //   },
-  //   []
-  // );
-
-
   const fetchMessages = useCallback(
-  async (
-    cid: string,
-    token: string,
-    myUserId: string | null,
-    currentCursor: string | null
-  ) => {
-    if (!myUserId || !cid) return;
+    async (
+      cid: string,
+      token: string,
+      myUserId: string | null,
+      currentCursor: string | null
+    ) => {
+      if (!myUserId || !cid) return;
 
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
-      const url =
-        `${baseUrl}/message/${cid}/list?limit=10` +
-        (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
+        const url =
+          `${baseUrl}/message/${cid}/list?limit=10` +
+          (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
 
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-      if (!res.ok) {
-        throw new Error("Failed to fetch messages");
-      }
+        if (!res.ok) {
+          throw new Error("Failed to fetch messages");
+        }
 
-      const data = await res.json();
-      const apiMessages = data?.data?.messages ?? [];
+        const data = await res.json();
+        console.log("📥 Messages:", data);
 
-      // ─────────────────────────────────────────────
-      // MAP BACKEND → UI SHAPE
-      // ─────────────────────────────────────────────
-      const mappedMessages: Message[] = apiMessages.map((msg: any) => {
-        let parsedOffer = null;
+        const apiMessages = data?.data?.messages ?? [];
 
-        try {
-          const parsed = JSON.parse(msg.content);
-          if (parsed.type === "OFFER") parsedOffer = parsed;
-        } catch {}
+        // 🔥 MAP BACKEND → UI SHAPE (NO STATE ACCESS HERE)
+        const mappedMessages: Message[] = apiMessages.map((msg: any) => {
+          console.log(msg, "messgesrecieved");
+          let parsedOffer = null;
 
-        const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
-        const sender = msg.sender;
+          try {
+            const parsed = JSON.parse(msg.content);
+            if (parsed.type === "OFFER") parsedOffer = parsed;
+          } catch {}
 
-        return {
-          id: msg.messageId,
-          messageKey: msg.messageKey,
-          content: parsedOffer?.text || msg.content,
-          createdAt: new Date(msg.createdAt).getTime(),
-          timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-          }),
-          sent: msg.senderUserId === myUserId,
-          senderId: sender?.userId,
-          senderName:
-            msg.senderUserId === myUserId
-              ? "You"
-              : `${sender?.firstName ?? ""} ${sender?.lastName ?? ""}`.trim(),
-          senderAvatar: sender?.avatarUrl
-            ? `${process.env.NEXT_PUBLIC_CLOUDFRONT_URL}${sender.avatarUrl}`
-            : undefined,
-          type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
-          offer: parsedOffer
-            ? {
-                offerId: parsedOffer.offerId,
-                listingId: parsedOffer.listingId,
-                offerType: parsedOffer.offerType,
-                amount: parsedOffer.amount,
-                currency: parsedOffer.currency,
-                tradeDescription: parsedOffer.tradeDescription,
-                imageUrl: parsedOffer.imageUrl,
-                text: parsedOffer.text,
-                title: parsedOffer.title,
-              }
-            : undefined,
-          linkUrl: detectedUrl ?? undefined,
-          reactions: normalizeReactions(msg.reactions, myUserId),
-          status:
-            msg.deliveryStatus === "READ"
-              ? "read"
-              : msg.deliveryStatus === "DELIVERED"
-              ? "delivered"
-              : "sent",
-        };
-      });
-
-      // ─────────────────────────────────────────────
-      // 🔥 MERGE WITH STATE (SINGLE SOURCE OF TRUTH)
-      // ─────────────────────────────────────────────
-      setMessages((prev) => {
-        const existingMap = new Map(
-          prev.map((m) => [m.messageKey || m.id, m])
-        );
-
-        const merged = mappedMessages.map((msg) => {
-          const prevMsg = existingMap.get(msg.messageKey || msg.id);
+          const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
+          const sender = msg.sender;
 
           return {
-            ...prevMsg,
-            ...msg,
+            id: msg.messageId,
+            messageKey: msg.messageKey,
+
+            content: parsedOffer?.text || msg.content,
+            createdAt: new Date(msg.createdAt).getTime(),
+
+            timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+            }),
+
+            sent: msg.senderUserId === myUserId,
+
+            senderId: sender?.userId,
+            senderName:
+              msg.senderUserId === myUserId
+                ? "You"
+                : `${sender?.firstName ?? ""} ${sender?.lastName ?? ""}`.trim(),
+
+            senderAvatar: sender?.avatarUrl
+              ? `${process.env.NEXT_PUBLIC_CLOUDFRONT_URL}${sender.avatarUrl}`
+              : undefined,
+
+            type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
+
+            offer: parsedOffer
+              ? {
+                  offerId: parsedOffer.offerId,
+                  listingId: parsedOffer.listingId,
+                  offerType: parsedOffer.offerType,
+                  amount: parsedOffer.amount,
+                  currency: parsedOffer.currency,
+                  tradeDescription: parsedOffer.tradeDescription,
+                  imageUrl: parsedOffer.imageUrl,
+                  text: parsedOffer.text,
+                  title: parsedOffer.title,
+                }
+              : undefined,
+
+            linkUrl: detectedUrl ?? undefined,
+
+            // 🔥 NORMALIZED REACTIONS
+            reactions: normalizeReactions(msg.reactions, myUserId),
+
             status:
-              STATUS_PRIORITY[msg.status ?? "sent"] >=
-              STATUS_PRIORITY[prevMsg?.status ?? "sent"]
-                ? msg.status ?? prevMsg?.status ?? "sent"
-                : prevMsg?.status ?? msg.status ?? "sent",
-            reactions: msg.reactions ?? prevMsg?.reactions ?? {},
+              msg.deliveryStatus === "READ"
+                ? "read"
+                : msg.deliveryStatus === "DELIVERED"
+                ? "delivered"
+                : "sent",
           };
         });
 
-        const ordered = merged.reverse();
-        const finalMessages = currentCursor
-          ? [...ordered, ...prev]
-          : ordered;
-
         // ─────────────────────────────────────────────
-        // 🔥 CACHE WRITE (PER CONVERSATION)
+        // 🔥 MERGE WITH EXISTING STATE (CRITICAL)
         // ─────────────────────────────────────────────
-        messageCacheRef.current[cid] = {
-          messages: finalMessages,
-          cursor: data?.data?.cursor ?? null,
-        };
-
-        return finalMessages;
-      });
-
-      // ─────────────────────────────────────────────
-      // Pagination state
-      // ─────────────────────────────────────────────
-      const nextCursor = data?.data?.cursor ?? null;
-      setMessageCursor(nextCursor);
-      setHasMoreMessages(Boolean(nextCursor));
-
-      // ─────────────────────────────────────────────
-      // ACK READ
-      // ─────────────────────────────────────────────
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        const unreadMessageIds = apiMessages
-          .filter((m: any) => m.senderUserId !== myUserId && !m.readAt)
-          .map((m: any) => m.messageKey || m.messageId);
-
-        if (unreadMessageIds.length > 0) {
-          wsRef.current.send(
-            JSON.stringify({
-              event: "ackRead",
-              data: {
-                conversationId: cid,
-                messageIds: unreadMessageIds,
-              },
-            })
+        setMessages((prev) => {
+          const existingMap = new Map(
+            prev.map((m) => [m.messageKey || m.id, m])
           );
+
+          const merged = mappedMessages.map((msg) => {
+            const prevMsg = existingMap.get(msg.messageKey || msg.id);
+
+            return {
+              ...prevMsg,
+              ...msg,
+              status:
+                STATUS_PRIORITY[msg.status ?? "sent"] >=
+                STATUS_PRIORITY[prevMsg?.status ?? "sent"]
+                  ? msg.status ?? prevMsg?.status ?? "sent"
+                  : prevMsg?.status ?? msg.status ?? "sent",
+
+              reactions: msg.reactions ?? prevMsg?.reactions ?? {},
+            };
+          });
+
+          const ordered = merged.reverse();
+
+          return currentCursor ? [...ordered, ...prev] : ordered;
+        });
+
+        // ─────────────────────────────────────────────
+        // Pagination
+        // ─────────────────────────────────────────────
+        const nextCursor = data?.data?.cursor ?? null;
+        setMessageCursor(nextCursor);
+        setHasMoreMessages(Boolean(nextCursor));
+
+        // ─────────────────────────────────────────────
+        // 🔥 ACK READ
+        // ─────────────────────────────────────────────
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          const unreadMessageIds = apiMessages
+            .filter((m: any) => m.senderUserId !== myUserId && !m.readAt)
+            .map((m: any) => m.messageKey || m.messageId);
+
+          if (unreadMessageIds.length > 0) {
+            console.log("📤 Sending ackRead for:", unreadMessageIds);
+
+            wsRef.current.send(
+              JSON.stringify({
+                event: "ackRead",
+                data: {
+                  conversationId: cid,
+                  messageIds: unreadMessageIds,
+                },
+              })
+            );
+          }
         }
+      } catch (error) {
+        console.error("❌ Failed to fetch messages:", error);
+        setHasMoreMessages(false);
+      } finally {
+        setIsMessagesLoading(false);
       }
-    } catch (error) {
-      console.error("❌ Failed to fetch messages:", error);
-      setHasMoreMessages(false);
-    } finally {
-      setIsMessagesLoading(false);
-    }
-  },
-  []
-);
+    },
+    []
+  );
 
   const syncInProgressRef = useRef(false);
 
@@ -1331,119 +1164,53 @@ export default function ChatInterface() {
       throw err;
     }
   };
-  
 
-  // const handleUserSelect = async (user: User) => {
-  //   if (!parentToken || !loggedInUserId) return;
-    
+  const handleUserSelect = async (user: User) => {
+    if (!parentToken || !loggedInUserId) return;
 
-  //   conversationIdRef.current = null;
+    conversationIdRef.current = null;
 
-  //   // 🔥 START LOADING FIRST
-  //   setIsMessagesLoading(true);
-  //   setMessages([]);
+    // 🔥 START LOADING FIRST
+    setIsMessagesLoading(true);
+    setMessages([]);
 
-  //   // 🔥 Disable sidebar mutations on mobile
-  //   if (window.innerWidth < 768) {
-  //     setEnableInfiniteScroll(false);
-  //     setShowSidebar(false);
-  //   }
-
-  //   // 🔥 Defer heavy ChatPanel mount by 1 frame
-  //   setSelectedUser(null);
-  //   requestAnimationFrame(() => {
-  //     setSelectedUser(user);
-  //   });
-
-  //   // reset pagination
-  //   setMessageCursor(null);
-  //   setHasMoreMessages(true);
-
-  //   // reset unread
-  //   setUsers((prev) =>
-  //     prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
-  //   );
-
-  //   try {
-  //     // 🔁 CREATE / GET CONVERSATION
-  //     const cid = await getConversationId(user.id, parentToken);
-
-  //     if (!cid) {
-  //       setIsMessagesLoading(false);
-  //       return;
-  //     }
-
-  //     // 📥 FETCH MESSAGES
-  //     await fetchMessages(cid, parentToken, loggedInUserId, null);
-  //   } catch (e) {
-  //     console.error(e);
-  //     setIsMessagesLoading(false);
-  //   }
-  // };
-
-
- const conversationCacheRef = useRef<Record<string, string>>({});
-
-const handleUserSelect = async (user: User) => {
-  if (!parentToken || !loggedInUserId) return;
-
-  // 🛑 Same user → do nothing
-  if (selectedUserRef.current?.id === user.id) return;
-
-  setSelectedUser(user);
-  selectedUserRef.current = user;
-
-  if (window.innerWidth < 768) {
-    setEnableInfiniteScroll(false);
-    setShowSidebar(false);
-  }
-
-  setUsers((prev) =>
-    prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
-  );
-
-  setIsMessagesLoading(true);
-
-  try {
-    // 🔥 CHECK CACHE FIRST (NO API)
-    const cachedCid = conversationCacheRef.current[user.id];
-
-    if (cachedCid) {
-      console.log("⚡ Conversation cache hit");
-
-      conversationIdRef.current = cachedCid;
-      setConversationId(cachedCid);
-
-      const cached = messageCacheRef.current[cachedCid];
-      if (cached) {
-        setMessages(cached.messages);
-        setMessageCursor(cached.cursor);
-        setHasMoreMessages(!!cached.cursor);
-      }
-
-      setIsMessagesLoading(false);
-      return;
+    // 🔥 Disable sidebar mutations on mobile
+    if (window.innerWidth < 768) {
+      setEnableInfiniteScroll(false);
+      setShowSidebar(false);
     }
 
-    // 🧠 ONLY NOW call backend
-    const cid = await getConversationId(user.id, parentToken);
-    if (!cid) return;
+    // 🔥 Defer heavy ChatPanel mount by 1 frame
+    setSelectedUser(null);
+    requestAnimationFrame(() => {
+      setSelectedUser(user);
+    });
 
-    conversationCacheRef.current[user.id] = cid;
-
-    conversationIdRef.current = cid;
-    setConversationId(cid);
-
-    setMessages([]);
+    // reset pagination
     setMessageCursor(null);
     setHasMoreMessages(true);
 
-    await fetchMessages(cid, parentToken, loggedInUserId, null);
-  } finally {
-    setIsMessagesLoading(false);
-  }
-};
+    // reset unread
+    setUsers((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
+    );
 
+    try {
+      // 🔁 CREATE / GET CONVERSATION
+      const cid = await getConversationId(user.id, parentToken);
+
+      if (!cid) {
+        setIsMessagesLoading(false);
+        return;
+      }
+
+      // 📥 FETCH MESSAGES
+      await fetchMessages(cid, parentToken, loggedInUserId, null);
+    } catch (e) {
+      console.error(e);
+      setIsMessagesLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!showSidebar && window.innerWidth < 768) {

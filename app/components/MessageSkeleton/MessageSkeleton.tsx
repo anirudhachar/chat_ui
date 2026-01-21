@@ -16,697 +16,16 @@ export default function MessageSkeleton() {
 
 // "use client";
 
-// import { useEffect, useRef, useState, ReactNode } from "react";
-// import {
-//   FiArrowLeft,
-//   FiMoreVertical,
-//   FiClock,
-//   FiFile,
-//   FiChevronDown,
-//   FiCopy,
-//   FiCornerUpLeft,
-//   FiX,
-//   FiImage,
-//   FiEdit2, // ✨ Added
-//   FiTrash, // ✨ Added
-// } from "react-icons/fi";
-// import EmojiPicker, { Theme } from "emoji-picker-react";
-// import { BsCheck, BsCheckAll } from "react-icons/bs";
-// import Image from "next/image";
-
-// import { User, Message } from "./ChatInterface";
-// import MessageInput from "./MessageInput";
-// import styles from "./ChatPanel.module.scss";
-// import MessageSkeleton from "./MessageSkeleton/MessageSkeleton";
-
-// interface ChatPanelProps {
-//   selectedUser: User | null;
-//   messages: Message[];
-//   isLoading: boolean;
-//   onEditMessage?: (message: Message) => void;   // ✨ Wired up
-//   onDeleteMessage?: (message: Message) => void; // ✨ Wired up
-//   onSendMessage: (
-//     content: string,
-//     type?: "text" | "image" | "document" | "link" | "audio",
-//     file?: {
-//       name: string;
-//       url: string;
-//       image?: string;
-//       description?: string;
-//     },
-//     replyTo?: Message
-//   ) => void;
-//   onBack: () => void;
-//   onLoadMoreMessages: () => void;
-
-//   hasMoreMessages: boolean;
-//   resetKey?: string;
-//   onReply?: (message: Message) => void;
-// }
-
-// export default function ChatPanel({
-//   selectedUser,
-//   messages,
-//   onSendMessage,
-//   onBack,
-//   onLoadMoreMessages,
-//   hasMoreMessages,
-//   resetKey,
-//   onReply,
-//   isLoading,
-//   onEditMessage,   // ✨ Destructured
-//   onDeleteMessage, // ✨ Destructured
-// }: ChatPanelProps) {
-//   const messagesEndRef = useRef<HTMLDivElement>(null);
-//   const messagesAreaRef = useRef<HTMLDivElement>(null);
-//   const topMessageSentinelRef = useRef<HTMLDivElement>(null);
-
-//   const isFirstLoadRef = useRef(true);
-//   const isLoadingOlderRef = useRef(false);
-//   const prevScrollHeightRef = useRef(0);
-
-//   // ✨ STATE: Tracks dropdown & Reply
-//   const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
-//   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
-//   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
-
-//   /* 🔁 reset on chat switch */
-//   useEffect(() => {
-//     isFirstLoadRef.current = true;
-//     setActiveMessageId(null);
-//     setReplyingTo(null);
-//   }, [resetKey]);
-
-//   /* ✨ Click Outside to Close Dropdown */
-//   useEffect(() => {
-//     const handleClickOutside = (event: MouseEvent) => {
-//       if (
-//         activeMessageId &&
-//         !(event.target as Element).closest(`.${styles.messageOptions}`)
-//       ) {
-//         setActiveMessageId(null);
-//       }
-//     };
-//     document.addEventListener("mousedown", handleClickOutside);
-//     return () => document.removeEventListener("mousedown", handleClickOutside);
-//   }, [activeMessageId]);
-
-//   /* ---------------- SCROLL LOGIC ---------------- */
-//   useEffect(() => {
-//     const container = messagesAreaRef.current;
-//     if (!container || messages.length === 0) return;
-
-//     if (isFirstLoadRef.current) {
-//       messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
-//       isFirstLoadRef.current = false;
-//       return;
-//     }
-
-//     if (isLoadingOlderRef.current) {
-//       const newScrollHeight = container.scrollHeight;
-//       container.scrollTop = newScrollHeight - prevScrollHeightRef.current;
-//       isLoadingOlderRef.current = false;
-//       return;
-//     }
-
-//     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-//   }, [messages.length]);
-
-//   useEffect(() => {
-//     if (isLoading || !hasMoreMessages || messages.length === 0) return;
-
-//     const observer = new IntersectionObserver(
-//       (entries) => {
-//         if (entries[0].isIntersecting) {
-//           const container = messagesAreaRef.current;
-//           if (!container) return;
-
-//           isLoadingOlderRef.current = true;
-//           prevScrollHeightRef.current = container.scrollHeight;
-
-//           onLoadMoreMessages();
-//         }
-//       },
-//       { root: messagesAreaRef.current, threshold: 0.1 }
-//     );
-
-//     const el = topMessageSentinelRef.current;
-//     if (el) observer.observe(el);
-
-//     return () => {
-//       if (el) observer.unobserve(el);
-//     };
-//   }, [hasMoreMessages, onLoadMoreMessages, messages.length, isLoading]);
-
-//   useEffect(() => {
-//     if (isLoading) {
-//       isFirstLoadRef.current = true;
-//     }
-//   }, [isLoading]);
-
-//   /* ---------------- HELPERS ---------------- */
-//   const getInitials = (name: string) =>
-//     name
-//       .split(" ")
-//       .map((w) => w[0])
-//       .join("")
-//       .slice(0, 2)
-//       .toUpperCase();
-
-//   const getStatusIcon = (
-//     status?: "sending" | "sent" | "delivered" | "read" | "failed"
-//   ) => {
-//     if (!status) return null;
-//     if (status === "sending") return <FiClock className={styles.sendingIcon} />;
-//     if (status === "failed") return <span>❌</span>;
-//     if (status === "read")
-//       return <BsCheckAll className={`${styles.tickIcon} ${styles.read}`} />;
-//     if (status === "delivered")
-//       return <BsCheckAll className={styles.tickIcon} />;
-//     return <BsCheck className={styles.tickIcon} />;
-//   };
-
-//   const getCopyText = (m: Message): string => {
-//     switch (m.type) {
-//       case "text":
-//         return m.content || "";
-//       case "image":
-//         return m.content || m.fileUrl || "";
-//       case "document":
-//         return `${m.fileName || "Document"}\n${m.fileUrl || ""}`;
-//       case "link":
-//         return m.linkUrl || m.content || "";
-//       case "offer":
-//         if (!m.offer) return "";
-//         if (m.offer.offerType === "PRICE") {
-//           return `Offer: ${m.offer.currency} ${m.offer.amount}\n${
-//             m.content || ""
-//           }`;
-//         }
-//         return `Trade Offer: ${m.offer.tradeDescription}\n${m.content || ""}`;
-//       default:
-//         return m.content || "";
-//     }
-//   };
-
-//   /* ---------------- HANDLERS ---------------- */
-//   const handleCopy = (msg: Message) => {
-//     const text = getCopyText(msg);
-//     if (!text) return;
-//     navigator.clipboard.writeText(text);
-//     setActiveMessageId(null);
-//   };
-
-//   const handleReply = (msg: Message) => {
-//     setReplyingTo(msg);
-//     if (onReply) onReply(msg);
-//     setActiveMessageId(null);
-//   };
-
-//   // ✨ NEW: Handle Edit Click
-//   const handleEditClick = (msg: Message) => {
-//     if (onEditMessage) onEditMessage(msg);
-//     setActiveMessageId(null);
-//   };
-
-//   // ✨ NEW: Handle Delete Click
-//   const handleDeleteClick = (msg: Message) => {
-//     if (confirm("Are you sure you want to delete this message?")) {
-//       if (onDeleteMessage) onDeleteMessage(msg);
-//     }
-//     setActiveMessageId(null);
-//   };
-
-//   const cancelReply = () => {
-//     setReplyingTo(null);
-//   };
-
-//   // Wrapper to inject replyTo state into sending mechanism
-//   const handleInternalSendMessage = (
-//     content: string,
-//     type?: "text" | "image" | "document" | "link" | "audio",
-//     file?: any
-//   ) => {
-//     onSendMessage(content, type, file, replyingTo || undefined);
-//     setReplyingTo(null);
-//   };
-
-//   const renderMessageContent = (m: Message): ReactNode => {
-//     // ✨ Helper: Wraps the main content with the "Reply Quote" if it exists
-//     const wrapWithReply = (content: ReactNode) => {
-//       if (!m.replyTo) return content;
-
-//       return (
-//         <div className={styles.contentWithReply}>
-//           <div className={styles.replyQuote}>
-//             <div className={styles.replyQuoteBar} />
-//             <div className={styles.replyQuoteContent}>
-//               <span className={styles.replyQuoteUser}>
-//                 {m.replyTo.sent ? "You" : m.replyTo.senderName || "User"}
-//               </span>
-
-//               <p className={styles.replyQuoteText}>
-//                 {m.replyTo.type === "image" ? (
-//                   <span
-//                     style={{
-//                       display: "flex",
-//                       alignItems: "center",
-//                       gap: "4px",
-//                     }}
-//                   >
-//                     <FiImage /> Photo
-//                   </span>
-//                 ) : (
-//                   getCopyText(m.replyTo)
-//                 )}
-//               </p>
-//             </div>
-//             {m.replyTo.type === "image" && m.replyTo.fileUrl && (
-//               <img
-//                 src={m.replyTo.fileUrl}
-//                 alt=""
-//                 className={styles.replyQuoteThumb}
-//               />
-//             )}
-//           </div>
-//           {content}
-//         </div>
-//       );
-//     };
-
-//     if (m.type === "audio" && m.fileUrl) {
-//       return wrapWithReply(
-//         <div className={styles.audioMessageContainer}>
-//           <div className={styles.audioHeader}>
-//             <span style={{ fontSize: "1.2rem", marginRight: "8px" }}>🎤</span>
-//             <span>Voice Message</span>
-//           </div>
-//           <audio controls src={m.fileUrl} className={styles.audioPlayer} />
-//           {m.content && m.content !== "🎤 Voice Message" && (
-//             <p className={styles.messageCaption}>{m.content}</p>
-//           )}
-//         </div>
-//       );
-//     }
-//     // 📦 OFFER MESSAGE
-//     if (m.type === "offer" && m.offer) {
-//       return wrapWithReply(
-//         <div
-//           className={`${styles.offerCard} ${
-//             m.sent ? styles.sent : styles.received
-//           }`}
-//         >
-//           <div className={styles.productRow}>
-//             {m.offer.imageUrl && (
-//               <img
-//                 src={m.offer.imageUrl}
-//                 alt="Listing"
-//                 className={styles.productImage}
-//               />
-//             )}
-//             <div className={styles.productInfo}>
-//               <p className={styles.productTitle}>MacBook Pro 13&quot; 2021</p>
-//               <p className={styles.productPrice}>$967.00</p>
-//             </div>
-//           </div>
-//           <div className={styles.offerAmount}>
-//             Offer Amount{" "}
-//             <strong>
-//               {m.offer.currency} {m.offer.amount}
-//             </strong>
-//           </div>
-//           {m.content && <p className={styles.offerMessage}>{m.content}</p>}
-//         </div>
-//       );
-//     }
-
-//     // 📷 IMAGE MESSAGE
-//     if (m.type === "image" && m.fileUrl) {
-//       return wrapWithReply(
-//         <div className={styles.mediaContainer}>
-//           <img
-//             src={m.fileUrl}
-//             alt={m.content}
-//             className={styles.messageImage}
-//           />
-//           {m.content && m.content.trim() !== "📷 Photo" && (
-//             <p className={styles.messageCaption}>{m.content}</p>
-//           )}
-//         </div>
-//       );
-//     }
-
-//     // 📄 DOCUMENT MESSAGE
-//     if (m.type === "document" && m.fileUrl) {
-//       return wrapWithReply(
-//         <a
-//           href={m.fileUrl}
-//           target="_blank"
-//           rel="noopener noreferrer"
-//           className={styles.messageDocumentLink}
-//         >
-//           <div className={styles.documentIcon}>
-//             <FiFile size={20} />
-//           </div>
-//           <div className={styles.documentInfo}>
-//             <p className={styles.documentName}>
-//               {m.fileName || m.content || "Document"}
-//             </p>
-//             {m.content && m.content.trim() !== m.fileName?.trim() && (
-//               <p className={styles.documentSize}>{m.content}</p>
-//             )}
-//           </div>
-//         </a>
-//       );
-//     }
-
-//     // 🔗 LINK MESSAGE
-//     if (m.type === "link" && m.linkUrl) {
-//       if (m.linkTitle) {
-//         return wrapWithReply(
-//           <>
-//             <a
-//               href={m.linkUrl}
-//               target="_blank"
-//               rel="noopener noreferrer"
-//               className={styles.messageLinkPreview}
-//             >
-//               {m.linkImage && (
-//                 <img
-//                   src={m.linkImage}
-//                   alt={m.linkTitle}
-//                   className={styles.linkImage}
-//                 />
-//               )}
-//               <div className={styles.linkContent}>
-//                 <p className={styles.linkSource}>
-//                   {new URL(m.linkUrl).hostname}
-//                 </p>
-//                 <p className={styles.linkTitle}>{m.linkTitle}</p>
-//                 {m.linkDescription && (
-//                   <p className={styles.linkDescription}>{m.linkDescription}</p>
-//                 )}
-//               </div>
-//             </a>
-//             {m.content && m.content.trim() !== m.linkUrl.trim() && (
-//               <p className={styles.messageText}>{m.content}</p>
-//             )}
-//           </>
-//         );
-//       }
-//       return wrapWithReply(
-//         <a
-//           href={m.linkUrl}
-//           target="_blank"
-//           rel="noopener noreferrer"
-//           className={styles.messageText}
-//         >
-//           {m.content || m.linkUrl}
-//         </a>
-//       );
-//     }
-
-//     // 💬 DEFAULT: TEXT MESSAGE
-//     return wrapWithReply(<p className={styles.messageText}>{m.content}</p>);
-//   };
-
-//   /* ---------- EMPTY STATE ---------- */
-//   if (!selectedUser) {
-//     return (
-//       <div className={styles.emptyState}>
-//         <div className={styles.emptyCard}>
-//           <div className={styles.imageWrapper}>
-//             <Image
-//               src="/Frame 238021 (1).svg"
-//               alt="Chat illustration"
-//               width={90}
-//               height={90}
-//               priority
-//             />
-//           </div>
-//           <h2 className={styles.title}>Let’s start chatting</h2>
-//           <p className={styles.subtitle}>
-//             Search for a person from the left sidebar to start a conversation.
-//           </p>
-//           <div className={styles.hint}>Search a user • Start typing</div>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className={styles.chatPanel}>
-//       {/* HEADER */}
-//       <div className={styles.chatHeader}>
-//         <button className={styles.backButton} onClick={onBack}>
-//           <FiArrowLeft />
-//         </button>
-
-//         <div className={styles.avatarWrapper}>
-//           <div className={styles.avatar}>
-//             {selectedUser.avatar ? (
-//               <img
-//                 src={selectedUser.avatar}
-//                 alt={selectedUser.name}
-//                 className={styles.avatarImage}
-//                 style={{ width: "36px", height: "36px", borderRadius: "50%" }}
-//               />
-//             ) : (
-//               getInitials(selectedUser.name)
-//             )}
-//           </div>
-//           {selectedUser.online && <div className={styles.onlineIndicator} />}
-//         </div>
-
-//         <div className={styles.userInfo}>
-//           <h2 className={styles.userName}>{selectedUser.name}</h2>
-//           <p className={styles.userStatus}>Stanford University</p>
-//         </div>
-
-//         <button className={styles.moreButton}>
-//           <FiMoreVertical />
-//         </button>
-//       </div>
-
-//       {/* MESSAGES */}
-//       <div className={styles.messagesArea} ref={messagesAreaRef}>
-//         {isLoading && (
-//           <div className={styles.loadingWrapper}>
-//             <MessageSkeleton />
-//             <MessageSkeleton />
-//             <MessageSkeleton />
-//           </div>
-//         )}
-
-//         {!isLoading && messages.length === 0 && (
-//           <div className={styles.emptyConversation}>
-//             <div className={styles.profileRing}>
-//               {selectedUser.avatar ? (
-//                 <img src={selectedUser.avatar} className={styles.emptyAvatar} />
-//               ) : (
-//                 <div className={styles.emptyInitials}>
-//                   {getInitials(selectedUser.name)}
-//                 </div>
-//               )}
-//             </div>
-//             <h3 className={styles.emptyTitle}>
-//               You’re now connected with <span>{selectedUser.name}</span>
-//             </h3>
-//             <p className={styles.emptySubtitle}>
-//               Say hello 👋 and start your conversation.
-//             </p>
-//           </div>
-//         )}
-
-//         <div className={styles.messagesContainer}>
-//           {hasMoreMessages && (
-//             <div ref={topMessageSentinelRef}>
-//               {isLoadingOlderRef.current && <MessageSkeleton />}
-//             </div>
-//           )}
-
-//           {messages.map((m) => {
-//             const isDropdownOpen = activeMessageId === m.id;
-
-//             return (
-//               <div
-//                 key={m.id}
-//                 className={`${styles.messageWrapper} ${
-//                   m.sent ? styles.sent : styles.received
-//                 }`}
-//               >
-//                 {m.senderAvatar && (
-//                   <img
-//                     src={m.senderAvatar}
-//                     alt={m.senderName}
-//                     className={`${styles.messageAvatar} ${
-//                       m.sent ? styles.myAvatar : styles.otherAvatar
-//                     }`}
-//                   />
-//                 )}
-
-//                 <div
-//                   className={styles.messageHoverZone}
-//                   onMouseEnter={() => setHoveredMessageId(m.id)}
-//                   onMouseLeave={() => setHoveredMessageId(null)}
-//                 >
-//                   <div className={styles.messageBubble}>
-//                     <p className={styles.senderNameUser}>{m.senderName}</p>
-                    
-//                     {/* ✨ DROPDOWN TRIGGER */}
-//                     <button
-//                       className={`${styles.optionsTrigger} ${
-//                         isDropdownOpen ? styles.active : ""
-//                       }`}
-//                       onClick={(e) => {
-//                         e.stopPropagation();
-//                         setActiveMessageId(isDropdownOpen ? null : m.id);
-//                       }}
-//                       aria-label="Message options"
-//                     >
-//                       <FiChevronDown />
-//                     </button>
-
-//                     {isDropdownOpen && (
-//                       <div className={styles.messageOptions}>
-//                         <button
-//                           onClick={(e) => {
-//                             e.stopPropagation();
-//                             handleReply(m);
-//                           }}
-//                         >
-//                           <FiCornerUpLeft /> Reply
-//                         </button>
-
-//                         <button
-//                           onClick={(e) => {
-//                             e.stopPropagation();
-//                             handleCopy(m);
-//                           }}
-//                         >
-//                           <FiCopy /> Copy
-//                         </button>
-
-//                         {/* 🔥 EDITED & DELETE BUTTONS (Only for me) */}
-//                         {m.sent && (
-//                           <>
-//                             {m.type === "text" && (
-//                               <button
-//                                 onClick={(e) => {
-//                                   e.stopPropagation();
-//                                   handleEditClick(m);
-//                                 }}
-//                               >
-//                                 <FiEdit2 /> Edit
-//                               </button>
-//                             )}
-
-//                             <button
-//                               onClick={(e) => {
-//                                 e.stopPropagation();
-//                                 handleDeleteClick(m);
-//                               }}
-//                               style={{ color: "#ff4444" }}
-//                             >
-//                               <FiTrash /> Delete
-//                             </button>
-//                           </>
-//                         )}
-//                       </div>
-//                     )}
-
-//                     {/* CONTENT */}
-//                     {renderMessageContent(m)}
-
-//                     {/* 🔥 EDITED STATUS LABEL */}
-//                     {/* (m as any) used to prevent TS error if Message interface isn't updated yet */}
-//                     {(m as any).isEdited && (
-//                       <span
-//                         style={{
-//                           fontSize: "0.65rem",
-//                           color: "#8696a0",
-//                           display: "block",
-//                           textAlign: "right",
-//                           fontStyle: "italic",
-//                           marginTop: "2px",
-//                           marginRight: "4px",
-//                         }}
-//                       >
-//                         (edited)
-//                       </span>
-//                     )}
-
-//                     {/* META */}
-//                     <div className={styles.messageMeta}>
-//                       <span className={styles.messageTime}>{m.timestamp}</span>
-//                       {m.sent && getStatusIcon(m.status)}
-//                     </div>
-//                   </div>
-//                 </div>
-//               </div>
-//             );
-//           })}
-//           <div ref={messagesEndRef} />
-//         </div>
-//       </div>
-
-//       {replyingTo && (
-//         <div className={styles.replyPreview}>
-//           <div className={styles.replyContainer}>
-//             <div className={styles.replyDecor} />
-//             <div className={styles.replyContent}>
-//               <span className={styles.replyAuthor}>
-//                 {replyingTo.sent ? "You" : replyingTo.senderName || "User"}
-//               </span>
-//               {!replyingTo.sent && replyingTo.senderAvatar && (
-//                 <img
-//                   src={replyingTo.senderAvatar}
-//                   alt={replyingTo.senderName}
-//                   className={styles.replyAvatar}
-//                 />
-//               )}
-
-//               <p className={styles.replyText}>
-//                 {replyingTo.type === "image" ? (
-//                   <span className={styles.flexCenter}>
-//                     <FiImage /> Photo
-//                   </span>
-//                 ) : (
-//                   getCopyText(replyingTo)
-//                 )}
-//               </p>
-//             </div>
-
-//             {replyingTo.type === "image" && replyingTo.fileUrl && (
-//               <img
-//                 src={replyingTo.fileUrl}
-//                 alt=""
-//                 className={styles.replyThumb}
-//               />
-//             )}
-
-//             <button onClick={cancelReply} className={styles.closeReply}>
-//               <FiX />
-//             </button>
-//           </div>
-//         </div>
-//       )}
-
-//       {/* INPUT */}
-//       <MessageInput onSendMessage={handleInternalSendMessage} />
-//     </div>
-//   );
-// }
-
-
-
-
-// "use client";
-
 // import { useEffect, useState, useCallback, useRef } from "react";
 // import styles from "./ChatInterface.module.scss";
 // import UserSidebar from "./UserSidebar";
 // import ChatPanel from "./ChatPanel";
+// import { getWebSocket } from "./websocketSingleton";
+// import { usePathname, useSearchParams } from "next/navigation";
+// import { FiCheck, FiSearch } from "react-icons/fi";
+// import user_img from "@/app/assets/user.png";
+// import Image from "next/image";
+// import { bubble_img } from "../assets";
 
 // // ───────────────────────────────────────────────
 // // TYPES
@@ -719,7 +38,12 @@ export default function MessageSkeleton() {
 //   lastMessageTime: string;
 //   online: boolean;
 //   unread?: number;
-//   lastMessageStatus?: "sent" | "delivered" | "read";
+//   lastMessageStatus?: "sent" | "delivered" | "read" | "sending" | "failed";
+//   isTyping?: boolean;
+//   instituteName?: string;
+//   instituteSlug?: string;
+//   instituteId?: number;
+//   lastMessageSenderId?: string;
 // }
 
 // export interface Message {
@@ -740,6 +64,7 @@ export default function MessageSkeleton() {
 //   senderName?: string;
 //   senderAvatar?: string;
 //   reactions?: Record<string, string[]>;
+//   createdAt: number;
 
 //   offer?: {
 //     offerId: string;
@@ -749,13 +74,20 @@ export default function MessageSkeleton() {
 //     currency?: string;
 //     tradeDescription?: string;
 //     imageUrl?: string;
+//     text?: string;
+//     title?: string;
 //   };
 //   replyTo?: Message;
 // }
 
-// // ───────────────────────────────────────────────
-// // DECODE TOKEN
-// // ───────────────────────────────────────────────
+// const STATUS_PRIORITY: Record<NonNullable<Message["status"]>, number> = {
+//   sending: 0,
+//   sent: 1,
+//   delivered: 2,
+//   read: 3,
+//   failed: -1,
+// };
+
 // const decodeToken = (token: string) => {
 //   try {
 //     const payload = JSON.parse(atob(token.split(".")[1]));
@@ -765,11 +97,24 @@ export default function MessageSkeleton() {
 //   }
 // };
 
+// const getInitials = (name?: string) => {
+//   if (!name) return "";
+//   return name
+//     .split(" ")
+//     .map((word) => word[0])
+//     .join("")
+//     .slice(0, 2)
+//     .toUpperCase();
+// };
+
 // export default function ChatInterface() {
 //   const wsRef = useRef<WebSocket | null>(null);
 //   const [users, setUsers] = useState<User[]>([]);
 //   const [cursor, setCursor] = useState<string | null>(null);
 //   const [hasMoreUsers, setHasMoreUsers] = useState(true);
+//   const [globalUnread, setGlobalUnread] = useState(0);
+//   const [profileUser, setProfileUser] = useState<User | null>(null);
+//   console.log(profileUser, "profileUserObject");
 
 //   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 //   const [messages, setMessages] = useState<Message[]>([]);
@@ -793,8 +138,18 @@ export default function MessageSkeleton() {
 //   const [isSearching, setIsSearching] = useState(false);
 //   const [isTyping, setIsTyping] = useState(false);
 //   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+//   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
+//   const lastTypingSentTimeRef = useRef<number>(0);
+//   const [enableInfiniteScroll, setEnableInfiniteScroll] = useState(true);
 
 //   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+//   const searchParams = useSearchParams();
+//   const pathname = usePathname();
+//   const lastProcessedRef = useRef<{ content: string; time: number } | null>(
+//     null
+//   );
+
+//   const userParam = searchParams.get("user"); // string | null
 
 //   const extractUrl = (text: string) => {
 //     const match = text.match(/(https?:\/\/(?:www\.)?[^\s/$.?#].[^\s]*)/i);
@@ -856,8 +211,8 @@ export default function MessageSkeleton() {
 //             id: c.user?.userId,
 //             name: `${c.user?.firstName ?? ""} ${c.user?.lastName ?? ""}`.trim(),
 //             avatar: c.user?.avatarUrl
-//               ? `https://d34wmjl2ccaffd.cloudfront.net${c.user.avatarUrl}`
-//               : "/user.png",
+//               ? `${process.env.NEXT_PUBLIC_CLOUDFRONT_URL}${c.user.avatarUrl}`
+//               : undefined,
 
 //             lastMessage: c.lastMessagePreview ?? "",
 //             lastMessageTime: c.lastMessageAt
@@ -866,8 +221,11 @@ export default function MessageSkeleton() {
 //                   minute: "2-digit",
 //                 })
 //               : "",
+//             instituteName: c.user?.instituteName,
+//             instituteSlug: c.user?.instituteSlug,
+//             instituteId: c.user?.instituteId,
 
-//             online: c.user?.online ?? false,
+//             online: c.user?.isOnline ?? false,
 //             unread: c.unreadCount ?? "",
 //             lastMessageStatus: c.lastMessageDeliveryStatus
 //               ? (c.lastMessageDeliveryStatus.toLowerCase() as User["lastMessageStatus"])
@@ -875,10 +233,21 @@ export default function MessageSkeleton() {
 //           })) || [];
 
 //         // If it's the initial fetch (cursor is null), replace the list. Otherwise, append.
-//         setUsers((prev) =>
-//           isInitialFetch ? mappedUsers : [...prev, ...mappedUsers]
-//         );
+//         setUsers((prev) => {
+//           if (isInitialFetch) {
+//             return mappedUsers;
+//           }
 
+//           // Create a Set of existing IDs for O(1) lookup
+//           const existingIds = new Set(prev.map((u) => u.id));
+
+//           // Only append users that don't already exist in the list
+//           const uniqueNewUsers = mappedUsers.filter(
+//             (u) => !existingIds.has(u.id)
+//           );
+
+//           return [...prev, ...uniqueNewUsers];
+//         });
 //         const nextCursor = data?.data?.cursor || null;
 //         setCursor(nextCursor);
 //         setHasMoreUsers(!!nextCursor);
@@ -895,7 +264,8 @@ export default function MessageSkeleton() {
 //   );
 
 //   const loadMoreUsers = () => {
-//     if (hasMoreUsers && searchQuery.length < 2) {
+//     // Add !isUsersLoading to prevent parallel fetches
+//     if (hasMoreUsers && searchQuery.length < 2 && !isUsersLoading) {
 //       fetchUsers(cursor, false);
 //     }
 //   };
@@ -925,7 +295,7 @@ export default function MessageSkeleton() {
 //       parentToken
 //     )}`;
 
-//     const ws = new WebSocket(wsUrl);
+//     const { ws, id } = getWebSocket(parentToken);
 //     wsRef.current = ws;
 
 //     ws.onopen = () => {
@@ -933,6 +303,7 @@ export default function MessageSkeleton() {
 //     };
 
 //     ws.onmessage = (event) => {
+//       console.log("WS message from id:", id, event.data);
 //       try {
 //         const payload = JSON.parse(event.data);
 //         const { event: eventType, data } = payload;
@@ -963,51 +334,59 @@ export default function MessageSkeleton() {
 //               : usersRef.current.find((u) => u.id === data.senderUserId)
 //                   ?.avatar;
 
-//             // ─────────────────────────────────────────────────────────
-//             // 🛑 ACKNOWLEDGEMENT LOGIC (Fixed to prevent 500 Errors)
-//             // ─────────────────────────────────────────────────────────
+//             const realSenderName = isMine
+//               ? "You"
+//               : selectedUserRef.current?.id === data.senderUserId
+//               ? selectedUserRef.current?.name
+//               : "User";
 //             if (!isMine) {
+//               const backendMessageKey = data.messageKey || data.messageId;
 //               const isChatOpen =
 //                 data.conversationId === conversationIdRef.current;
 
+//               // 1️⃣ ALWAYS send DELIVERED first
+//               console.log("📨 Sending ackDelivered:", backendMessageKey);
+
+//               ws.send(
+//                 JSON.stringify({
+//                   event: "ackDelivered",
+//                   data: {
+//                     conversationId: data.conversationId,
+//                     messageIds: [backendMessageKey],
+//                   },
+//                 })
+//               );
+
 //               if (isChatOpen) {
-//                 // Case A: User is looking at the chat -> Send READ immediately.
-//                 // (Sending 'ackRead' implies it was delivered, so we skip 'ackDelivered' to avoid race conditions)
-//                 console.log(
-//                   "👀 Chat open, sending ackRead for:",
-//                   backendMessageKey
-//                 );
 //                 ws.send(
 //                   JSON.stringify({
-//                     action: "ackRead",
-//                     conversationId: data.conversationId,
-//                     messageIds: [backendMessageKey],
+//                     event: "ackRead",
+//                     data: {
+//                       conversationId: data.conversationId,
+//                       messageIds: [backendMessageKey],
+//                     },
 //                   })
 //                 );
-//               } else {
-//                 // Case B: User is in another chat/menu -> Send DELIVERED.
-//                 console.log(
-//                   "📨 Chat closed, sending ackDelivered for:",
-//                   backendMessageKey
-//                 );
-//                 ws.send(
-//                   JSON.stringify({
-//                     action: "ackDelivered",
-//                     conversationId: data.conversationId,
-//                     messageIds: [backendMessageKey],
-//                   })
+
+//                 setMessages((prev) =>
+//                   prev.map((m) =>
+//                     m.id === backendMessageKey || m.id === data.messageId
+//                       ? { ...m, status: "read" }
+//                       : m
+//                   )
 //                 );
 //               }
 //             }
-//             // ─────────────────────────────────────────────────────────
 
-//             // 2. Update Chat Panel (ONLY if this conversation is open)
 //             if (data.conversationId === conversationIdRef.current) {
 //               setMessages((prev) => [
 //                 ...prev,
 //                 {
-//                   id: data.messageId, // Keep using messageId for React 'key' if that's what your UI uses
+//                   id: data.messageId,
+//                   messageKey: data.messageKey,
 //                   content: parsedOffer?.text || data.content,
+//                   createdAt: new Date(data.createdAt).getTime(),
+
 //                   timestamp: new Date(data.createdAt).toLocaleTimeString(
 //                     "en-US",
 //                     {
@@ -1016,6 +395,7 @@ export default function MessageSkeleton() {
 //                     }
 //                   ),
 //                   sent: isMine,
+//                   senderName: realSenderName,
 //                   senderAvatar,
 //                   type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
 //                   offer: parsedOffer
@@ -1027,10 +407,32 @@ export default function MessageSkeleton() {
 //                         currency: parsedOffer.currency,
 //                         tradeDescription: parsedOffer.tradeDescription,
 //                         imageUrl: parsedOffer.imageUrl,
+//                         text: parsedOffer.text,
+//                         title: parsedOffer.title,
 //                       }
 //                     : undefined,
 //                   linkUrl: detectedUrl ?? undefined,
-//                   status: isMine ? "sent" : "read", // If I'm seeing it arrive, it's effectively read
+//                   status: isMine ? "sent" : "read",
+
+//                   reactions: {},
+
+//                   replyTo: data.replyTo
+//                     ? ({
+//                         id: data.replyTo.messageKey, // Or messageId
+//                         content: data.replyTo.snippet,
+//                         senderId: data.replyTo.senderUserId,
+//                         // Try to find name in current users list, or fallback
+//                         senderName:
+//                           data.replyTo.senderUserId ===
+//                           loggedInUserIdRef.current
+//                             ? "You"
+//                             : selectedUserRef.current?.name,
+//                         type: data.replyTo.type || "text",
+//                         // Required Message types (fill with dummies for reply preview)
+//                         timestamp: "",
+//                         sent: false,
+//                       } as any)
+//                     : undefined,
 //                 },
 //               ]);
 
@@ -1060,12 +462,14 @@ export default function MessageSkeleton() {
 //                     minute: "2-digit",
 //                   }
 //                 ),
-//                 online: true,
-//                 // If chat is NOT open, increment unread count
+
 //                 unread:
 //                   data.conversationId === conversationIdRef.current
 //                     ? 0
-//                     : (existingUser.unread || 0) + 1,
+//                     : existingUser.unread,
+
+//                 lastMessageStatus: undefined, // ❌ remove ticks
+//                 lastMessageSenderId: data.senderUserId, // incoming
 //               };
 
 //               const others = prev.filter((_, idx) => idx !== existingIndex);
@@ -1074,77 +478,272 @@ export default function MessageSkeleton() {
 
 //             break;
 //           }
-
 //           case "messageRead": {
-//             // The payload.data should contain messageKey/messageId
 //             setMessages((prev) =>
 //               prev.map((m) =>
-//                 // Match against either ID type to be safe
-//                 m.id === data.messageKey || m.id === data.messageId
+//                 m.messageKey === data.messageKey || m.id === data.messageId
 //                   ? { ...m, status: "read" }
 //                   : m
 //               )
 //             );
+//             setUsers((prev) =>
+//               prev.map((u) =>
+//                 u.id === selectedUserRef.current?.id &&
+//                 u.lastMessageSenderId === loggedInUserIdRef.current
+//                   ? { ...u, lastMessageStatus: "read" }
+//                   : u
+//               )
+//             );
+
+//             break;
+//           }
+
+//           case "userPresence": {
+//             const { userId, status } = data;
+//             const isOnline = status === "online";
+
+//             setUsers((prev) =>
+//               prev.map((user) =>
+//                 user.id === userId ? { ...user, online: isOnline } : user
+//               )
+//             );
+
+//             setSelectedUser((prev) =>
+//               prev && prev.id === userId ? { ...prev, online: isOnline } : prev
+//             );
+
+//             break;
+//           }
+
+//           case "globalUnreadCount": {
+//             const delta = data?.delta ?? 0;
+
+//             // forward to parent ONLY
+//             window.parent.postMessage(
+//               {
+//                 type: "globalUnreadCount",
+//                 data: { delta },
+//               },
+//               "*"
+//             );
+
+//             break;
+//           }
+
+//           // Inside ws.onmessage switch (payload.event)
+
+//           case "typing": {
+//             const {
+//               conversationId: typingCid,
+//               userId: typingUserId,
+//               isTyping,
+//             } = data;
+
+//             // 1️⃣ Update ChatPanel typing bubble
+//             if (
+//               typingCid === conversationIdRef.current &&
+//               typingUserId !== loggedInUserIdRef.current
+//             ) {
+//               setIsPartnerTyping(isTyping);
+//             }
+
+//             // 2️⃣ 🔥 Update SIDEBAR typing state
+//             setUsers((prev) =>
+//               prev.map((u) => (u.id === typingUserId ? { ...u, isTyping } : u))
+//             );
+
 //             break;
 //           }
 
 //           case "messageDelivered": {
 //             setMessages((prev) =>
-//               prev.map((m) =>
-//                 m.id === data.messageKey || m.id === data.messageId
-//                   ? { ...m, status: "delivered" }
-//                   : m
+//               prev.map((m) => {
+//                 if (
+//                   m.messageKey !== data.messageKey &&
+//                   m.id !== data.messageId
+//                 ) {
+//                   return m;
+//                 }
+
+//                 // ⛔ Do NOT downgrade READ → DELIVERED
+//                 if (
+//                   STATUS_PRIORITY[m.status ?? "sent"] >
+//                   STATUS_PRIORITY["delivered"]
+//                 ) {
+//                   return m;
+//                 }
+
+//                 return { ...m, status: "delivered" };
+//               })
+//             );
+
+//             setUsers((prev) =>
+//               prev.map((u) =>
+//                 u.id === selectedUserRef.current?.id &&
+//                 u.lastMessageSenderId === loggedInUserIdRef.current
+//                   ? { ...u, lastMessageStatus: "delivered" }
+//                   : u
 //               )
 //             );
+
 //             break;
 //           }
 
 //           // Inside ws.onmessage
 
 //           case "messageEdited": {
+//             const { messageKey, messageId, newContent } = data;
+
+//             // 1️⃣ Update ChatPanel (unchanged, just cleaned up)
 //             setMessages((prev) =>
 //               prev.map((m) => {
-//                 // Check both to be safe
 //                 const isMatch =
-//                   m.messageKey === data.messageKey || m.id === data.messageId;
+//                   m.messageKey === messageKey || m.id === messageId;
 
-//                 if (isMatch) {
-//                   return {
-//                     ...m,
-//                     content: data.newContent,
-//                     // (m as any).isEdited = true; // Optional if you added isEdited to interface
-//                   };
-//                 }
-//                 return m;
+//                 if (!isMatch) return m;
+
+//                 return {
+//                   ...m,
+//                   content: newContent,
+//                   isEdited: true, // optional
+//                 };
 //               })
 //             );
+
+//             // 2️⃣ Update SIDEBAR preview (if last message)
+//             setUsers((prev) => {
+//               const index = prev.findIndex((u) =>
+//                 u.lastMessage === undefined ? false : true
+//               );
+
+//               if (index === -1) return prev;
+
+//               const updatedUser = {
+//                 ...prev[index],
+//                 lastMessage: newContent,
+//               };
+
+//               const others = prev.filter((_, i) => i !== index);
+//               return [updatedUser, ...others];
+//             });
+
 //             break;
 //           }
 
 //           case "messageDeleted": {
 //             setMessages((prev) =>
-//               prev.filter(
-//                 (m) =>
-//                   m.messageKey !== data.messageKey && m.id !== data.messageId
-//               )
+//               prev.map((m) => {
+//                 // Check if this is the deleted message
+//                 if (
+//                   m.messageKey === data.messageKey ||
+//                   m.id === data.messageId
+//                 ) {
+//                   return {
+//                     ...m,
+//                     content: "This message was deleted",
+//                     type: "text",
+//                     fileUrl: undefined,
+//                     linkUrl: undefined,
+//                     offer: undefined,
+//                     reactions: {},
+//                     isDeleted: true, // Flag for UI styling
+//                   };
+//                 }
+//                 return m;
+//               })
 //             );
+
+//             setUsers((prev) =>
+//               prev.map((u) => {
+//                 const isSameConversation =
+//                   u.id === selectedUserRef.current?.id &&
+//                   conversationIdRef.current === data.conversationId;
+
+//                 if (!isSameConversation) return u;
+
+//                 return {
+//                   ...u,
+//                   lastMessage: "This message was deleted",
+//                   lastMessageStatus: undefined,
+//                 };
+//               })
+//             );
+
 //             break;
 //           }
+
+//           // case "messageReactionUpdated": {
+//           //   const { messageKey, emoji, action, reactedBy } = data;
+
+//           //   setMessages((prev) =>
+//           //     prev.map((m) => {
+//           //       if (m.messageKey !== messageKey) return m;
+
+//           //       const currentReactions = m.reactions || {};
+//           //       const usersForEmoji = currentReactions[emoji] || [];
+
+//           //       let updatedUsers: string[];
+
+//           //       if (action === "ADDED") {
+//           //         // avoid duplicates
+//           //         if (usersForEmoji.includes(reactedBy)) {
+//           //           return m;
+//           //         }
+//           //         updatedUsers = [...usersForEmoji, reactedBy];
+//           //       } else if (action === "REMOVED") {
+//           //         updatedUsers = usersForEmoji.filter((u) => u !== reactedBy);
+//           //       } else {
+//           //         return m;
+//           //       }
+
+//           //       const updatedReactions = { ...currentReactions };
+
+//           //       if (updatedUsers.length > 0) {
+//           //         updatedReactions[emoji] = updatedUsers;
+//           //       } else {
+//           //         delete updatedReactions[emoji];
+//           //       }
+
+//           //       return {
+//           //         ...m,
+//           //         reactions: updatedReactions,
+//           //       };
+//           //     })
+//           //   );
+
+//           //   break;
+//           // }
 
 //           case "messageReactionUpdated": {
+//             const { messageKey, emoji, reactedBy, action } = data;
+
 //             setMessages((prev) =>
-//               prev.map((m) =>
-//                 m.messageKey === data.messageKey || m.id === data.messageId
-//                   ? { ...m, reactions: data.reactions } // Backend should send updated map
-//                   : m
-//               )
+//               prev.map((m) => {
+//                 if (m.messageKey !== messageKey) return m;
+
+//                 const reactions = { ...(m.reactions || {}) };
+
+//                 // 1️⃣ Remove this user from ALL emojis (🔥❤️😂 etc)
+//                 Object.keys(reactions).forEach((key) => {
+//                   reactions[key] = reactions[key].filter(
+//                     (u) => u !== reactedBy
+//                   );
+//                   if (reactions[key].length === 0) {
+//                     delete reactions[key];
+//                   }
+//                 });
+
+//                 if (action !== "REMOVED") {
+//                   reactions[emoji] = [...(reactions[emoji] || []), reactedBy];
+//                 }
+
+//                 return { ...m, reactions };
+//               })
 //             );
+
 //             break;
 //           }
 
-//           // ─────────────────────────────
-//           // SIDEBAR UPDATE (Conversation Updated)
-//           // ─────────────────────────────
 //           case "conversationUpdated": {
 //             setUsers((prev) => {
 //               // Find the user to update
@@ -1177,7 +776,11 @@ export default function MessageSkeleton() {
 //           }
 
 //           case "messageSentAck": {
-//             console.log("✅ Message acknowledged by server");
+//             const { conversationId } = data;
+
+//             // 🔥 MULTI-DEVICE SYNC (ChatPanel)
+//             syncConversationMessages(conversationId);
+
 //             break;
 //           }
 
@@ -1194,7 +797,7 @@ export default function MessageSkeleton() {
 //     };
 
 //     return () => {
-//       ws.close();
+//       // ws.close();
 //       wsRef.current = null;
 //     };
 //   }, [parentToken]);
@@ -1248,9 +851,11 @@ export default function MessageSkeleton() {
 //             id: u.user_id,
 //             name: `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim(),
 //             avatar: u.profile_photo_url
-//               ? `https://d34wmjl2ccaffd.cloudfront.net${u.profile_photo_url}`
-//               : "/user.png",
+//               ? `${process.env.NEXT_PUBLIC_CLOUDFRONT_URL}${u.profile_photo_url}`
+//               : undefined,
 //             lastMessage: "",
+//             instituteName: u.instituteName,
+
 //             lastMessageTime: "",
 //             online: false,
 //             unread: 0,
@@ -1267,9 +872,32 @@ export default function MessageSkeleton() {
 //     fetchSearchResults();
 //   }, [searchQuery, parentToken, cursor]);
 
-//   // ───────────────────────────────────────────────
-//   // GET OR CREATE CONVERSATION
-//   // ───────────────────────────────────────────────
+//   useEffect(() => {
+//     let safetyTimeout: NodeJS.Timeout;
+
+//     if (isPartnerTyping) {
+//       // If we haven't received a new "typing" event in 5 seconds,
+//       // assume they stopped or the connection lagged.
+//       safetyTimeout = setTimeout(() => {
+//         setIsPartnerTyping(false);
+//       }, 5000);
+//     }
+
+//     return () => {
+//       if (safetyTimeout) clearTimeout(safetyTimeout);
+//     };
+//   }, [isPartnerTyping]);
+
+//   useEffect(() => {
+//     if (!selectedUser) return;
+
+//     setUsers((prev) =>
+//       prev.map((u) =>
+//         u.id === selectedUser.id ? { ...u, isTyping: false } : u
+//       )
+//     );
+//   }, [selectedUser]);
+
 //   const getConversationId = async (targetUserId: string, token: string) => {
 //     try {
 //       const res = await fetch(
@@ -1294,6 +922,36 @@ export default function MessageSkeleton() {
 //       console.error("❌ Failed to create conversation:", err);
 //       return null;
 //     }
+//   };
+
+//   const normalizeReactions = (
+//     backendReactions: any,
+//     myUserId: string
+//   ): Record<string, string[]> => {
+//     if (!backendReactions) return {};
+
+//     const normalized: Record<string, string[]> = {};
+
+//     Object.entries(backendReactions).forEach(([emoji, data]: [string, any]) => {
+//       const users: string[] = [];
+
+//       // If backend says I reacted
+//       if (data?.reactedByMe && myUserId) {
+//         users.push(myUserId);
+//       }
+
+//       // Fill remaining count with placeholders (we don't know other userIds)
+//       const remaining = Math.max((data?.count || 0) - users.length, 0);
+//       for (let i = 0; i < remaining; i++) {
+//         users.push(`unknown-${emoji}-${i}`);
+//       }
+
+//       if (users.length > 0) {
+//         normalized[emoji] = users;
+//       }
+//     });
+
+//     return normalized;
 //   };
 
 //   const fetchMessages = useCallback(
@@ -1325,101 +983,129 @@ export default function MessageSkeleton() {
 //         const data = await res.json();
 //         console.log("📥 Messages:", data);
 
-//         // 1. Map messages for UI
-//         const mappedMessages: Message[] =
-//           data?.data?.messages?.map((msg: any) => {
-//             let parsedOffer = null;
+//         const apiMessages = data?.data?.messages ?? [];
 
-//             try {
-//               const parsed = JSON.parse(msg.content);
-//               if (parsed.type === "OFFER") parsedOffer = parsed;
-//             } catch {}
+//         // 🔥 MAP BACKEND → UI SHAPE (NO STATE ACCESS HERE)
+//         const mappedMessages: Message[] = apiMessages.map((msg: any) => {
+//           console.log(msg, "messgesrecieved");
+//           let parsedOffer = null;
 
-//             const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
-//             const sender = msg.sender;
+//           try {
+//             const parsed = JSON.parse(msg.content);
+//             if (parsed.type === "OFFER") parsedOffer = parsed;
+//           } catch {}
+
+//           const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
+//           const sender = msg.sender;
+
+//           return {
+//             id: msg.messageId,
+//             messageKey: msg.messageKey,
+
+//             content: parsedOffer?.text || msg.content,
+//             createdAt: new Date(msg.createdAt).getTime(),
+
+//             timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
+//               hour: "numeric",
+//               minute: "2-digit",
+//             }),
+
+//             sent: msg.senderUserId === myUserId,
+
+//             senderId: sender?.userId,
+//             senderName:
+//               msg.senderUserId === myUserId
+//                 ? "You"
+//                 : `${sender?.firstName ?? ""} ${sender?.lastName ?? ""}`.trim(),
+
+//             senderAvatar: sender?.avatarUrl
+//               ? `${process.env.NEXT_PUBLIC_CLOUDFRONT_URL}${sender.avatarUrl}`
+//               : undefined,
+
+//             type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
+
+//             offer: parsedOffer
+//               ? {
+//                   offerId: parsedOffer.offerId,
+//                   listingId: parsedOffer.listingId,
+//                   offerType: parsedOffer.offerType,
+//                   amount: parsedOffer.amount,
+//                   currency: parsedOffer.currency,
+//                   tradeDescription: parsedOffer.tradeDescription,
+//                   imageUrl: parsedOffer.imageUrl,
+//                   text: parsedOffer.text,
+//                   title: parsedOffer.title,
+//                 }
+//               : undefined,
+
+//             linkUrl: detectedUrl ?? undefined,
+
+//             // 🔥 NORMALIZED REACTIONS
+//             reactions: normalizeReactions(msg.reactions, myUserId),
+
+//             status:
+//               msg.deliveryStatus === "READ"
+//                 ? "read"
+//                 : msg.deliveryStatus === "DELIVERED"
+//                 ? "delivered"
+//                 : "sent",
+//           };
+//         });
+
+//         // ─────────────────────────────────────────────
+//         // 🔥 MERGE WITH EXISTING STATE (CRITICAL)
+//         // ─────────────────────────────────────────────
+//         setMessages((prev) => {
+//           const existingMap = new Map(
+//             prev.map((m) => [m.messageKey || m.id, m])
+//           );
+
+//           const merged = mappedMessages.map((msg) => {
+//             const prevMsg = existingMap.get(msg.messageKey || msg.id);
 
 //             return {
-//               id: msg.messageId,
-//               content: parsedOffer?.text || msg.content,
-//               messageKey: msg.messageKey,
-//               timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
-//                 hour: "numeric",
-//                 minute: "2-digit",
-//               }),
-
-//               sent: msg.senderUserId === myUserId,
-
-//               senderId: sender?.userId,
-//               senderName:
-//                 msg.senderUserId === myUserId
-//                   ? "You"
-//                   : `${sender?.firstName ?? ""} ${
-//                       sender?.lastName ?? ""
-//                     }`.trim(),
-
-//               senderAvatar: sender?.avatarUrl
-//                 ? `https://d34wmjl2ccaffd.cloudfront.net${sender.avatarUrl}`
-//                 : undefined,
-
-//               type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
-
-//               offer: parsedOffer
-//                 ? {
-//                     offerId: parsedOffer.offerId,
-//                     listingId: parsedOffer.listingId,
-//                     offerType: parsedOffer.offerType,
-//                     amount: parsedOffer.amount,
-//                     currency: parsedOffer.currency,
-//                     tradeDescription: parsedOffer.tradeDescription,
-//                     imageUrl: parsedOffer.imageUrl,
-//                   }
-//                 : undefined,
-
-//               linkUrl: detectedUrl ?? undefined,
-
-//               // 🔥 STATUS LOGIC:
-//               // If it's my message: check if backend says it's read
-//               // If it's their message: I am reading it now, so mark as "read" locally
+//               ...prevMsg,
+//               ...msg,
 //               status:
-//                 msg.senderUserId === myUserId
-//                   ? msg.readAt
-//                     ? "read"
-//                     : "delivered"
-//                   : "read",
+//                 STATUS_PRIORITY[msg.status ?? "sent"] >=
+//                 STATUS_PRIORITY[prevMsg?.status ?? "sent"]
+//                   ? msg.status ?? prevMsg?.status ?? "sent"
+//                   : prevMsg?.status ?? msg.status ?? "sent",
+
+//               reactions: msg.reactions ?? prevMsg?.reactions ?? {},
 //             };
-//           }) ?? [];
+//           });
 
-//         const ordered = mappedMessages.reverse();
+//           const ordered = merged.reverse();
 
-//         setMessages((prev) =>
-//           currentCursor ? [...ordered, ...prev] : ordered
-//         );
+//           return currentCursor ? [...ordered, ...prev] : ordered;
+//         });
 
+//         // ─────────────────────────────────────────────
+//         // Pagination
+//         // ─────────────────────────────────────────────
 //         const nextCursor = data?.data?.cursor ?? null;
 //         setMessageCursor(nextCursor);
 //         setHasMoreMessages(Boolean(nextCursor));
 
-//         // ─────────────────────────────────────────────────────────────
-//         // 🔥 NEW: Send 'ackRead' for incoming unread messages
-//         // ─────────────────────────────────────────────────────────────
+//         // ─────────────────────────────────────────────
+//         // 🔥 ACK READ
+//         // ─────────────────────────────────────────────
 //         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-//           // Find messages that are NOT mine and NOT yet marked as read by backend
-//           const unreadMessageIds = data?.data?.messages
-//             ?.filter(
-//               (m: any) =>
-//                 m.senderUserId !== myUserId && // Not sent by me
-//                 !m.readAt // Not already read
-//             )
-//             .map((m: any) => m.messageId);
+//           const unreadMessageIds = apiMessages
+//             .filter((m: any) => m.senderUserId !== myUserId && !m.readAt)
+//             .map((m: any) => m.messageKey || m.messageId);
 
-//           if (unreadMessageIds && unreadMessageIds.length > 0) {
+//           if (unreadMessageIds.length > 0) {
 //             console.log("📤 Sending ackRead for:", unreadMessageIds);
 
 //             wsRef.current.send(
 //               JSON.stringify({
-//                 action: "ackRead",
-//                 conversationId: cid,
-//                 messageIds: unreadMessageIds,
+//                 event: "ackRead",
+//                 data: {
+//                   conversationId: cid,
+//                   messageIds: unreadMessageIds,
+//                 },
 //               })
 //             );
 //           }
@@ -1433,6 +1119,26 @@ export default function MessageSkeleton() {
 //     },
 //     []
 //   );
+
+//   const syncInProgressRef = useRef(false);
+
+//   const syncConversationMessages = useCallback(
+//     (cid: string) => {
+//       // Only sync active conversation
+//       if (!cid || cid !== conversationIdRef.current) return;
+//       if (!parentToken || !loggedInUserId) return;
+
+//       // Prevent double fetch
+//       if (syncInProgressRef.current) return;
+//       syncInProgressRef.current = true;
+
+//       fetchMessages(cid, parentToken, loggedInUserId, null).finally(() => {
+//         syncInProgressRef.current = false;
+//       });
+//     },
+//     [fetchMessages, parentToken, loggedInUserId]
+//   );
+
 //   // Dependencies: empty since all required dependencies are passed as arguments or are stable state/props
 
 //   // NEW: Function to load the next page of messages (older ones)
@@ -1477,13 +1183,24 @@ export default function MessageSkeleton() {
 
 //   const handleUserSelect = async (user: User) => {
 //     if (!parentToken || !loggedInUserId) return;
-//     conversationIdRef.current = null;
-//     // 🔥 START LOADING FIRST (KEY FIX)
-//     setIsMessagesLoading(true);
 
-//     // 🔥 Immediately render ChatPanel in loading state
-//     setSelectedUser(user);
+//     conversationIdRef.current = null;
+
+//     // 🔥 START LOADING FIRST
+//     setIsMessagesLoading(true);
 //     setMessages([]);
+
+//     // 🔥 Disable sidebar mutations on mobile
+//     if (window.innerWidth < 768) {
+//       setEnableInfiniteScroll(false);
+//       setShowSidebar(false);
+//     }
+
+//     // 🔥 Defer heavy ChatPanel mount by 1 frame
+//     setSelectedUser(null);
+//     requestAnimationFrame(() => {
+//       setSelectedUser(user);
+//     });
 
 //     // reset pagination
 //     setMessageCursor(null);
@@ -1503,18 +1220,20 @@ export default function MessageSkeleton() {
 //         return;
 //       }
 
-//       // 📥 FETCH MESSAGES (same loading phase)
+//       // 📥 FETCH MESSAGES
 //       await fetchMessages(cid, parentToken, loggedInUserId, null);
 //     } catch (e) {
 //       console.error(e);
 //       setIsMessagesLoading(false);
 //     }
-
-//     // 📱 Mobile UX
-//     if (window.innerWidth < 768) {
-//       setShowSidebar(false);
-//     }
 //   };
+
+//   useEffect(() => {
+//     if (!showSidebar && window.innerWidth < 768) {
+//       // sidebar hidden → safe to re-enable
+//       setEnableInfiniteScroll(true);
+//     }
+//   }, [showSidebar]);
 
 //   // ───────────────────────────────────────────────
 //   // SEND MESSAGE HANDLER
@@ -1531,17 +1250,47 @@ export default function MessageSkeleton() {
 //         image?: string;
 //         description?: string;
 //       },
-//       replyTo?: Message // 👈 ADDED: 4th argument to accept the reply object
+//       replyTo?: Message
 //     ) => {
+//       console.log("Sending message:", content, type, file, replyTo);
 //       if (!selectedUser || !parentToken) return;
 
-//       const detectedUrl = extractUrl(content);
+//       // 1. Detect URL for Link Preview logic later
+//       // (Ensure you have an extractUrl helper or regex here)
+//       const urlRegex = /(https?:\/\/[^\s]+)/g;
+//       const detectedUrl = content.match(urlRegex)?.[0];
 
+//       // 2. Ensure Conversation ID exists
 //       let cid = conversationId;
 //       if (!cid) {
 //         cid = await getConversationId(selectedUser.id, parentToken);
 //         if (!cid) return;
+//         // If you have a ref for conversationId, update it here too
+//         conversationIdRef.current = cid;
+//         setConversationId(cid);
 //       }
+
+//       // if (typingTimeoutRef.current) {
+//       //   clearTimeout(typingTimeoutRef.current);
+//       //   typingTimeoutRef.current = null;
+//       // }
+//       // setIsTyping(false);
+
+//       // if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+//       //   wsRef.current.send(
+//       //     JSON.stringify({
+//       //       event: "typing",
+//       //       conversationId: cid,
+//       //       isTyping: false,
+//       //     })
+//       //   );
+//       // }
+//       // 🔥 stop typing cleanly
+//       if (typingTimeoutRef.current) {
+//         clearTimeout(typingTimeoutRef.current);
+//         typingTimeoutRef.current = null;
+//       }
+//       sendTypingEvent(false);
 
 //       const tempId = `temp-${Date.now()}`;
 //       const timeString = new Date().toLocaleTimeString("en-US", {
@@ -1550,41 +1299,45 @@ export default function MessageSkeleton() {
 //       });
 
 //       // ─────────────────────────────────────────────
-//       // OPTIMISTIC MESSAGE
+//       // ⚡ 3. OPTIMISTIC UPDATE
 //       // ─────────────────────────────────────────────
+//       const now = Date.now();
+
 //       const optimistic: Message = {
 //         id: tempId,
 //         content,
+//         createdAt: now,
 //         timestamp: timeString,
 //         sent: true,
 //         type: detectedUrl ? "link" : type,
 //         status: "sending",
-
+//         reactions: {},
 //         fileName: file?.name,
 //         fileUrl: file?.url,
-//         senderAvatar: myAvatar,
-//         linkUrl: file?.url,
+//         senderAvatar: myAvatar, // Ensure myAvatar is defined in your component
+//         linkUrl: file?.url || detectedUrl,
 //         linkTitle: file?.name,
 //         linkDescription: file?.description,
 //         linkImage: file?.image,
 
-//         replyTo: replyTo, // 👈 ADDED: Pass replyTo to state so UI renders it immediately
+//         replyTo: replyTo, // ✅ Pass reply object so UI shows it immediately
 //       };
 
-//       console.log(optimistic, "messageoptimistic");
 //       setMessages((prev) => [...prev, optimistic]);
 
-//       // 🔥 EXIT SEARCH MODE
+//       // 🔥 Clear Search & Move User to Top
 //       setSearchQuery("");
 //       setSearchResults([]);
 //       setIsSearching(false);
 
-//       // 🔥 MOVE CONVERSATION TO TOP
 //       setUsers((prev) => {
 //         const updatedUser: User = {
 //           ...selectedUser,
 //           lastMessage: content,
 //           lastMessageTime: timeString,
+//           lastMessageStatus: "sending",
+//           lastMessageSenderId: loggedInUserId ?? undefined,
+
 //           unread: 0,
 //         };
 
@@ -1595,17 +1348,30 @@ export default function MessageSkeleton() {
 //       });
 
 //       // ─────────────────────────────────────────────
-//       // SEND TO API
+//       // 📡 4. SEND TO API
 //       // ─────────────────────────────────────────────
 //       const apiContent =
 //         type === "text" ? content : file?.url || file?.name || content;
 
 //       try {
-//         const data = await sendMessageToApi(cid, apiContent, parentToken);
+//         // Extract the key from the message we are replying to
+//         const replyKey = replyTo?.messageKey;
+
+//         // Send to API (Make sure sendMessageToApi accepts the 4th argument)
+//         const data = await sendMessageToApi(
+//           cid,
+//           apiContent,
+//           parentToken,
+//           replyKey
+//         );
 
 //         const realId = data?.data?.messageId ?? data?.data?.message?.messageId;
 //         const realTime =
 //           data?.data?.createdAt ?? data?.data?.message?.createdAt;
+
+//         // 🔥 IMPORTANT: Capture the new message's key from the server
+//         const realKey =
+//           data?.data?.messageKey ?? data?.data?.message?.messageKey;
 
 //         setMessages((prev) =>
 //           prev.map((m) =>
@@ -1613,6 +1379,7 @@ export default function MessageSkeleton() {
 //               ? {
 //                   ...m,
 //                   id: realId ?? m.id,
+//                   messageKey: realKey, // ✅ Save the key so we can Edit/Reply/Delete this message later
 //                   status: "sent",
 //                   timestamp: realTime
 //                     ? new Date(realTime).toLocaleTimeString("en-US", {
@@ -1625,9 +1392,20 @@ export default function MessageSkeleton() {
 //               : m
 //           )
 //         );
+//         setUsers((prev) =>
+//           prev.map((u) =>
+//             u.id === selectedUser.id
+//               ? {
+//                   ...u,
+//                   lastMessageStatus: "sent",
+//                   lastMessageSenderId: loggedInUserId ?? undefined,
+//                 } // ✓ single tick
+//               : u
+//           )
+//         );
 
 //         // ─────────────────────────────────────────────
-//         // 🔗 FETCH LINK PREVIEW (AFTER SEND)
+//         // 🔗 5. FETCH LINK PREVIEW (After Send)
 //         // ─────────────────────────────────────────────
 //         if (detectedUrl && type === "text") {
 //           try {
@@ -1654,11 +1432,12 @@ export default function MessageSkeleton() {
 //                 )
 //               );
 //             }
-//           } catch {
-//             // preview failure is non-blocking
+//           } catch (e) {
+//             console.warn("Link preview failed", e);
 //           }
 //         }
-//       } catch {
+//       } catch (error) {
+//         console.error("Message send failed:", error);
 //         setMessages((prev) =>
 //           prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
 //         );
@@ -1671,6 +1450,7 @@ export default function MessageSkeleton() {
 //       setSearchQuery,
 //       setSearchResults,
 //       setIsSearching,
+//       myAvatar, // Added as dependency
 //     ]
 //   );
 
@@ -1683,10 +1463,12 @@ export default function MessageSkeleton() {
 //     const handleMessage = async (event: MessageEvent) => {
 //       if (!event.data?.type) return;
 
+//       console.log(event, "evrntenter");
+
 //       if (event.data.type === "OPEN_CHAT") {
 //         const token = event.data.payload?.token;
 //         const incomingUser = event.data.payload?.user;
-
+//         console.log(incomingUser, "incomingUser");
 //         setParentToken(token);
 //         const uid = decodeToken(token);
 //         setLoggedInUserId(uid);
@@ -1699,11 +1481,12 @@ export default function MessageSkeleton() {
 //               incomingUser.lastName ?? ""
 //             }`.trim(),
 //             avatar: incomingUser.profilePhoto
-//               ? `https://d34wmjl2ccaffd.cloudfront.net${incomingUser.profilePhoto}`
-//               : "/user.png",
+//               ? `${process.env.NEXT_PUBLIC_CLOUDFRONT_URL}${incomingUser.profilePhoto}`
+//               : undefined,
 //             lastMessage: "",
+//             instituteName: incomingUser.instituteName,
 //             lastMessageTime: "Now",
-//             online: true,
+//             online: false,
 //           };
 
 //           setSelectedUser(user);
@@ -1720,24 +1503,148 @@ export default function MessageSkeleton() {
 //         }
 //       }
 
-//       if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
-//         if (!selectedUser || !parentToken) return;
+//       if (event.data.type === "CLOSE_CHAT") {
+//         console.log("🚪 Chat closed by parent");
 
+//         // refs
+//         conversationIdRef.current = null;
+//         selectedUserRef.current = null;
+
+//         // main state
+//         setConversationId(null);
+//         setSelectedUser(null);
+//         setMessages([]);
+//         setIsPartnerTyping(false);
+
+//         // 🔥 SIDEBAR RESET (THIS WAS MISSING)
+//         setUsers((prev) =>
+//           prev.map((u) => ({
+//             ...u,
+//             isTyping: false,
+//           }))
+//         );
+
+//         setShowSidebar(true);
+//         setMessageCursor(null);
+//         setHasMoreMessages(true);
+
+//         return;
+//       }
+
+//       if (event.data.type === "CHAT_PAGE_OPENED") {
+//         console.log("📨 Message page opened → refetch conversations");
+
+//         if (!parentToken) return;
+
+//         setUsers([]);
+//         setCursor(null);
+//         setHasMoreUsers(true);
+
+//         fetchUsers(null, true);
+//       }
+
+//       // Inside your useEffect...
+
+//       // Inside your useEffect...
+
+//       // Inside your useEffect...
+
+//       // Inside your useEffect...
+
+//       // Inside your useEffect...
+
+//       if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
+//         console.log("📨 Received payload", event.data.payload);
 //         const payload = event.data.payload;
 
-//         // 🆕 OFFER MESSAGE
+//         if (!parentToken) return;
+
+//         // ---------------------------------------------------------
+//         // 1. 🔍 GET RECIPIENT (CRITICAL STEP)
+//         // ---------------------------------------------------------
+//         const recipients =
+//           payload.users || (payload.user ? [payload.user] : []);
+//         const targetUserRaw = recipients[0]; // First recipient for UI logic
+
+//         // Stop if no target and no chat open
+//         if (!targetUserRaw && !selectedUser) {
+//           console.error("❌ No user provided in payload and no chat open.");
+//           return;
+//         }
+
+//         // Format the raw user data into your User type
+//         const targetUser: User = targetUserRaw
+//           ? {
+//               id: targetUserRaw.user_id,
+//               name: `${targetUserRaw.firstName} ${
+//                 targetUserRaw.lastName ?? ""
+//               }`.trim(),
+//               avatar: targetUserRaw.profilePhoto
+//                 ? `${process.env.NEXT_PUBLIC_CLOUDFRONT_URL}${targetUserRaw.profilePhoto}`
+//                 : undefined,
+//               lastMessage: payload.message || payload.text || "New message",
+//               instituteName: targetUserRaw.institutionName,
+//               lastMessageTime: "Now",
+//               online: false,
+//               lastMessageStatus: "sending",
+//               unread: 0,
+//             }
+//           : selectedUser!; // fallback
+
+//         // ---------------------------------------------------------
+//         // 2. ⚡ UI SYNC: FORCE OPEN THE CHAT ONLY FOR SINGLE RECIPIENT
+//         // ---------------------------------------------------------
+//         const isSingleRecipient = recipients.length === 1;
+//         const isSwitchingUser =
+//           !selectedUser || selectedUser.id !== targetUser.id;
+
+//         if (isSingleRecipient && isSwitchingUser) {
+//           console.log("🔄 Switching user to:", targetUser.name);
+//           setSelectedUser(targetUser);
+//           setMessages([]); // Clear old messages
+
+//           if (window.innerWidth < 768) {
+//             setShowSidebar(false);
+//           }
+//         }
+
+//         // ---------------------------------------------------------
+//         // 3. 🚫 DUPLICATE CHECK
+//         // ---------------------------------------------------------
+//         const now = Date.now();
+//         const uniqueKey = payload.offerId || payload.message || payload.text;
+
+//         if (
+//           lastProcessedRef.current &&
+//           lastProcessedRef.current.content === uniqueKey &&
+//           now - lastProcessedRef.current.time < 2000
+//         ) {
+//           console.warn("⚠️ Duplicate message prevented");
+//           return;
+//         }
+//         lastProcessedRef.current = { content: uniqueKey, time: now };
+
+//         // ---------------------------------------------------------
+//         // 4. 🏷️ OFFER LOGIC
+//         // ---------------------------------------------------------
+//         // ---------------------------------------------------------
+//         // 4. 🏷️ OFFER LOGIC
+//         // ---------------------------------------------------------
 //         if (payload.type === "OFFER") {
 //           const timeString = new Date().toLocaleTimeString("en-US", {
 //             hour: "numeric",
 //             minute: "2-digit",
 //           });
+//           console.log(payload, "payload");
 
+//           // 1. Create Optimistic Offer Object
 //           const optimisticOffer: Message = {
 //             id: `offer-${payload.offerId}`,
 //             content: payload.text || "Sent an offer",
 //             timestamp: timeString,
 //             sent: true,
 //             type: "offer",
+//             createdAt: now,
 //             status: "sending",
 //             offer: {
 //               offerId: payload.offerId,
@@ -1747,48 +1654,189 @@ export default function MessageSkeleton() {
 //               currency: payload.currency,
 //               tradeDescription: payload.tradeDescription,
 //               imageUrl: payload.imageUrl,
+//               text: payload.text,
+//               title: payload.title,
 //             },
 //           };
 
+//           // 2. Update Chat Panel (Optimistic - keep this for instant feedback in chat)
 //           setMessages((prev) => [...prev, optimisticOffer]);
 
-//           // 🔥 store offer as text/json in backend
-//           const apiContent = JSON.stringify({
-//             type: "OFFER",
-//             ...payload,
-//           });
+//           // (❌ REMOVED Optimistic setUsers from here)
 
-//           let cid = conversationId;
-//           if (!cid) {
-//             cid = await getConversationId(selectedUser.id, parentToken);
+//           // 3. Send to API (Async)
+//           const sendOfferAsync = async () => {
+//             const cid = await getConversationId(targetUser.id, parentToken);
 //             if (!cid) return;
-//           }
+//             if (isSingleRecipient && isSwitchingUser) setConversationId(cid);
 
-//           try {
-//             const data = await sendMessageToApi(cid, apiContent, parentToken);
+//             const apiContent = JSON.stringify({ type: "OFFER", ...payload });
+//             try {
+//               const data = await sendMessageToApi(cid, apiContent, parentToken);
+//               const realId = data?.data?.messageId;
 
-//             const realId = data?.data?.messageId;
+//               // 4. Update Message Status (Success)
+//               setMessages((prev) =>
+//                 prev.map((m) =>
+//                   m.id === optimisticOffer.id
+//                     ? { ...m, id: realId, status: "sent" }
+//                     : m
+//                 )
+//               );
 
-//             setMessages((prev) =>
-//               prev.map((m) =>
-//                 m.id === optimisticOffer.id
-//                   ? { ...m, id: realId, status: "sent" }
-//                   : m
-//               )
-//             );
-//           } catch {
-//             setMessages((prev) =>
-//               prev.map((m) =>
-//                 m.id === optimisticOffer.id ? { ...m, status: "failed" } : m
-//               )
-//             );
-//           }
+//               // 5. ✅ UPDATE SIDEBAR HERE (After success)
+//               // This ensures we don't mess up the list if the API fails
+//               setUsers((prev) => {
+//                 const updatedUser = {
+//                   ...targetUser,
+//                   lastMessage: payload.text,
+//                   lastMessageTime: "Now",
+//                 };
 
+//                 // Move to top
+//                 const newList = [
+//                   updatedUser,
+//                   ...prev.filter((u) => u.id !== targetUser.id),
+//                 ];
+
+//                 console.log("✅ Sidebar updated after API success");
+//                 return newList;
+//               });
+
+//               // Optional: Update search results too if needed
+//               if (searchQuery.length >= 2) {
+//                 setSearchResults((prev) => {
+//                   const exists = prev.find((u) => u.id === targetUser.id);
+//                   if (exists) {
+//                     return [
+//                       { ...targetUser, lastMessage: "Sent an offer" },
+//                       ...prev.filter((u) => u.id !== targetUser.id),
+//                     ];
+//                   }
+//                   return prev;
+//                 });
+//               }
+//             } catch (e) {
+//               console.error("Offer failed", e);
+//               setMessages((prev) =>
+//                 prev.map((m) =>
+//                   m.id === optimisticOffer.id ? { ...m, status: "failed" } : m
+//                 )
+//               );
+//             }
+//           };
+//           sendOfferAsync();
+//           return; // Exit
+//         }
+
+//         // ---------------------------------------------------------
+//         // 5. 🏪 MARKETPLACE LOGIC
+//         // ---------------------------------------------------------
+//         if (payload.type === "MARKETPLACE_MESSAGE") {
+//           const text = payload.text;
+//           if (!text) return;
+
+//           const tempId = `temp-${Date.now()}`;
+//           const optimisticMsg: Message = {
+//             id: tempId,
+//             content: text,
+//             timestamp: "Now",
+//             sent: true,
+//             type: "text",
+//             createdAt: Date.now(),
+//             status: "sending",
+//           };
+
+//           setMessages((prev) => [...prev, optimisticMsg]);
+
+//           const sendMarketplaceAsync = async () => {
+//             const cid = await getConversationId(targetUser.id, parentToken);
+//             if (!cid) return;
+//             if (isSingleRecipient && isSwitchingUser) setConversationId(cid);
+
+//             try {
+//               const data = await sendMessageToApi(cid, text, parentToken);
+//               const realId = data?.data?.messageId;
+
+//               setMessages((prev) =>
+//                 prev.map((m) =>
+//                   m.id === tempId ? { ...m, id: realId, status: "sent" } : m
+//                 )
+//               );
+
+//               setUsers((prev) => {
+//                 const updatedUser = { ...targetUser, lastMessage: text };
+//                 return [
+//                   updatedUser,
+//                   ...prev.filter((u) => u.id !== targetUser.id),
+//                 ];
+//               });
+//             } catch (e) {
+//               setMessages((prev) =>
+//                 prev.map((m) =>
+//                   m.id === tempId ? { ...m, status: "failed" } : m
+//                 )
+//               );
+//             }
+//           };
+//           sendMarketplaceAsync();
 //           return;
 //         }
 
-//         // 🟢 NORMAL TEXT MESSAGE
-//         handleSendMessage(payload.message);
+//         // ---------------------------------------------------------
+//         // 6. 🚀 STANDARD TEXT / BULK LOGIC
+//         // ---------------------------------------------------------
+//         let optimisticMessageId = "";
+//         if (isSingleRecipient || recipients.length === 1) {
+//           optimisticMessageId = Date.now().toString();
+//           const optimisticMessage: Message = {
+//             id: optimisticMessageId,
+//             content: payload.message,
+//             timestamp: "Just now",
+//             sent: true,
+//             type: "text",
+//             createdAt: Date.now(),
+//             status: "sending",
+//           };
+//           setMessages((prev) => [...prev, optimisticMessage]);
+//         }
+
+//         const processMessageForUser = async (recipientRaw: any) => {
+//           const rId = recipientRaw.user_id;
+//           try {
+//             const cid = await getConversationId(rId, parentToken);
+//             if (!cid) return;
+//             if (isSingleRecipient && rId === targetUser.id && isSwitchingUser)
+//               setConversationId(cid);
+
+//             await sendMessageToApi(cid, payload.message, parentToken);
+
+//             setUsers((prev) => {
+//               const existing = prev.find((u) => u.id === rId);
+//               if (existing) {
+//                 const updated = {
+//                   ...existing,
+//                   lastMessage: payload.message,
+//                   lastMessageTime: "Now",
+//                 };
+//                 return [updated, ...prev.filter((u) => u.id !== rId)];
+//               }
+//               return prev;
+//             });
+
+//             if (rId === targetUser.id) {
+//               setMessages((prev) =>
+//                 prev.map((m) =>
+//                   m.id === optimisticMessageId ? { ...m, status: "sent" } : m
+//                 )
+//               );
+//             }
+//           } catch (e) {
+//             console.error(e);
+//           }
+//         };
+
+//         recipients.forEach((r: any) => processMessageForUser(r));
 //       }
 //     };
 
@@ -1802,12 +1850,43 @@ export default function MessageSkeleton() {
 //     fetchMessages,
 //   ]);
 
-//   // ───────────────────────────────────────────────
-//   // ✏️ EDIT MESSAGE API
-//   // ───────────────────────────────────────────────
-//   // ───────────────────────────────────────────────
-//   // ✏️ EDIT MESSAGE API
-//   // ───────────────────────────────────────────────
+//   const sendTypingEvent = useCallback((isTyping: boolean) => {
+//     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+//     if (!conversationIdRef.current || !loggedInUserIdRef.current) return;
+
+//     const payload = {
+//       event: "typing",
+//       data: {
+//         conversationId: conversationIdRef.current,
+//         isTyping,
+//         context: "CONVERSATION",
+//       },
+//     };
+
+//     wsRef.current.send(JSON.stringify(payload));
+//   }, []);
+
+//   const handleTypingInput = useCallback(() => {
+//     const now = Date.now();
+//     const THROTTLE_MS = 2000; // Block next "true" send for 2.5s
+
+//     // 1. Send TYPING = TRUE (Throttled)
+//     if (now - lastTypingSentTimeRef.current > THROTTLE_MS) {
+//       sendTypingEvent(true);
+//       lastTypingSentTimeRef.current = now;
+//     }
+
+//     // 2. Clear existing timeout to reset the "stop" timer
+//     if (typingTimeoutRef.current) {
+//       clearTimeout(typingTimeoutRef.current);
+//     }
+
+//     // 3. Set new timeout to send TYPING = FALSE after inactivity
+//     typingTimeoutRef.current = setTimeout(() => {
+//       sendTypingEvent(false);
+//       lastTypingSentTimeRef.current = 0; // Reset throttle so next keypress sends true immediately
+//     }, 2000);
+//   }, [sendTypingEvent]);
 //   const handleEditMessage = async (msg: Message, newContent: string) => {
 //     if (!parentToken || !conversationIdRef.current) return;
 
@@ -1854,64 +1933,103 @@ export default function MessageSkeleton() {
 //   // ───────────────────────────────────────────────
 //   // 🗑️ DELETE MESSAGE API
 //   // ───────────────────────────────────────────────
+//   // Inside ChatInterface.tsx
+
 //   const handleDeleteMessage = async (msg: Message) => {
-//     if (!parentToken || !conversationIdRef.current) return;
-
-//     try {
-//       const res = await fetch(
-//         `${process.env.NEXT_PUBLIC_API_URL}/message/delete`,
-//         {
-//           method: "DELETE", // Check if your backend wants POST or DELETE
-//           headers: {
-//             "Content-Type": "application/json",
-//             Authorization: `Bearer ${parentToken}`, // 🔥 Token passed here
-//           },
-//           body: JSON.stringify({
-//             conversationId: conversationIdRef.current,
-//             messageKey: msg.messageKey, // Sends the Composite Key
-//           }),
-//         }
-//       );
-
-//       if (!res.ok) throw new Error("Failed to delete message");
-
-//       // Note: We wait for the "messageDeleted" WebSocket event to remove it from UI.
-//     } catch (error) {
-//       console.error("❌ Error deleting message:", error);
-//       alert("Could not delete message");
-//     }
-//   };
-
-//   const handleReaction = async (msg: Message, emoji: string) => {
 //     if (!parentToken || !conversationIdRef.current || !msg.messageKey) return;
 
-//     // ⚡ Optimistic Update (Immediate Feedback)
+//     // 1. Snapshot for rollback
+//     const previousMessages = messages;
+
+//     // 2. 🔥 OPTIMISTIC UPDATE: Replace content with "This message was deleted"
 //     setMessages((prev) =>
 //       prev.map((m) => {
-//         if (m.id === msg.id) {
-//           const currentReactions = m.reactions || {};
-//           const users = currentReactions[emoji] || [];
-
-//           // Toggle Logic: If I'm in the list, remove me. If not, add me.
-//           const myId = loggedInUserId!;
-//           const hasReacted = users.includes(myId);
-
-//           const newUsers = hasReacted
-//             ? users.filter((uid) => uid !== myId)
-//             : [...users, myId];
-
-//           // If count is 0, remove the key entirely
-//           const newReactions = { ...currentReactions, [emoji]: newUsers };
-//           if (newUsers.length === 0) delete newReactions[emoji];
-
-//           return { ...m, reactions: newReactions };
+//         if (m.id === msg.id || m.messageKey === msg.messageKey) {
+//           return {
+//             ...m,
+//             content: "This message was deleted",
+//             type: "text", // Revert to simple text so images/offers disappear
+//             fileUrl: undefined,
+//             linkUrl: undefined,
+//             offer: undefined,
+//             reactions: {}, // Remove reactions
+//             isDeleted: true, // Optional flag for styling
+//           };
 //         }
 //         return m;
 //       })
 //     );
 
 //     try {
-//       // 🔥 EXACT PAYLOAD YOU REQUESTED
+//       // 3. Call API
+//       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/message/delete`, {
+//         method: "DELETE",
+//         headers: {
+//           "Content-Type": "application/json",
+//           Authorization: `Bearer ${parentToken}`,
+//         },
+//         body: JSON.stringify({
+//           conversationId: conversationIdRef.current,
+//           messageKey: msg.messageKey,
+//         }),
+//       });
+
+//       // Success: The optimistic state stays.
+//     } catch (err) {
+//       console.error("Delete failed", err);
+//       // 4. Rollback if API fails
+//       setMessages(previousMessages);
+//       alert("Failed to delete message");
+//     }
+//   };
+
+//   const handleReaction = async (msg: Message, emoji: string) => {
+//     if (!parentToken || !conversationIdRef.current || !msg.messageKey) return;
+
+//     const myId = loggedInUserId!; // Ensure we have the ID
+
+//     setMessages((prev) =>
+//       prev.map((m) => {
+//         // 1. Find the target message
+//         if (m.messageKey !== msg.messageKey) return m;
+
+//         const currentReactions = m.reactions || {};
+
+//         // We will build a NEW reactions object
+//         const newReactions: Record<string, string[]> = {};
+//         let isTogglingOff = false;
+
+//         // 2. Loop through ALL existing emojis to remove "Me" from everywhere
+//         Object.keys(currentReactions).forEach((key) => {
+//           const users = currentReactions[key];
+
+//           // Remove my ID from this emoji's list
+//           const filteredUsers = users.filter((uid) => uid !== myId);
+
+//           // Check: Did I just click the emoji I already had?
+//           // If yes, I am toggling it off.
+//           if (key === emoji && users.includes(myId)) {
+//             isTogglingOff = true;
+//           }
+
+//           // Keep this emoji key only if other users still have reactions on it
+//           if (filteredUsers.length > 0) {
+//             newReactions[key] = filteredUsers;
+//           }
+//         });
+
+//         // 3. If I am NOT toggling off, add me to the specific emoji I clicked
+//         if (!isTogglingOff) {
+//           const currentUsersForEmoji = newReactions[emoji] || [];
+//           newReactions[emoji] = [...currentUsersForEmoji, myId];
+//         }
+
+//         return { ...m, reactions: newReactions };
+//       })
+//     );
+
+//     // 4. API Call
+//     try {
 //       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/message/react`, {
 //         method: "POST",
 //         headers: {
@@ -1920,14 +2038,16 @@ export default function MessageSkeleton() {
 //         },
 //         body: JSON.stringify({
 //           conversationId: conversationIdRef.current,
-//           messageKey: msg.messageKey, // Timestamp#UUID
-//           emoji: emoji,
+//           messageKey: msg.messageKey,
+//           emoji,
 //         }),
 //       });
 //     } catch (err) {
 //       console.error("Failed to react", err);
+//       // Optional: Revert state if API fails
 //     }
 //   };
+
 //   // ───────────────────────────────────────────────
 //   // RENDER
 //   // ───────────────────────────────────────────────
@@ -1945,10 +2065,11 @@ export default function MessageSkeleton() {
 //           onUserSelect={handleUserSelect}
 //           onSearch={setSearchQuery}
 //           searchQuery={searchQuery}
-//           onLoadMore={loadMoreUsers}
-//           hasMore={hasMoreUsers && !isSearchActive}
+//           onLoadMore={enableInfiniteScroll ? loadMoreUsers : undefined}
+//           hasMore={enableInfiniteScroll && hasMoreUsers && !isSearchActive}
 //           isSearching={isSearching}
 //           isUsersLoading={isUsersLoading}
+//           onOpenProfile={setProfileUser}
 //         />
 //       </div>
 
@@ -1963,6 +2084,7 @@ export default function MessageSkeleton() {
 //           onBack={() => {
 //             setSelectedUser(null);
 //             setShowSidebar(true);
+//             conversationIdRef.current = null;
 //           }}
 //           onLoadMoreMessages={loadMoreMessages}
 //           hasMoreMessages={hasMoreMessages}
@@ -1970,8 +2092,86 @@ export default function MessageSkeleton() {
 //           onEditMessage={handleEditMessage}
 //           onDeleteMessage={handleDeleteMessage}
 //           onReact={handleReaction}
+//           isPartnerTyping={isPartnerTyping} // To display the UI bubble
+//           onTyping={handleTypingInput} // To trigger the logic on keypress
+//           // onInputBlur={() => sendTypingEvent(false)} // To stop typing when they click away
+//           onOpenProfile={setProfileUser}
 //         />
 //       </div>
+
+//       {profileUser && (
+//         <div
+//           className={styles.profileModalOverlay}
+//           onClick={() => setProfileUser(null)}
+//         >
+//           <div
+//             className={styles.profileModal}
+//             onClick={(e) => e.stopPropagation()}
+//           >
+//             <div className={styles.profileImageWrapper}>
+//               {profileUser.avatar ? (
+//                 <img
+//                   src={profileUser.avatar}
+//                   alt={profileUser.name}
+//                   className={styles.profileImage}
+//                 />
+//               ) : (
+//                 <div className={styles.profileImageFallback}>
+//                   {getInitials(profileUser.name)}
+//                 </div>
+//               )}
+
+//               {/* Name overlay (top-left like WhatsApp) */}
+//               <div className={styles.profileNameOverlay}>
+//                 {profileUser.name}
+//               </div>
+//             </div>
+
+//             {/* Actions */}
+//             <div className={styles.profileActionsRow}>
+//               <button
+//                 className={styles.profileActionBtn}
+//                 onClick={() => {
+//                   handleUserSelect(profileUser);
+//                   setProfileUser(null);
+//                 }}
+//               >
+//                 <Image
+//                   src={bubble_img}
+//                   alt="User"
+//                   className={styles.actionIcon}
+//                   width={20}
+//                   height={20}
+//                 />
+//                 <span>Message</span>
+//               </button>
+
+//               <button
+//                 className={styles.profileActionBtn}
+//                 onClick={() => {
+//                   window.parent.postMessage(
+//                     {
+//                       type: "NAVIGATE_PROFILE",
+//                       data: { userId: profileUser.id },
+//                     },
+//                     "*"
+//                   );
+//                   setProfileUser(null);
+//                 }}
+//               >
+//                 <Image
+//                   src={user_img}
+//                   alt="User"
+//                   className={styles.actionIcon}
+//                   width={20}
+//                   height={20}
+//                 />
+//                 <span>Profile</span>
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+//       )}
 //     </div>
 //   );
 // }
