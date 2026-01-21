@@ -55,6 +55,7 @@ interface ChatPanelProps {
   onTyping: () => void;
   // onInputBlur: () => void;
   onOpenProfile: (user: User) => void;
+    hasStartedLoading: boolean; 
 }
 
 const isMobileDevice = () =>
@@ -1005,6 +1006,7 @@ export default function ChatPanel({
   isPartnerTyping,
   onTyping,
   onOpenProfile,
+  hasStartedLoading
 }: // onInputBlur,
 ChatPanelProps) {
   console.log(messages, "messagesbeingsent");
@@ -1318,96 +1320,95 @@ ChatPanelProps) {
       </div> */}
 
       <div className={styles.messagesArea} ref={messagesAreaRef}>
-  {isLoading ? (
-    <Spinner />
-  ) : messages.length === 0 && !hasEverMessagedRef.current ? (
-    <div className={styles.emptyConversation}>
-      <div className={styles.profileRing}>
-        {selectedUser.avatar ? (
-          <img src={selectedUser.avatar} className={styles.emptyAvatar} />
+        {(!hasStartedLoading || isLoading) ? (
+          <Spinner />
+        ) : messages.length === 0 && !hasEverMessagedRef.current ? (
+          <div className={styles.emptyConversation}>
+            <div className={styles.profileRing}>
+              {selectedUser.avatar ? (
+                <img src={selectedUser.avatar} className={styles.emptyAvatar} />
+              ) : (
+                <div className={styles.emptyInitials}>
+                  {getInitials(selectedUser.name)}
+                </div>
+              )}
+            </div>
+            <h3 className={styles.emptyTitle}>
+              You’re connected with <span>{selectedUser.name}</span>
+            </h3>
+          </div>
         ) : (
-          <div className={styles.emptyInitials}>
-            {getInitials(selectedUser.name)}
+          <div className={styles.messagesContainer}>
+            {hasMoreMessages && (
+              <div
+                ref={topMessageSentinelRef}
+                className={styles.paginationSpinner}
+              >
+                {loadingOlder && <span className={styles.spinner} />}
+              </div>
+            )}
+
+            {messages.map((m, index) => {
+              const prevMsg = messages[index - 1];
+              const showDate = shouldShowDateSeparator(m, prevMsg);
+
+              return (
+                <div key={m.id}>
+                  {showDate && (
+                    <div className={styles.dateSeparator}>
+                      <span>{getDateLabel(m.createdAt)}</span>
+                    </div>
+                  )}
+
+                  <MessageRow
+                    m={m}
+                    isMine={m.sent}
+                    onReply={handleReply}
+                    onCopy={handleCopy}
+                    onEdit={onEditMessage || (() => {})}
+                    onDelete={onDeleteMessage || (() => {})}
+                    onReact={onReact}
+                    copiedMessageId={copiedMessageId}
+                    messagesAreaRef={messagesAreaRef}
+                  />
+                </div>
+              );
+            })}
+
+            {isPartnerTyping && (
+              <div className={`${styles.messageRow} ${styles.theirRow}`}>
+                <div className={styles.avatarCol}>
+                  {selectedUser.avatar ? (
+                    <img
+                      src={selectedUser.avatar}
+                      alt="typing..."
+                      className={styles.messageAvatar}
+                    />
+                  ) : (
+                    <div className={styles.defaultAvatar}>
+                      {selectedUser.name?.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <div className={styles.bubbleContainer}>
+                  <div
+                    className={styles.messageBubble}
+                    style={{ width: "fit-content" }}
+                  >
+                    <div className={styles.typingIndicator}>
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
           </div>
         )}
       </div>
-      <h3 className={styles.emptyTitle}>
-        You’re connected with <span>{selectedUser.name}</span>
-      </h3>
-    </div>
-  ) : (
-    <div className={styles.messagesContainer}>
-      {hasMoreMessages && (
-        <div
-          ref={topMessageSentinelRef}
-          className={styles.paginationSpinner}
-        >
-          {loadingOlder && <span className={styles.spinner} />}
-        </div>
-      )}
-
-      {messages.map((m, index) => {
-        const prevMsg = messages[index - 1];
-        const showDate = shouldShowDateSeparator(m, prevMsg);
-
-        return (
-          <div key={m.id}>
-            {showDate && (
-              <div className={styles.dateSeparator}>
-                <span>{getDateLabel(m.createdAt)}</span>
-              </div>
-            )}
-
-            <MessageRow
-              m={m}
-              isMine={m.sent}
-              onReply={handleReply}
-              onCopy={handleCopy}
-              onEdit={onEditMessage || (() => {})}
-              onDelete={onDeleteMessage || (() => {})}
-              onReact={onReact}
-              copiedMessageId={copiedMessageId}
-              messagesAreaRef={messagesAreaRef}
-            />
-          </div>
-        );
-      })}
-
-      {isPartnerTyping && (
-        <div className={`${styles.messageRow} ${styles.theirRow}`}>
-          <div className={styles.avatarCol}>
-            {selectedUser.avatar ? (
-              <img
-                src={selectedUser.avatar}
-                alt="typing..."
-                className={styles.messageAvatar}
-              />
-            ) : (
-              <div className={styles.defaultAvatar}>
-                {selectedUser.name?.charAt(0)}
-              </div>
-            )}
-          </div>
-          <div className={styles.bubbleContainer}>
-            <div
-              className={styles.messageBubble}
-              style={{ width: "fit-content" }}
-            >
-              <div className={styles.typingIndicator}>
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div ref={messagesEndRef} />
-    </div>
-  )}
-</div>
-
 
       {/* REPLY PREVIEW (For Input) */}
       {replyingTo && (
@@ -1444,7 +1445,7 @@ ChatPanelProps) {
         onSendMessage={handleInternalSendMessage}
         onTyping={onTyping}
         disabled={isLoading}
-         replyingTo={replyingTo}
+        replyingTo={replyingTo}
       />
 
       {showGlobalCopyToast && (
