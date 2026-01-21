@@ -100,6 +100,17 @@ export default function ChatInterface() {
   const [profileUser, setProfileUser] = useState<User | null>(null);
   console.log(profileUser, "profileUserObject");
 
+  const messagesCacheRef = useRef<
+    Map<
+      string,
+      {
+        messages: Message[];
+        cursor: string | null;
+        hasMore: boolean;
+      }
+    >
+  >(new Map());
+
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -130,7 +141,7 @@ export default function ChatInterface() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const lastProcessedRef = useRef<{ content: string; time: number } | null>(
-    null
+    null,
   );
 
   const userParam = searchParams.get("user"); // string | null
@@ -160,8 +171,21 @@ export default function ChatInterface() {
                 linkDescription: preview.description,
                 linkImage: preview.image,
               }
-            : m
-        )
+            : m,
+        ),
+      );
+
+      updateConversationCache(conversationIdRef.current!, (prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? {
+                ...m,
+                linkTitle: preview.title,
+                linkDescription: preview.description,
+                linkImage: preview.image,
+              }
+            : m,
+        ),
       );
     } catch {
       // non-blocking
@@ -227,7 +251,7 @@ export default function ChatInterface() {
 
           // Only append users that don't already exist in the list
           const uniqueNewUsers = mappedUsers.filter(
-            (u) => !existingIds.has(u.id)
+            (u) => !existingIds.has(u.id),
           );
 
           return [...prev, ...uniqueNewUsers];
@@ -244,7 +268,7 @@ export default function ChatInterface() {
         }
       }
     },
-    [parentToken]
+    [parentToken],
   );
 
   const loadMoreUsers = () => {
@@ -271,12 +295,26 @@ export default function ChatInterface() {
   useEffect(() => {
     usersRef.current = users;
   }, [users]);
+  const updateConversationCache = (
+    cid: string,
+    updater: (prev: Message[]) => Message[],
+  ) => {
+    const cached = messagesCacheRef.current.get(cid);
+    if (!cached) return;
+
+    const updatedMessages = updater(cached.messages);
+
+    messagesCacheRef.current.set(cid, {
+      ...cached,
+      messages: updatedMessages,
+    });
+  };
 
   useEffect(() => {
     if (!parentToken) return;
 
     const wsUrl = `wss://k4g7m4879h.execute-api.us-east-1.amazonaws.com/dev?token=${encodeURIComponent(
-      parentToken
+      parentToken,
     )}`;
 
     const { ws, id } = getWebSocket(parentToken);
@@ -321,8 +359,8 @@ export default function ChatInterface() {
             const realSenderName = isMine
               ? "You"
               : selectedUserRef.current?.id === data.senderUserId
-              ? selectedUserRef.current?.name
-              : "User";
+                ? selectedUserRef.current?.name
+                : "User";
             if (!isMine) {
               const backendMessageKey = data.messageKey || data.messageId;
               const isChatOpen =
@@ -338,7 +376,7 @@ export default function ChatInterface() {
                     conversationId: data.conversationId,
                     messageIds: [backendMessageKey],
                   },
-                })
+                }),
               );
 
               if (isChatOpen) {
@@ -349,15 +387,15 @@ export default function ChatInterface() {
                       conversationId: data.conversationId,
                       messageIds: [backendMessageKey],
                     },
-                  })
+                  }),
                 );
 
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === backendMessageKey || m.id === data.messageId
                       ? { ...m, status: "read" }
-                      : m
-                  )
+                      : m,
+                  ),
                 );
               }
             }
@@ -376,7 +414,7 @@ export default function ChatInterface() {
                     {
                       hour: "numeric",
                       minute: "2-digit",
-                    }
+                    },
                   ),
                   sent: isMine,
                   senderName: realSenderName,
@@ -425,11 +463,36 @@ export default function ChatInterface() {
               }
             }
 
+            updateConversationCache(data.conversationId, (prev) => [
+              ...prev,
+              {
+                id: data.messageId,
+                messageKey: data.messageKey,
+                content: parsedOffer?.text || data.content,
+                createdAt: new Date(data.createdAt).getTime(),
+                timestamp: new Date(data.createdAt).toLocaleTimeString(
+                  "en-US",
+                  {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  },
+                ),
+                sent: isMine,
+                senderName: realSenderName,
+                senderAvatar,
+                type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
+                offer: parsedOffer ? { ...parsedOffer } : undefined,
+                linkUrl: detectedUrl ?? undefined,
+                status: isMine ? "sent" : "read",
+                reactions: {},
+              },
+            ]);
+
             // 3. Update Sidebar (move conversation to top)
             setUsers((prev) => {
               const existingIndex = prev.findIndex(
                 (u) =>
-                  u.id === data.senderUserId || u.id === data.recipientUserId
+                  u.id === data.senderUserId || u.id === data.recipientUserId,
               );
 
               if (existingIndex === -1) return prev;
@@ -444,7 +507,7 @@ export default function ChatInterface() {
                   {
                     hour: "numeric",
                     minute: "2-digit",
-                  }
+                  },
                 ),
 
                 unread:
@@ -467,16 +530,24 @@ export default function ChatInterface() {
               prev.map((m) =>
                 m.messageKey === data.messageKey || m.id === data.messageId
                   ? { ...m, status: "read" }
-                  : m
-              )
+                  : m,
+              ),
             );
+            updateConversationCache(conversationIdRef.current!, (prev) =>
+              prev.map((m) =>
+                m.messageKey === data.messageKey || m.id === data.messageId
+                  ? { ...m, status: "read" } // or "read"
+                  : m,
+              ),
+            );
+
             setUsers((prev) =>
               prev.map((u) =>
                 u.id === selectedUserRef.current?.id &&
                 u.lastMessageSenderId === loggedInUserIdRef.current
                   ? { ...u, lastMessageStatus: "read" }
-                  : u
-              )
+                  : u,
+              ),
             );
 
             break;
@@ -488,12 +559,12 @@ export default function ChatInterface() {
 
             setUsers((prev) =>
               prev.map((user) =>
-                user.id === userId ? { ...user, online: isOnline } : user
-              )
+                user.id === userId ? { ...user, online: isOnline } : user,
+              ),
             );
 
             setSelectedUser((prev) =>
-              prev && prev.id === userId ? { ...prev, online: isOnline } : prev
+              prev && prev.id === userId ? { ...prev, online: isOnline } : prev,
             );
 
             break;
@@ -508,7 +579,7 @@ export default function ChatInterface() {
                 type: "globalUnreadCount",
                 data: { delta },
               },
-              "*"
+              "*",
             );
 
             break;
@@ -533,7 +604,7 @@ export default function ChatInterface() {
 
             // 2️⃣ 🔥 Update SIDEBAR typing state
             setUsers((prev) =>
-              prev.map((u) => (u.id === typingUserId ? { ...u, isTyping } : u))
+              prev.map((u) => (u.id === typingUserId ? { ...u, isTyping } : u)),
             );
 
             break;
@@ -558,7 +629,23 @@ export default function ChatInterface() {
                 }
 
                 return { ...m, status: "delivered" };
-              })
+              }),
+            );
+
+            updateConversationCache(conversationIdRef.current!, (prev) =>
+              prev.map((m) => {
+                if (m.messageKey !== data.messageKey && m.id !== data.messageId)
+                  return m;
+
+                if (
+                  STATUS_PRIORITY[m.status ?? "sent"] >
+                  STATUS_PRIORITY["delivered"]
+                ) {
+                  return m;
+                }
+
+                return { ...m, status: "delivered" };
+              }),
             );
 
             setUsers((prev) =>
@@ -566,8 +653,8 @@ export default function ChatInterface() {
                 u.id === selectedUserRef.current?.id &&
                 u.lastMessageSenderId === loggedInUserIdRef.current
                   ? { ...u, lastMessageStatus: "delivered" }
-                  : u
-              )
+                  : u,
+              ),
             );
 
             break;
@@ -591,13 +678,21 @@ export default function ChatInterface() {
                   content: newContent,
                   isEdited: true, // optional
                 };
-              })
+              }),
+            );
+
+            updateConversationCache(conversationIdRef.current!, (prev) =>
+              prev.map((m) =>
+                m.messageKey === messageKey || m.id === messageId
+                  ? { ...m, content: newContent, isEdited: true }
+                  : m,
+              ),
             );
 
             // 2️⃣ Update SIDEBAR preview (if last message)
             setUsers((prev) => {
               const index = prev.findIndex((u) =>
-                u.lastMessage === undefined ? false : true
+                u.lastMessage === undefined ? false : true,
               );
 
               if (index === -1) return prev;
@@ -634,7 +729,22 @@ export default function ChatInterface() {
                   };
                 }
                 return m;
-              })
+              }),
+            );
+            updateConversationCache(data.conversationId, (prev) =>
+              prev.map((m) =>
+                m.messageKey === data.messageKey || m.id === data.messageId
+                  ? {
+                      ...m,
+                      content: "This message was deleted",
+                      type: "text",
+                      linkUrl: undefined,
+                      offer: undefined,
+                      reactions: {},
+                      isDeleted: true,
+                    }
+                  : m,
+              ),
             );
 
             setUsers((prev) =>
@@ -650,7 +760,7 @@ export default function ChatInterface() {
                   lastMessage: "This message was deleted",
                   lastMessageStatus: undefined,
                 };
-              })
+              }),
             );
 
             break;
@@ -710,7 +820,7 @@ export default function ChatInterface() {
                 // 1️⃣ Remove this user from ALL emojis (🔥❤️😂 etc)
                 Object.keys(reactions).forEach((key) => {
                   reactions[key] = reactions[key].filter(
-                    (u) => u !== reactedBy
+                    (u) => u !== reactedBy,
                   );
                   if (reactions[key].length === 0) {
                     delete reactions[key];
@@ -722,7 +832,28 @@ export default function ChatInterface() {
                 }
 
                 return { ...m, reactions };
-              })
+              }),
+            );
+
+            updateConversationCache(conversationIdRef.current!, (prev) =>
+              prev.map((m) => {
+                if (m.messageKey !== messageKey) return m;
+
+                const reactions = { ...(m.reactions || {}) };
+
+                Object.keys(reactions).forEach((key) => {
+                  reactions[key] = reactions[key].filter(
+                    (u) => u !== reactedBy,
+                  );
+                  if (reactions[key].length === 0) delete reactions[key];
+                });
+
+                if (action !== "REMOVED") {
+                  reactions[emoji] = [...(reactions[emoji] || []), reactedBy];
+                }
+
+                return { ...m, reactions };
+              }),
             );
 
             break;
@@ -741,7 +872,7 @@ export default function ChatInterface() {
                 ...prev[index],
                 lastMessage: data.lastMessagePreview,
                 lastMessageTime: new Date(
-                  data.lastMessageAt
+                  data.lastMessageAt,
                 ).toLocaleTimeString("en-US", {
                   hour: "numeric",
                   minute: "2-digit",
@@ -877,8 +1008,8 @@ export default function ChatInterface() {
 
     setUsers((prev) =>
       prev.map((u) =>
-        u.id === selectedUser.id ? { ...u, isTyping: false } : u
-      )
+        u.id === selectedUser.id ? { ...u, isTyping: false } : u,
+      ),
     );
   }, [selectedUser]);
 
@@ -893,7 +1024,7 @@ export default function ChatInterface() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ targetUserId }),
-        }
+        },
       );
 
       const data = await res.json();
@@ -910,7 +1041,7 @@ export default function ChatInterface() {
 
   const normalizeReactions = (
     backendReactions: any,
-    myUserId: string
+    myUserId: string,
   ): Record<string, string[]> => {
     if (!backendReactions) return {};
 
@@ -943,9 +1074,24 @@ export default function ChatInterface() {
       cid: string,
       token: string,
       myUserId: string | null,
-      currentCursor: string | null
+      currentCursor: string | null,
     ) => {
       if (!myUserId || !cid) return;
+
+      /* ─────────────────────────────────────────────
+       ✅ NEW 1️⃣: SERVE FROM CACHE (ONLY FIRST PAGE)
+    ───────────────────────────────────────────── */
+      if (!currentCursor && messagesCacheRef.current.has(cid)) {
+        const cached = messagesCacheRef.current.get(cid)!;
+
+        setMessages(cached.messages);
+        setMessageCursor(cached.cursor);
+        setHasMoreMessages(cached.hasMore);
+        setIsMessagesLoading(false);
+
+        console.log("⚡ Messages loaded from cache:", cid);
+        return;
+      }
 
       try {
         const baseUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -969,9 +1115,8 @@ export default function ChatInterface() {
 
         const apiMessages = data?.data?.messages ?? [];
 
-        // 🔥 MAP BACKEND → UI SHAPE (NO STATE ACCESS HERE)
+        // 🔥 MAP BACKEND → UI SHAPE (UNCHANGED)
         const mappedMessages: Message[] = apiMessages.map((msg: any) => {
-          console.log(msg, "messgesrecieved");
           let parsedOffer = null;
 
           try {
@@ -985,7 +1130,6 @@ export default function ChatInterface() {
           return {
             id: msg.messageId,
             messageKey: msg.messageKey,
-
             content: parsedOffer?.text || msg.content,
             createdAt: new Date(msg.createdAt).getTime(),
 
@@ -1023,25 +1167,23 @@ export default function ChatInterface() {
               : undefined,
 
             linkUrl: detectedUrl ?? undefined,
-
-            // 🔥 NORMALIZED REACTIONS
             reactions: normalizeReactions(msg.reactions, myUserId),
 
             status:
               msg.deliveryStatus === "READ"
                 ? "read"
                 : msg.deliveryStatus === "DELIVERED"
-                ? "delivered"
-                : "sent",
+                  ? "delivered"
+                  : "sent",
           };
         });
 
-        // ─────────────────────────────────────────────
-        // 🔥 MERGE WITH EXISTING STATE (CRITICAL)
-        // ─────────────────────────────────────────────
+        /* ─────────────────────────────────────────────
+         🔥 MERGE WITH EXISTING STATE (UNCHANGED LOGIC)
+      ───────────────────────────────────────────── */
         setMessages((prev) => {
           const existingMap = new Map(
-            prev.map((m) => [m.messageKey || m.id, m])
+            prev.map((m) => [m.messageKey || m.id, m]),
           );
 
           const merged = mappedMessages.map((msg) => {
@@ -1053,27 +1195,36 @@ export default function ChatInterface() {
               status:
                 STATUS_PRIORITY[msg.status ?? "sent"] >=
                 STATUS_PRIORITY[prevMsg?.status ?? "sent"]
-                  ? msg.status ?? prevMsg?.status ?? "sent"
-                  : prevMsg?.status ?? msg.status ?? "sent",
-
+                  ? (msg.status ?? prevMsg?.status ?? "sent")
+                  : (prevMsg?.status ?? msg.status ?? "sent"),
               reactions: msg.reactions ?? prevMsg?.reactions ?? {},
             };
           });
 
           const ordered = merged.reverse();
+          const finalMessages = currentCursor ? [...ordered, ...prev] : ordered;
 
-          return currentCursor ? [...ordered, ...prev] : ordered;
+          /* ─────────────────────────────────────────────
+           ✅ NEW 2️⃣: UPDATE CACHE
+        ───────────────────────────────────────────── */
+          messagesCacheRef.current.set(cid, {
+            messages: finalMessages,
+            cursor: data?.data?.cursor ?? null,
+            hasMore: Boolean(data?.data?.cursor),
+          });
+
+          return finalMessages;
         });
 
         // ─────────────────────────────────────────────
-        // Pagination
+        // Pagination (UNCHANGED)
         // ─────────────────────────────────────────────
         const nextCursor = data?.data?.cursor ?? null;
         setMessageCursor(nextCursor);
         setHasMoreMessages(Boolean(nextCursor));
 
         // ─────────────────────────────────────────────
-        // 🔥 ACK READ
+        // 🔥 ACK READ (UNCHANGED)
         // ─────────────────────────────────────────────
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
           const unreadMessageIds = apiMessages
@@ -1081,8 +1232,6 @@ export default function ChatInterface() {
             .map((m: any) => m.messageKey || m.messageId);
 
           if (unreadMessageIds.length > 0) {
-            console.log("📤 Sending ackRead for:", unreadMessageIds);
-
             wsRef.current.send(
               JSON.stringify({
                 event: "ackRead",
@@ -1090,7 +1239,7 @@ export default function ChatInterface() {
                   conversationId: cid,
                   messageIds: unreadMessageIds,
                 },
-              })
+              }),
             );
           }
         }
@@ -1101,7 +1250,7 @@ export default function ChatInterface() {
         setIsMessagesLoading(false);
       }
     },
-    []
+    [],
   );
 
   const syncInProgressRef = useRef(false);
@@ -1120,7 +1269,7 @@ export default function ChatInterface() {
         syncInProgressRef.current = false;
       });
     },
-    [fetchMessages, parentToken, loggedInUserId]
+    [fetchMessages, parentToken, loggedInUserId],
   );
 
   // Dependencies: empty since all required dependencies are passed as arguments or are stable state/props
@@ -1139,7 +1288,7 @@ export default function ChatInterface() {
     cid: string,
     content: string,
     token: string,
-    replyToMessageKey?: string
+    replyToMessageKey?: string,
   ) => {
     try {
       const res = await fetch(
@@ -1155,7 +1304,7 @@ export default function ChatInterface() {
             content,
             ...(replyToMessageKey && { replyToMessageKey }),
           }),
-        }
+        },
       );
 
       return await res.json();
@@ -1168,11 +1317,8 @@ export default function ChatInterface() {
   const handleUserSelect = async (user: User) => {
     if (!parentToken || !loggedInUserId) return;
 
-    conversationIdRef.current = null;
-
-    // 🔥 START LOADING FIRST
-    setIsMessagesLoading(true);
-    setMessages([]);
+    // 🔥 Set selected user immediately (no blank UI)
+    setSelectedUser(user);
 
     // 🔥 Disable sidebar mutations on mobile
     if (window.innerWidth < 768) {
@@ -1180,37 +1326,53 @@ export default function ChatInterface() {
       setShowSidebar(false);
     }
 
-    // 🔥 Defer heavy ChatPanel mount by 1 frame
-    setSelectedUser(null);
-    requestAnimationFrame(() => {
-      setSelectedUser(user);
-    });
-
-    // reset pagination
-    setMessageCursor(null);
-    setHasMoreMessages(true);
-
-    // reset unread
+    // reset unread immediately
     setUsers((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
+      prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u)),
     );
 
     try {
       // 🔁 CREATE / GET CONVERSATION
       const cid = await getConversationId(user.id, parentToken);
 
-      if (!cid) {
-        setIsMessagesLoading(false);
-        return;
-      }
+      if (!cid) return;
 
-      // 📥 FETCH MESSAGES
-      await fetchMessages(cid, parentToken, loggedInUserId, null);
+      conversationIdRef.current = cid;
+      setConversationId(cid);
+
+      // 🔥 CHECK CACHE FIRST
+      const cached = messagesCacheRef.current.get(cid);
+
+      if (cached) {
+        setMessages(cached.messages);
+        setMessageCursor(cached.cursor);
+        setHasMoreMessages(cached.hasMore);
+        setIsMessagesLoading(false);
+
+        // silent sync
+        syncConversationMessages(cid);
+      } else {
+        // ❗ FIRST TIME ONLY → show loader
+        setIsMessagesLoading(true);
+        await fetchMessages(cid, parentToken, loggedInUserId, null);
+      }
     } catch (e) {
       console.error(e);
       setIsMessagesLoading(false);
     }
   };
+useEffect(() => {
+  const cid = conversationIdRef.current;
+  if (!cid) return;
+
+  const cached = messagesCacheRef.current.get(cid);
+  if (!cached) return;
+
+  setMessages(cached.messages);
+  setMessageCursor(cached.cursor);
+  setHasMoreMessages(cached.hasMore);
+  setIsMessagesLoading(false);
+}, [selectedUser?.id]);
 
   useEffect(() => {
     if (!showSidebar && window.innerWidth < 768) {
@@ -1234,7 +1396,7 @@ export default function ChatInterface() {
         image?: string;
         description?: string;
       },
-      replyTo?: Message
+      replyTo?: Message,
     ) => {
       console.log("Sending message:", content, type, file, replyTo);
       if (!selectedUser || !parentToken) return;
@@ -1346,7 +1508,7 @@ export default function ChatInterface() {
           cid,
           apiContent,
           parentToken,
-          replyKey
+          replyKey,
         );
 
         const realId = data?.data?.messageId ?? data?.data?.message?.messageId;
@@ -1373,8 +1535,8 @@ export default function ChatInterface() {
                     : m.timestamp,
                   senderAvatar: myAvatar,
                 }
-              : m
-          )
+              : m,
+          ),
         );
         setUsers((prev) =>
           prev.map((u) =>
@@ -1384,8 +1546,8 @@ export default function ChatInterface() {
                   lastMessageStatus: "sent",
                   lastMessageSenderId: loggedInUserId ?? undefined,
                 } // ✓ single tick
-              : u
-          )
+              : u,
+          ),
         );
 
         // ─────────────────────────────────────────────
@@ -1412,8 +1574,8 @@ export default function ChatInterface() {
                         linkImage: preview.image,
                         linkUrl: detectedUrl,
                       }
-                    : m
-                )
+                    : m,
+                ),
               );
             }
           } catch (e) {
@@ -1423,7 +1585,7 @@ export default function ChatInterface() {
       } catch (error) {
         console.error("Message send failed:", error);
         setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
+          prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m)),
         );
       }
     },
@@ -1435,7 +1597,7 @@ export default function ChatInterface() {
       setSearchResults,
       setIsSearching,
       myAvatar, // Added as dependency
-    ]
+    ],
   );
 
   // ───────────────────────────────────────────────
@@ -1505,7 +1667,7 @@ export default function ChatInterface() {
           prev.map((u) => ({
             ...u,
             isTyping: false,
-          }))
+          })),
         );
 
         setShowSidebar(true);
@@ -1664,8 +1826,8 @@ export default function ChatInterface() {
                 prev.map((m) =>
                   m.id === optimisticOffer.id
                     ? { ...m, id: realId, status: "sent" }
-                    : m
-                )
+                    : m,
+                ),
               );
 
               // 5. ✅ UPDATE SIDEBAR HERE (After success)
@@ -1704,8 +1866,8 @@ export default function ChatInterface() {
               console.error("Offer failed", e);
               setMessages((prev) =>
                 prev.map((m) =>
-                  m.id === optimisticOffer.id ? { ...m, status: "failed" } : m
-                )
+                  m.id === optimisticOffer.id ? { ...m, status: "failed" } : m,
+                ),
               );
             }
           };
@@ -1744,8 +1906,8 @@ export default function ChatInterface() {
 
               setMessages((prev) =>
                 prev.map((m) =>
-                  m.id === tempId ? { ...m, id: realId, status: "sent" } : m
-                )
+                  m.id === tempId ? { ...m, id: realId, status: "sent" } : m,
+                ),
               );
 
               setUsers((prev) => {
@@ -1758,8 +1920,8 @@ export default function ChatInterface() {
             } catch (e) {
               setMessages((prev) =>
                 prev.map((m) =>
-                  m.id === tempId ? { ...m, status: "failed" } : m
-                )
+                  m.id === tempId ? { ...m, status: "failed" } : m,
+                ),
               );
             }
           };
@@ -1811,8 +1973,8 @@ export default function ChatInterface() {
             if (rId === targetUser.id) {
               setMessages((prev) =>
                 prev.map((m) =>
-                  m.id === optimisticMessageId ? { ...m, status: "sent" } : m
-                )
+                  m.id === optimisticMessageId ? { ...m, status: "sent" } : m,
+                ),
               );
             }
           } catch (e) {
@@ -1879,8 +2041,8 @@ export default function ChatInterface() {
       prev.map((m) =>
         m.id === msg.id
           ? { ...m, content: newContent, isEdited: true } // Update content & add edited flag
-          : m
-      )
+          : m,
+      ),
     );
 
     try {
@@ -1897,7 +2059,7 @@ export default function ChatInterface() {
             messageKey: msg.messageKey,
             newContent: newContent,
           }),
-        }
+        },
       );
 
       if (!res.ok) {
@@ -1941,7 +2103,7 @@ export default function ChatInterface() {
           };
         }
         return m;
-      })
+      }),
     );
 
     try {
@@ -2009,7 +2171,7 @@ export default function ChatInterface() {
         }
 
         return { ...m, reactions: newReactions };
-      })
+      }),
     );
 
     // 4. API Call
@@ -2138,7 +2300,7 @@ export default function ChatInterface() {
                       type: "NAVIGATE_PROFILE",
                       data: { userId: profileUser.id },
                     },
-                    "*"
+                    "*",
                   );
                   setProfileUser(null);
                 }}
