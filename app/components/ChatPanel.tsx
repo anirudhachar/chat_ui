@@ -1352,6 +1352,7 @@ ChatPanelProps) {
         onSendMessage={handleInternalSendMessage}
         onTyping={onTyping}
         disabled={isLoading}
+         replyingTo={replyingTo}
       />
 
       {showGlobalCopyToast && (

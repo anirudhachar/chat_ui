@@ -12,6 +12,7 @@ import {
 } from "react-icons/fi";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import styles from "./MessageInput.module.scss";
+import { Message } from "./ChatInterface";
 
 interface MessageInputProps {
   onSendMessage: (
@@ -21,6 +22,7 @@ interface MessageInputProps {
   ) => void;
   onTyping?: () => void;
   disabled?: boolean;
+   replyingTo?: Message | null;
 }
 
 const extractURL = (text: string) => {
@@ -40,7 +42,10 @@ export default function MessageInput({
   onSendMessage,
   onTyping,
   disabled = false,
+  replyingTo,
 }: MessageInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -161,6 +166,15 @@ export default function MessageInput({
     if (url) fetchPreviewDebounced(url);
     else setLinkPreview(null);
   }, [message]);
+
+  
+useEffect(() => {
+  if (replyingTo) {
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+  }
+}, [replyingTo]);
 
   // ───────────────────────────────────────────────
   // 🎤 RECORDING HANDLERS
@@ -317,7 +331,7 @@ export default function MessageInput({
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
     setMessage((prev) => prev + emojiData.emoji);
-    closeEmojiSheet(); // ✅ CLOSE AFTER SELECT
+    // closeEmojiSheet(); // ✅ CLOSE AFTER SELECT
   };
 
   const showSendButton =
@@ -513,6 +527,7 @@ export default function MessageInput({
 
             <input
               type="text"
+              ref={inputRef}
               className={styles.textInput}
               placeholder="Type a message"
               value={message}
