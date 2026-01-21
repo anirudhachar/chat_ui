@@ -942,171 +942,334 @@ export default function ChatInterface() {
     return normalized;
   };
 
+  // const fetchMessages = useCallback(
+  //   async (
+  //     cid: string,
+  //     token: string,
+  //     myUserId: string | null,
+  //     currentCursor: string | null
+  //   ) => {
+  //     if (!myUserId || !cid) return;
+
+  //     try {
+  //       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  //       const url =
+  //         `${baseUrl}/message/${cid}/list?limit=10` +
+  //         (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
+
+  //       const res = await fetch(url, {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       });
+
+  //       if (!res.ok) {
+  //         throw new Error("Failed to fetch messages");
+  //       }
+
+  //       const data = await res.json();
+  //       console.log("📥 Messages:", data);
+
+  //       const apiMessages = data?.data?.messages ?? [];
+
+  //       // 🔥 MAP BACKEND → UI SHAPE (NO STATE ACCESS HERE)
+  //       const mappedMessages: Message[] = apiMessages.map((msg: any) => {
+  //         console.log(msg, "messgesrecieved");
+  //         let parsedOffer = null;
+
+  //         try {
+  //           const parsed = JSON.parse(msg.content);
+  //           if (parsed.type === "OFFER") parsedOffer = parsed;
+  //         } catch {}
+
+  //         const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
+  //         const sender = msg.sender;
+
+  //         return {
+  //           id: msg.messageId,
+  //           messageKey: msg.messageKey,
+
+  //           content: parsedOffer?.text || msg.content,
+  //           createdAt: new Date(msg.createdAt).getTime(),
+
+  //           timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
+  //             hour: "numeric",
+  //             minute: "2-digit",
+  //           }),
+
+  //           sent: msg.senderUserId === myUserId,
+
+  //           senderId: sender?.userId,
+  //           senderName:
+  //             msg.senderUserId === myUserId
+  //               ? "You"
+  //               : `${sender?.firstName ?? ""} ${sender?.lastName ?? ""}`.trim(),
+
+  //           senderAvatar: sender?.avatarUrl
+  //             ? `${process.env.NEXT_PUBLIC_CLOUDFRONT_URL}${sender.avatarUrl}`
+  //             : undefined,
+
+  //           type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
+
+  //           offer: parsedOffer
+  //             ? {
+  //                 offerId: parsedOffer.offerId,
+  //                 listingId: parsedOffer.listingId,
+  //                 offerType: parsedOffer.offerType,
+  //                 amount: parsedOffer.amount,
+  //                 currency: parsedOffer.currency,
+  //                 tradeDescription: parsedOffer.tradeDescription,
+  //                 imageUrl: parsedOffer.imageUrl,
+  //                 text: parsedOffer.text,
+  //                 title: parsedOffer.title,
+  //               }
+  //             : undefined,
+
+  //           linkUrl: detectedUrl ?? undefined,
+
+  //           // 🔥 NORMALIZED REACTIONS
+  //           reactions: normalizeReactions(msg.reactions, myUserId),
+
+  //           status:
+  //             msg.deliveryStatus === "READ"
+  //               ? "read"
+  //               : msg.deliveryStatus === "DELIVERED"
+  //               ? "delivered"
+  //               : "sent",
+  //         };
+  //       });
+
+  //       // ─────────────────────────────────────────────
+  //       // 🔥 MERGE WITH EXISTING STATE (CRITICAL)
+  //       // ─────────────────────────────────────────────
+  //       setMessages((prev) => {
+  //         const existingMap = new Map(
+  //           prev.map((m) => [m.messageKey || m.id, m])
+  //         );
+
+  //         const merged = mappedMessages.map((msg) => {
+  //           const prevMsg = existingMap.get(msg.messageKey || msg.id);
+
+  //           return {
+  //             ...prevMsg,
+  //             ...msg,
+  //             status:
+  //               STATUS_PRIORITY[msg.status ?? "sent"] >=
+  //               STATUS_PRIORITY[prevMsg?.status ?? "sent"]
+  //                 ? msg.status ?? prevMsg?.status ?? "sent"
+  //                 : prevMsg?.status ?? msg.status ?? "sent",
+
+  //             reactions: msg.reactions ?? prevMsg?.reactions ?? {},
+  //           };
+  //         });
+
+  //         const ordered = merged.reverse();
+
+  //         return currentCursor ? [...ordered, ...prev] : ordered;
+  //       });
+
+  //       // ─────────────────────────────────────────────
+  //       // Pagination
+  //       // ─────────────────────────────────────────────
+  //       const nextCursor = data?.data?.cursor ?? null;
+  //       setMessageCursor(nextCursor);
+  //       setHasMoreMessages(Boolean(nextCursor));
+
+  //       // ─────────────────────────────────────────────
+  //       // 🔥 ACK READ
+  //       // ─────────────────────────────────────────────
+  //       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+  //         const unreadMessageIds = apiMessages
+  //           .filter((m: any) => m.senderUserId !== myUserId && !m.readAt)
+  //           .map((m: any) => m.messageKey || m.messageId);
+
+  //         if (unreadMessageIds.length > 0) {
+  //           console.log("📤 Sending ackRead for:", unreadMessageIds);
+
+  //           wsRef.current.send(
+  //             JSON.stringify({
+  //               event: "ackRead",
+  //               data: {
+  //                 conversationId: cid,
+  //                 messageIds: unreadMessageIds,
+  //               },
+  //             })
+  //           );
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error("❌ Failed to fetch messages:", error);
+  //       setHasMoreMessages(false);
+  //     } finally {
+  //       setIsMessagesLoading(false);
+  //     }
+  //   },
+  //   []
+  // );
+
+
   const fetchMessages = useCallback(
-    async (
-      cid: string,
-      token: string,
-      myUserId: string | null,
-      currentCursor: string | null
-    ) => {
-      if (!myUserId || !cid) return;
+  async (
+    cid: string,
+    token: string,
+    myUserId: string | null,
+    currentCursor: string | null
+  ) => {
+    if (!myUserId || !cid) return;
 
-      try {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
-        const url =
-          `${baseUrl}/message/${cid}/list?limit=10` +
-          (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
+      const url =
+        `${baseUrl}/message/${cid}/list?limit=10` +
+        (currentCursor ? `&cursor=${encodeURIComponent(currentCursor)}` : "");
 
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-        if (!res.ok) {
-          throw new Error("Failed to fetch messages");
-        }
+      if (!res.ok) {
+        throw new Error("Failed to fetch messages");
+      }
 
-        const data = await res.json();
-        console.log("📥 Messages:", data);
+      const data = await res.json();
+      const apiMessages = data?.data?.messages ?? [];
 
-        const apiMessages = data?.data?.messages ?? [];
+      // ─────────────────────────────────────────────
+      // MAP BACKEND → UI SHAPE
+      // ─────────────────────────────────────────────
+      const mappedMessages: Message[] = apiMessages.map((msg: any) => {
+        let parsedOffer = null;
 
-        // 🔥 MAP BACKEND → UI SHAPE (NO STATE ACCESS HERE)
-        const mappedMessages: Message[] = apiMessages.map((msg: any) => {
-          console.log(msg, "messgesrecieved");
-          let parsedOffer = null;
+        try {
+          const parsed = JSON.parse(msg.content);
+          if (parsed.type === "OFFER") parsedOffer = parsed;
+        } catch {}
 
-          try {
-            const parsed = JSON.parse(msg.content);
-            if (parsed.type === "OFFER") parsedOffer = parsed;
-          } catch {}
+        const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
+        const sender = msg.sender;
 
-          const detectedUrl = !parsedOffer ? extractUrl(msg.content) : null;
-          const sender = msg.sender;
+        return {
+          id: msg.messageId,
+          messageKey: msg.messageKey,
+          content: parsedOffer?.text || msg.content,
+          createdAt: new Date(msg.createdAt).getTime(),
+          timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          }),
+          sent: msg.senderUserId === myUserId,
+          senderId: sender?.userId,
+          senderName:
+            msg.senderUserId === myUserId
+              ? "You"
+              : `${sender?.firstName ?? ""} ${sender?.lastName ?? ""}`.trim(),
+          senderAvatar: sender?.avatarUrl
+            ? `${process.env.NEXT_PUBLIC_CLOUDFRONT_URL}${sender.avatarUrl}`
+            : undefined,
+          type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
+          offer: parsedOffer
+            ? {
+                offerId: parsedOffer.offerId,
+                listingId: parsedOffer.listingId,
+                offerType: parsedOffer.offerType,
+                amount: parsedOffer.amount,
+                currency: parsedOffer.currency,
+                tradeDescription: parsedOffer.tradeDescription,
+                imageUrl: parsedOffer.imageUrl,
+                text: parsedOffer.text,
+                title: parsedOffer.title,
+              }
+            : undefined,
+          linkUrl: detectedUrl ?? undefined,
+          reactions: normalizeReactions(msg.reactions, myUserId),
+          status:
+            msg.deliveryStatus === "READ"
+              ? "read"
+              : msg.deliveryStatus === "DELIVERED"
+              ? "delivered"
+              : "sent",
+        };
+      });
+
+      // ─────────────────────────────────────────────
+      // 🔥 MERGE WITH STATE (SINGLE SOURCE OF TRUTH)
+      // ─────────────────────────────────────────────
+      setMessages((prev) => {
+        const existingMap = new Map(
+          prev.map((m) => [m.messageKey || m.id, m])
+        );
+
+        const merged = mappedMessages.map((msg) => {
+          const prevMsg = existingMap.get(msg.messageKey || msg.id);
 
           return {
-            id: msg.messageId,
-            messageKey: msg.messageKey,
-
-            content: parsedOffer?.text || msg.content,
-            createdAt: new Date(msg.createdAt).getTime(),
-
-            timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-            }),
-
-            sent: msg.senderUserId === myUserId,
-
-            senderId: sender?.userId,
-            senderName:
-              msg.senderUserId === myUserId
-                ? "You"
-                : `${sender?.firstName ?? ""} ${sender?.lastName ?? ""}`.trim(),
-
-            senderAvatar: sender?.avatarUrl
-              ? `${process.env.NEXT_PUBLIC_CLOUDFRONT_URL}${sender.avatarUrl}`
-              : undefined,
-
-            type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
-
-            offer: parsedOffer
-              ? {
-                  offerId: parsedOffer.offerId,
-                  listingId: parsedOffer.listingId,
-                  offerType: parsedOffer.offerType,
-                  amount: parsedOffer.amount,
-                  currency: parsedOffer.currency,
-                  tradeDescription: parsedOffer.tradeDescription,
-                  imageUrl: parsedOffer.imageUrl,
-                  text: parsedOffer.text,
-                  title: parsedOffer.title,
-                }
-              : undefined,
-
-            linkUrl: detectedUrl ?? undefined,
-
-            // 🔥 NORMALIZED REACTIONS
-            reactions: normalizeReactions(msg.reactions, myUserId),
-
+            ...prevMsg,
+            ...msg,
             status:
-              msg.deliveryStatus === "READ"
-                ? "read"
-                : msg.deliveryStatus === "DELIVERED"
-                ? "delivered"
-                : "sent",
+              STATUS_PRIORITY[msg.status ?? "sent"] >=
+              STATUS_PRIORITY[prevMsg?.status ?? "sent"]
+                ? msg.status ?? prevMsg?.status ?? "sent"
+                : prevMsg?.status ?? msg.status ?? "sent",
+            reactions: msg.reactions ?? prevMsg?.reactions ?? {},
           };
         });
 
+        const ordered = merged.reverse();
+        const finalMessages = currentCursor
+          ? [...ordered, ...prev]
+          : ordered;
+
         // ─────────────────────────────────────────────
-        // 🔥 MERGE WITH EXISTING STATE (CRITICAL)
+        // 🔥 CACHE WRITE (PER CONVERSATION)
         // ─────────────────────────────────────────────
-        setMessages((prev) => {
-          const existingMap = new Map(
-            prev.map((m) => [m.messageKey || m.id, m])
+        messageCacheRef.current[cid] = {
+          messages: finalMessages,
+          cursor: data?.data?.cursor ?? null,
+        };
+
+        return finalMessages;
+      });
+
+      // ─────────────────────────────────────────────
+      // Pagination state
+      // ─────────────────────────────────────────────
+      const nextCursor = data?.data?.cursor ?? null;
+      setMessageCursor(nextCursor);
+      setHasMoreMessages(Boolean(nextCursor));
+
+      // ─────────────────────────────────────────────
+      // ACK READ
+      // ─────────────────────────────────────────────
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        const unreadMessageIds = apiMessages
+          .filter((m: any) => m.senderUserId !== myUserId && !m.readAt)
+          .map((m: any) => m.messageKey || m.messageId);
+
+        if (unreadMessageIds.length > 0) {
+          wsRef.current.send(
+            JSON.stringify({
+              event: "ackRead",
+              data: {
+                conversationId: cid,
+                messageIds: unreadMessageIds,
+              },
+            })
           );
-
-          const merged = mappedMessages.map((msg) => {
-            const prevMsg = existingMap.get(msg.messageKey || msg.id);
-
-            return {
-              ...prevMsg,
-              ...msg,
-              status:
-                STATUS_PRIORITY[msg.status ?? "sent"] >=
-                STATUS_PRIORITY[prevMsg?.status ?? "sent"]
-                  ? msg.status ?? prevMsg?.status ?? "sent"
-                  : prevMsg?.status ?? msg.status ?? "sent",
-
-              reactions: msg.reactions ?? prevMsg?.reactions ?? {},
-            };
-          });
-
-          const ordered = merged.reverse();
-
-          return currentCursor ? [...ordered, ...prev] : ordered;
-        });
-
-        // ─────────────────────────────────────────────
-        // Pagination
-        // ─────────────────────────────────────────────
-        const nextCursor = data?.data?.cursor ?? null;
-        setMessageCursor(nextCursor);
-        setHasMoreMessages(Boolean(nextCursor));
-
-        // ─────────────────────────────────────────────
-        // 🔥 ACK READ
-        // ─────────────────────────────────────────────
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          const unreadMessageIds = apiMessages
-            .filter((m: any) => m.senderUserId !== myUserId && !m.readAt)
-            .map((m: any) => m.messageKey || m.messageId);
-
-          if (unreadMessageIds.length > 0) {
-            console.log("📤 Sending ackRead for:", unreadMessageIds);
-
-            wsRef.current.send(
-              JSON.stringify({
-                event: "ackRead",
-                data: {
-                  conversationId: cid,
-                  messageIds: unreadMessageIds,
-                },
-              })
-            );
-          }
         }
-      } catch (error) {
-        console.error("❌ Failed to fetch messages:", error);
-        setHasMoreMessages(false);
-      } finally {
-        setIsMessagesLoading(false);
       }
-    },
-    []
-  );
+    } catch (error) {
+      console.error("❌ Failed to fetch messages:", error);
+      setHasMoreMessages(false);
+    } finally {
+      setIsMessagesLoading(false);
+    }
+  },
+  []
+);
 
   const syncInProgressRef = useRef(false);
 
@@ -1219,26 +1382,22 @@ export default function ChatInterface() {
   // };
 
 
-  const handleUserSelect = async (user: User) => {
+ const conversationCacheRef = useRef<Record<string, string>>({});
+
+const handleUserSelect = async (user: User) => {
   if (!parentToken || !loggedInUserId) return;
 
-  // 🛑 SAME USER → DO NOTHING
-  if (selectedUserRef.current?.id === user.id) {
-    console.log("⏭ Same user selected – skipping refetch");
-    return;
-  }
+  // 🛑 Same user → do nothing
+  if (selectedUserRef.current?.id === user.id) return;
 
-  // 🔥 Set selected user ONCE (do NOT null it)
   setSelectedUser(user);
   selectedUserRef.current = user;
 
-  // Mobile sidebar handling
   if (window.innerWidth < 768) {
     setEnableInfiniteScroll(false);
     setShowSidebar(false);
   }
 
-  // reset unread
   setUsers((prev) =>
     prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u))
   );
@@ -1246,36 +1405,45 @@ export default function ChatInterface() {
   setIsMessagesLoading(true);
 
   try {
-    // 🔁 CREATE / GET CONVERSATION
-    const cid = await getConversationId(user.id, parentToken);
-    if (!cid) {
+    // 🔥 CHECK CACHE FIRST (NO API)
+    const cachedCid = conversationCacheRef.current[user.id];
+
+    if (cachedCid) {
+      console.log("⚡ Conversation cache hit");
+
+      conversationIdRef.current = cachedCid;
+      setConversationId(cachedCid);
+
+      const cached = messageCacheRef.current[cachedCid];
+      if (cached) {
+        setMessages(cached.messages);
+        setMessageCursor(cached.cursor);
+        setHasMoreMessages(!!cached.cursor);
+      }
+
       setIsMessagesLoading(false);
       return;
     }
 
-    // 🔐 SAME CONVERSATION → DO NOT REFETCH
-    if (conversationIdRef.current === cid && messages.length > 0) {
-      console.log("⚡ Messages already loaded for this conversation");
-      setIsMessagesLoading(false);
-      return;
-    }
+    // 🧠 ONLY NOW call backend
+    const cid = await getConversationId(user.id, parentToken);
+    if (!cid) return;
+
+    conversationCacheRef.current[user.id] = cid;
 
     conversationIdRef.current = cid;
     setConversationId(cid);
 
-    // reset pagination ONLY when switching conversations
+    setMessages([]);
     setMessageCursor(null);
     setHasMoreMessages(true);
-    setMessages([]);
 
-    // 📥 FETCH MESSAGES ONCE
     await fetchMessages(cid, parentToken, loggedInUserId, null);
-  } catch (e) {
-    console.error(e);
   } finally {
     setIsMessagesLoading(false);
   }
 };
+
 
   useEffect(() => {
     if (!showSidebar && window.innerWidth < 768) {
