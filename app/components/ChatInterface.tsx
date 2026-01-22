@@ -2071,12 +2071,12 @@ export default function ChatInterface() {
             try {
               const data = await sendMessageToApi(cid, apiContent, parentToken);
               const realId = data?.data?.messageId;
-
+              const realKey = data?.data?.messageKey;
               // 4. Update Message Status (Success)
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === optimisticOffer.id
-                    ? { ...m, id: realId, status: "sent" }
+                    ? { ...m, id: realId, messageKey: realKey, status: "sent" }
                     : m,
                 ),
               );
