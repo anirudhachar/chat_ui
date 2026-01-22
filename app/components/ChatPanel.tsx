@@ -163,7 +163,6 @@ const MessageRow = ({
   const messageBubbleRef = useRef<HTMLDivElement>(null);
   const prevHeightRef = useRef<number | null>(null);
 
-
   // ✏️ NEW: Local Editing State
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
@@ -369,6 +368,20 @@ const MessageRow = ({
     }
   };
 
+  const handleOfferClick = (listingId?: string) => {
+  if (!listingId) return;
+
+  // ✅ send message to parent window
+  window.parent.postMessage(
+    {
+      type: "NAVIGATE_TO_MARKETPLACE",
+      payload: { listingId },
+    },
+    "*" // you can replace "*" with parent origin if known for security
+  );
+};
+
+
   // ─────────────────────────────────────────────
   // RENDER CONTENT LOGIC
   // ─────────────────────────────────────────────
@@ -491,11 +504,7 @@ const MessageRow = ({
           className={`${styles.offerCard} ${
             isMine ? styles.sent : styles.received
           }`}
-          onClick={() => {
-            if (m?.offer?.listingId) {
-              router.push(`/marketplace-details/${m.offer.listingId}`);
-            }
-          }}
+         onClick={() => handleOfferClick(m.offer?.listingId)}
           style={{ cursor: "pointer" }}
         >
           <div className={styles.productRow}>
