@@ -375,7 +375,7 @@ const MessageRow = ({
   window.parent.postMessage(
     {
       type: "NAVIGATE_TO_MARKETPLACE",
-      payload: { listingId },
+      data: { listingId },
     },
     "*" // you can replace "*" with parent origin if known for security
   );
