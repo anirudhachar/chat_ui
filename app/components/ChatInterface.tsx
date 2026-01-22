@@ -1954,9 +1954,8 @@ export default function ChatInterface() {
 
         if (!parentToken) return;
 
-        // ---------------------------------------------------------
-        // 1. 🔍 GET RECIPIENT (CRITICAL STEP)
-        // ---------------------------------------------------------
+        setHasStartedLoading(true);
+        setIsMessagesLoading(false);
         const recipients =
           payload.users || (payload.user ? [payload.user] : []);
         const targetUserRaw = recipients[0]; // First recipient for UI logic
@@ -1997,8 +1996,6 @@ export default function ChatInterface() {
           console.log("🔄 Switching user to:", targetUser.name);
           setSelectedUser(targetUser);
           setMessages([]); // Clear old messages
-          setHasStartedLoading(true); // ✅ ADD
-          setIsMessagesLoading(false); // ✅ ADD
 
           if (window.innerWidth < 768) {
             setShowSidebar(false);
