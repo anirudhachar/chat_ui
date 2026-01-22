@@ -1738,19 +1738,17 @@ export default function ChatInterface() {
         if (!parentToken) return;
 
         // ---------------------------------------------------------
-        // 1. 🔍 GET RECIPIENT (CRITICAL STEP)
+        // 1. 🔍 GET RECIPIENT
         // ---------------------------------------------------------
         const recipients =
           payload.users || (payload.user ? [payload.user] : []);
-        const targetUserRaw = recipients[0]; // First recipient for UI logic
+        const targetUserRaw = recipients[0];
 
-        // Stop if no target and no chat open
         if (!targetUserRaw && !selectedUser) {
           console.error("❌ No user provided in payload and no chat open.");
           return;
         }
 
-        // Format the raw user data into your User type
         const targetUser: User = targetUserRaw
           ? {
               id: targetUserRaw.user_id,
@@ -1767,19 +1765,18 @@ export default function ChatInterface() {
               lastMessageStatus: "sending",
               unread: 0,
             }
-          : selectedUser!; // fallback
+          : selectedUser!;
 
         // ---------------------------------------------------------
-        // 2. ⚡ UI SYNC: FORCE OPEN THE CHAT ONLY FOR SINGLE RECIPIENT
+        // 2. ⚡ UI SYNC
         // ---------------------------------------------------------
         const isSingleRecipient = recipients.length === 1;
         const isSwitchingUser =
           !selectedUser || selectedUser.id !== targetUser.id;
 
         if (isSingleRecipient && isSwitchingUser) {
-          console.log("🔄 Switching user to:", targetUser.name);
           setSelectedUser(targetUser);
-          setMessages([]); // Clear old messages
+          setMessages([]);
 
           if (window.innerWidth < 768) {
             setShowSidebar(false);
@@ -1792,30 +1789,31 @@ export default function ChatInterface() {
         const now = Date.now();
         const uniqueKey = payload.offerId || payload.message || payload.text;
 
+        let skipApi = false;
+
         if (
           lastProcessedRef.current &&
           lastProcessedRef.current.content === uniqueKey &&
           now - lastProcessedRef.current.time < 2000
         ) {
           console.warn("⚠️ Duplicate message prevented");
-          return;
+          skipApi = true;
+        } else {
+          lastProcessedRef.current = { content: uniqueKey, time: now };
         }
-        lastProcessedRef.current = { content: uniqueKey, time: now };
+
+        const contentToSend =
+          payload.message || payload.text || payload.linkUrl;
 
         // ---------------------------------------------------------
-        // 4. 🏷️ OFFER LOGIC
-        // ---------------------------------------------------------
-        // ---------------------------------------------------------
-        // 4. 🏷️ OFFER LOGIC
+        // 4. 🏷️ OFFER LOGIC (UNCHANGED)
         // ---------------------------------------------------------
         if (payload.type === "OFFER") {
           const timeString = new Date().toLocaleTimeString("en-US", {
             hour: "numeric",
             minute: "2-digit",
           });
-          console.log(payload, "payload");
 
-          // 1. Create Optimistic Offer Object
           const optimisticOffer: Message = {
             id: `offer-${payload.offerId}`,
             content: payload.text || "Sent an offer",
@@ -1837,23 +1835,29 @@ export default function ChatInterface() {
             },
           };
 
-          // 2. Update Chat Panel (Optimistic - keep this for instant feedback in chat)
           setMessages((prev) => [...prev, optimisticOffer]);
 
-          // (❌ REMOVED Optimistic setUsers from here)
+          setUsers((prev) => [
+            {
+              ...targetUser,
+              lastMessage: payload.text || "Sent an offer",
+              lastMessageTime: "Now",
+            },
+            ...prev.filter((u) => u.id !== targetUser.id),
+          ]);
 
-          // 3. Send to API (Async)
           const sendOfferAsync = async () => {
+            if (skipApi) return;
+
             const cid = await getConversationId(targetUser.id, parentToken);
             if (!cid) return;
             if (isSingleRecipient && isSwitchingUser) setConversationId(cid);
 
-            const apiContent = JSON.stringify({ type: "OFFER", ...payload });
             try {
+              const apiContent = JSON.stringify({ type: "OFFER", ...payload });
               const data = await sendMessageToApi(cid, apiContent, parentToken);
               const realId = data?.data?.messageId;
 
-              // 4. Update Message Status (Success)
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === optimisticOffer.id
@@ -1861,41 +1865,7 @@ export default function ChatInterface() {
                     : m,
                 ),
               );
-
-              // 5. ✅ UPDATE SIDEBAR HERE (After success)
-              // This ensures we don't mess up the list if the API fails
-              setUsers((prev) => {
-                const updatedUser = {
-                  ...targetUser,
-                  lastMessage: payload.text,
-                  lastMessageTime: "Now",
-                };
-
-                // Move to top
-                const newList = [
-                  updatedUser,
-                  ...prev.filter((u) => u.id !== targetUser.id),
-                ];
-
-                console.log("✅ Sidebar updated after API success");
-                return newList;
-              });
-
-              // Optional: Update search results too if needed
-              if (searchQuery.length >= 2) {
-                setSearchResults((prev) => {
-                  const exists = prev.find((u) => u.id === targetUser.id);
-                  if (exists) {
-                    return [
-                      { ...targetUser, lastMessage: "Sent an offer" },
-                      ...prev.filter((u) => u.id !== targetUser.id),
-                    ];
-                  }
-                  return prev;
-                });
-              }
-            } catch (e) {
-              console.error("Offer failed", e);
+            } catch {
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === optimisticOffer.id ? { ...m, status: "failed" } : m,
@@ -1903,106 +1873,62 @@ export default function ChatInterface() {
               );
             }
           };
+
           sendOfferAsync();
-          return; // Exit
-        }
-
-        // ---------------------------------------------------------
-        // 5. 🏪 MARKETPLACE LOGIC
-        // ---------------------------------------------------------
-        if (payload.type === "MARKETPLACE_MESSAGE") {
-          const text = payload.text;
-          if (!text) return;
-
-          const tempId = `temp-${Date.now()}`;
-          const optimisticMsg: Message = {
-            id: tempId,
-            content: text,
-            timestamp: "Now",
-            sent: true,
-            type: "text",
-            createdAt: Date.now(),
-            status: "sending",
-          };
-
-          setMessages((prev) => [...prev, optimisticMsg]);
-
-          const sendMarketplaceAsync = async () => {
-            const cid = await getConversationId(targetUser.id, parentToken);
-            if (!cid) return;
-            if (isSingleRecipient && isSwitchingUser) setConversationId(cid);
-
-            try {
-              const data = await sendMessageToApi(cid, text, parentToken);
-              const realId = data?.data?.messageId;
-
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === tempId ? { ...m, id: realId, status: "sent" } : m,
-                ),
-              );
-
-              setUsers((prev) => {
-                const updatedUser = { ...targetUser, lastMessage: text };
-                return [
-                  updatedUser,
-                  ...prev.filter((u) => u.id !== targetUser.id),
-                ];
-              });
-            } catch (e) {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === tempId ? { ...m, status: "failed" } : m,
-                ),
-              );
-            }
-          };
-          sendMarketplaceAsync();
           return;
         }
 
         // ---------------------------------------------------------
-        // 6. 🚀 STANDARD TEXT / BULK LOGIC
+        // 6. 🚀 STANDARD / BULK LOGIC
         // ---------------------------------------------------------
         let optimisticMessageId = "";
-        if (isSingleRecipient || recipients.length === 1) {
+        if (isSingleRecipient) {
           optimisticMessageId = Date.now().toString();
-          const optimisticMessage: Message = {
-            id: optimisticMessageId,
-            content: payload.message,
-            timestamp: "Just now",
-            sent: true,
-            type: "text",
-            createdAt: Date.now(),
-            status: "sending",
-          };
-          setMessages((prev) => [...prev, optimisticMessage]);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: optimisticMessageId,
+              content: contentToSend,
+              timestamp: "Just now",
+              sent: true,
+              type: "text",
+              createdAt: now,
+              status: "sending",
+            },
+          ]);
         }
 
+        // ✅ SINGLE optimistic sidebar update
+        setUsers((prev) => [
+          {
+            ...targetUser,
+            lastMessage: contentToSend,
+            lastMessageTime: "Now",
+          },
+          ...prev.filter((u) => u.id !== targetUser.id),
+        ]);
+
         const processMessageForUser = async (recipientRaw: any) => {
-          const rId = recipientRaw.user_id;
+          if (skipApi) return;
+
           try {
-            const cid = await getConversationId(rId, parentToken);
+            const cid = await getConversationId(
+              recipientRaw.user_id,
+              parentToken,
+            );
             if (!cid) return;
-            if (isSingleRecipient && rId === targetUser.id && isSwitchingUser)
+
+            if (
+              isSingleRecipient &&
+              recipientRaw.user_id === targetUser.id &&
+              isSwitchingUser
+            ) {
               setConversationId(cid);
+            }
 
-            await sendMessageToApi(cid, payload.message, parentToken);
+            await sendMessageToApi(cid, contentToSend, parentToken);
 
-            setUsers((prev) => {
-              const existing = prev.find((u) => u.id === rId);
-              if (existing) {
-                const updated = {
-                  ...existing,
-                  lastMessage: payload.message,
-                  lastMessageTime: "Now",
-                };
-                return [updated, ...prev.filter((u) => u.id !== rId)];
-              }
-              return prev;
-            });
-
-            if (rId === targetUser.id) {
+            if (recipientRaw.user_id === targetUser.id) {
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === optimisticMessageId ? { ...m, status: "sent" } : m,
@@ -2014,7 +1940,7 @@ export default function ChatInterface() {
           }
         };
 
-        recipients.forEach((r: any) => processMessageForUser(r));
+        recipients.forEach(processMessageForUser);
       }
     };
 
