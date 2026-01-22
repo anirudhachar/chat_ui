@@ -31,6 +31,7 @@ import {
 import { createPortal } from "react-dom";
 import Spinner from "./SpinnerComponent";
 import { canDeleteForEveryone, canEditMessage, EDIT_WINDOW_MS } from "../utils";
+import { useRouter } from "next/navigation";
 
 interface ChatPanelProps {
   selectedUser: User | null;
@@ -83,7 +84,6 @@ const getCopyText = (msg: Message): string => {
       return msg.content || "";
   }
 };
-
 
 export const linkPreviewCache = new Map<
   string,
@@ -153,6 +153,8 @@ const MessageRow = ({
   copiedMessageId?: string | null;
   messagesAreaRef: React.RefObject<HTMLDivElement | null>;
 }) => {
+  const router = useRouter();
+
   const [pickerPosition, setPickerPosition] = useState<{
     top: number;
     left: number;
@@ -160,6 +162,7 @@ const MessageRow = ({
   const [showMenu, setShowMenu] = useState(false);
   const messageBubbleRef = useRef<HTMLDivElement>(null);
   const prevHeightRef = useRef<number | null>(null);
+
 
   // ✏️ NEW: Local Editing State
   const [isEditing, setIsEditing] = useState(false);
@@ -488,6 +491,12 @@ const MessageRow = ({
           className={`${styles.offerCard} ${
             isMine ? styles.sent : styles.received
           }`}
+          onClick={() => {
+            if (m?.offer?.listingId) {
+              router.push(`/marketplace-details/${m.offer.listingId}`);
+            }
+          }}
+          style={{ cursor: "pointer" }}
         >
           <div className={styles.productRow}>
             {m.offer.imageUrl && (
@@ -1372,7 +1381,7 @@ ChatPanelProps) {
         onSendMessage={handleInternalSendMessage}
         onTyping={onTyping}
         disabled={isLoading}
-         replyingTo={replyingTo}
+        replyingTo={replyingTo}
       />
 
       {showGlobalCopyToast && (
