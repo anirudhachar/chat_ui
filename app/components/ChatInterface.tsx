@@ -99,7 +99,7 @@ export default function ChatInterface() {
   const [globalUnread, setGlobalUnread] = useState(0);
   const [profileUser, setProfileUser] = useState<User | null>(null);
   console.log(profileUser, "profileUserObject");
-  const [hasStartedLoading, setHasStartedLoading] = useState(false);
+  // const [hasStartedLoading, setHasStartedLoading] = useState(false);
 
   const messagesCacheRef = useRef<
     Map<
@@ -1347,7 +1347,7 @@ export default function ChatInterface() {
     setUsers((prev) =>
       prev.map((u) => (u.id === user.id ? { ...u, unread: 0 } : u)),
     );
-    setHasStartedLoading(true);
+    // setHasStartedLoading(true);
     setIsMessagesLoading(true);
 
     try {
@@ -1954,7 +1954,7 @@ export default function ChatInterface() {
 
         if (!parentToken) return;
 
-        setHasStartedLoading(true);
+        // setHasStartedLoading(true);
         setIsMessagesLoading(false);
         const recipients =
           payload.users || (payload.user ? [payload.user] : []);
@@ -1966,7 +1966,7 @@ export default function ChatInterface() {
           return;
         }
 
-        // Format the raw user data into your User type
+        
         const targetUser: User = targetUserRaw
           ? {
               id: targetUserRaw.user_id,
@@ -2480,7 +2480,7 @@ export default function ChatInterface() {
             setShowSidebar(true);
             conversationIdRef.current = null;
           }}
-          hasStartedLoading={hasStartedLoading}
+          // hasStartedLoading={hasStartedLoading}
           onLoadMoreMessages={loadMoreMessages}
           hasMoreMessages={hasMoreMessages}
           resetKey={selectedUser?.id}
