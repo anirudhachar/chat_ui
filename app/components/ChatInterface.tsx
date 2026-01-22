@@ -1731,217 +1731,223 @@ export default function ChatInterface() {
 
       // Inside your useEffect...
 
-      if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
-        console.log("📨 Received payload", event.data.payload);
-        const payload = event.data.payload;
+    if (event.data.type === "SEND_MESSAGE_TO_CHAT") {
+  console.log("📨 Received payload", event.data.payload);
+  const payload = event.data.payload;
 
-        if (!parentToken) return;
+  if (!parentToken) return;
 
-        // ---------------------------------------------------------
-        // 1. 🔍 GET RECIPIENT
-        // ---------------------------------------------------------
-        const recipients =
-          payload.users || (payload.user ? [payload.user] : []);
-        const targetUserRaw = recipients[0];
+  // ---------------------------------------------------------
+  // 1. 🔍 GET RECIPIENT
+  // ---------------------------------------------------------
+  const recipients =
+    payload.users || (payload.user ? [payload.user] : []);
+  const targetUserRaw = recipients[0];
 
-        if (!targetUserRaw && !selectedUser) {
-          console.error("❌ No user provided in payload and no chat open.");
-          return;
-        }
+  if (!targetUserRaw && !selectedUser) {
+    console.error("❌ No user provided in payload and no chat open.");
+    return;
+  }
 
-        const targetUser: User = targetUserRaw
-          ? {
-              id: targetUserRaw.user_id,
-              name: `${targetUserRaw.firstName} ${
-                targetUserRaw.lastName ?? ""
-              }`.trim(),
-              avatar: targetUserRaw.profilePhoto
-                ? `${process.env.NEXT_PUBLIC_CLOUDFRONT_URL}${targetUserRaw.profilePhoto}`
-                : undefined,
-              lastMessage: payload.message || payload.text || "New message",
-              instituteName: targetUserRaw.institutionName,
-              lastMessageTime: "Now",
-              online: false,
-              lastMessageStatus: "sending",
-              unread: 0,
-            }
-          : selectedUser!;
-
-        // ---------------------------------------------------------
-        // 2. ⚡ UI SYNC
-        // ---------------------------------------------------------
-        const isSingleRecipient = recipients.length === 1;
-        const isSwitchingUser =
-          !selectedUser || selectedUser.id !== targetUser.id;
-
-        if (isSingleRecipient && isSwitchingUser) {
-          setSelectedUser(targetUser);
-          setMessages([]);
-
-          if (window.innerWidth < 768) {
-            setShowSidebar(false);
-          }
-        }
-
-        // ---------------------------------------------------------
-        // 3. 🚫 DUPLICATE CHECK
-        // ---------------------------------------------------------
-        const now = Date.now();
-        const uniqueKey = payload.offerId || payload.message || payload.text;
-
-        let skipApi = false;
-
-        if (
-          lastProcessedRef.current &&
-          lastProcessedRef.current.content === uniqueKey &&
-          now - lastProcessedRef.current.time < 2000
-        ) {
-          console.warn("⚠️ Duplicate message prevented");
-          skipApi = true;
-        } else {
-          lastProcessedRef.current = { content: uniqueKey, time: now };
-        }
-
-        const contentToSend =
-          payload.message || payload.text || payload.linkUrl;
-
-        // ---------------------------------------------------------
-        // 4. 🏷️ OFFER LOGIC (UNCHANGED)
-        // ---------------------------------------------------------
-        if (payload.type === "OFFER") {
-          const timeString = new Date().toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-          });
-
-          const optimisticOffer: Message = {
-            id: `offer-${payload.offerId}`,
-            content: payload.text || "Sent an offer",
-            timestamp: timeString,
-            sent: true,
-            type: "offer",
-            createdAt: now,
-            status: "sending",
-            offer: {
-              offerId: payload.offerId,
-              listingId: payload.listingId,
-              offerType: payload.offerType,
-              amount: payload.amount,
-              currency: payload.currency,
-              tradeDescription: payload.tradeDescription,
-              imageUrl: payload.imageUrl,
-              text: payload.text,
-              title: payload.title,
-            },
-          };
-
-          setMessages((prev) => [...prev, optimisticOffer]);
-
-          setUsers((prev) => [
-            {
-              ...targetUser,
-              lastMessage: payload.text || "Sent an offer",
-              lastMessageTime: "Now",
-            },
-            ...prev.filter((u) => u.id !== targetUser.id),
-          ]);
-
-          const sendOfferAsync = async () => {
-            if (skipApi) return;
-
-            const cid = await getConversationId(targetUser.id, parentToken);
-            if (!cid) return;
-            if (isSingleRecipient && isSwitchingUser) setConversationId(cid);
-
-            try {
-              const apiContent = JSON.stringify({ type: "OFFER", ...payload });
-              const data = await sendMessageToApi(cid, apiContent, parentToken);
-              const realId = data?.data?.messageId;
-
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === optimisticOffer.id
-                    ? { ...m, id: realId, status: "sent" }
-                    : m,
-                ),
-              );
-            } catch {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === optimisticOffer.id ? { ...m, status: "failed" } : m,
-                ),
-              );
-            }
-          };
-
-          sendOfferAsync();
-          return;
-        }
-
-        // ---------------------------------------------------------
-        // 6. 🚀 STANDARD / BULK LOGIC
-        // ---------------------------------------------------------
-        let optimisticMessageId = "";
-        if (isSingleRecipient) {
-          optimisticMessageId = Date.now().toString();
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: optimisticMessageId,
-              content: contentToSend,
-              timestamp: "Just now",
-              sent: true,
-              type: "text",
-              createdAt: now,
-              status: "sending",
-            },
-          ]);
-        }
-
-        // ✅ SINGLE optimistic sidebar update
-        setUsers((prev) => [
-          {
-            ...targetUser,
-            lastMessage: contentToSend,
-            lastMessageTime: "Now",
-          },
-          ...prev.filter((u) => u.id !== targetUser.id),
-        ]);
-
-        const processMessageForUser = async (recipientRaw: any) => {
-          if (skipApi) return;
-
-          try {
-            const cid = await getConversationId(
-              recipientRaw.user_id,
-              parentToken,
-            );
-            if (!cid) return;
-
-            if (
-              isSingleRecipient &&
-              recipientRaw.user_id === targetUser.id &&
-              isSwitchingUser
-            ) {
-              setConversationId(cid);
-            }
-
-            await sendMessageToApi(cid, contentToSend, parentToken);
-
-            if (recipientRaw.user_id === targetUser.id) {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === optimisticMessageId ? { ...m, status: "sent" } : m,
-                ),
-              );
-            }
-          } catch (e) {
-            console.error(e);
-          }
-        };
-
-        recipients.forEach(processMessageForUser);
+  const targetUser: User = targetUserRaw
+    ? {
+        id: targetUserRaw.user_id,
+        name: `${targetUserRaw.firstName} ${
+          targetUserRaw.lastName ?? ""
+        }`.trim(),
+        avatar: targetUserRaw.profilePhoto
+          ? `${process.env.NEXT_PUBLIC_CLOUDFRONT_URL}${targetUserRaw.profilePhoto}`
+          : undefined,
+        lastMessage:
+          payload.message || payload.text || payload.linkUrl || "New message",
+        instituteName: targetUserRaw.institutionName,
+        lastMessageTime: "Now",
+        online: false,
+        lastMessageStatus: "sending",
+        unread: 0,
       }
+    : selectedUser!;
+
+  // ---------------------------------------------------------
+  // 2. ⚡ UI SYNC
+  // ---------------------------------------------------------
+  const isSingleRecipient = recipients.length === 1;
+  const isSwitchingUser =
+    !selectedUser || selectedUser.id !== targetUser.id;
+
+  if (isSingleRecipient && isSwitchingUser) {
+    setSelectedUser(targetUser);
+    setMessages([]);
+
+    if (window.innerWidth < 768) {
+      setShowSidebar(false);
+    }
+  }
+
+  // ---------------------------------------------------------
+  // 3. 🚫 DUPLICATE CHECK (FIXED)
+  // ---------------------------------------------------------
+  const now = Date.now();
+  const uniqueKey =
+    payload.offerId ||
+    payload.message ||
+    payload.text ||
+    payload.linkUrl;
+
+  let skipApi = false;
+
+  if (
+    lastProcessedRef.current &&
+    lastProcessedRef.current.content === uniqueKey &&
+    now - lastProcessedRef.current.time < 2000
+  ) {
+    console.warn("⚠️ Duplicate message prevented");
+    skipApi = true;
+  } else {
+    lastProcessedRef.current = { content: uniqueKey, time: now };
+  }
+
+  const contentToSend =
+    payload.message || payload.text || payload.linkUrl;
+
+  // ---------------------------------------------------------
+  // 4. 🏷️ OFFER LOGIC (UNCHANGED)
+  // ---------------------------------------------------------
+  if (payload.type === "OFFER") {
+    const timeString = new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+    const optimisticOffer: Message = {
+      id: `offer-${payload.offerId}`,
+      content: payload.text || "Sent an offer",
+      timestamp: timeString,
+      sent: true,
+      type: "offer",
+      createdAt: now,
+      status: "sending",
+      offer: {
+        offerId: payload.offerId,
+        listingId: payload.listingId,
+        offerType: payload.offerType,
+        amount: payload.amount,
+        currency: payload.currency,
+        tradeDescription: payload.tradeDescription,
+        imageUrl: payload.imageUrl,
+        text: payload.text,
+        title: payload.title,
+      },
+    };
+
+    setMessages((prev) => [...prev, optimisticOffer]);
+
+    setUsers((prev) => [
+      {
+        ...targetUser,
+        lastMessage: payload.text || "Sent an offer",
+        lastMessageTime: "Now",
+      },
+      ...prev.filter((u) => u.id !== targetUser.id),
+    ]);
+
+    const sendOfferAsync = async () => {
+      if (skipApi) return;
+
+      const cid = await getConversationId(targetUser.id, parentToken);
+      if (!cid) return;
+      if (isSingleRecipient && isSwitchingUser) setConversationId(cid);
+
+      try {
+        const apiContent = JSON.stringify({ type: "OFFER", ...payload });
+        const data = await sendMessageToApi(cid, apiContent, parentToken);
+        const realId = data?.data?.messageId;
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === optimisticOffer.id
+              ? { ...m, id: realId, status: "sent" }
+              : m,
+          ),
+        );
+      } catch {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === optimisticOffer.id ? { ...m, status: "failed" } : m,
+          ),
+        );
+      }
+    };
+
+    sendOfferAsync();
+    return;
+  }
+
+  // ---------------------------------------------------------
+  // 6. 🚀 STANDARD / BULK LOGIC
+  // ---------------------------------------------------------
+  let optimisticMessageId = "";
+  if (isSingleRecipient) {
+    optimisticMessageId = Date.now().toString();
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: optimisticMessageId,
+        content: contentToSend,
+        timestamp: "Just now",
+        sent: true,
+        type: "text",
+        createdAt: now,
+        status: "sending",
+      },
+    ]);
+  }
+
+  // ✅ SINGLE optimistic sidebar update (FIXED FOR LINKS)
+  setUsers((prev) => [
+    {
+      ...targetUser,
+      lastMessage: contentToSend,
+      lastMessageTime: "Now",
+    },
+    ...prev.filter((u) => u.id !== targetUser.id),
+  ]);
+
+  const processMessageForUser = async (recipientRaw: any) => {
+    if (skipApi) return;
+
+    try {
+      const cid = await getConversationId(
+        recipientRaw.user_id,
+        parentToken,
+      );
+      if (!cid) return;
+
+      if (
+        isSingleRecipient &&
+        recipientRaw.user_id === targetUser.id &&
+        isSwitchingUser
+      ) {
+        setConversationId(cid);
+      }
+
+      await sendMessageToApi(cid, contentToSend, parentToken);
+
+      if (recipientRaw.user_id === targetUser.id) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === optimisticMessageId ? { ...m, status: "sent" } : m,
+          ),
+        );
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  recipients.forEach(processMessageForUser);
+}
+
     };
 
     window.addEventListener("message", handleMessage);
