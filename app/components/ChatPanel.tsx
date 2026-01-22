@@ -1211,7 +1211,25 @@ ChatPanelProps) {
         <button className={styles.backButton} onClick={onBack}>
           <FiArrowLeft />
         </button>
-    
+        <div
+          className={styles.avatarWrapper}
+          onClick={() => selectedUser && onOpenProfile(selectedUser)}
+          style={{ cursor: "pointer" }}
+        >
+          {selectedUser.avatar ? (
+            <img
+              src={selectedUser.avatar}
+              alt="User"
+              className={styles.headerAvatar}
+              style={{ width: "36px", height: "36px", borderRadius: "50%" }}
+            />
+          ) : (
+            <div className={styles.headerInitials}>
+              {getInitials(selectedUser.name)}
+            </div>
+          )}
+          {selectedUser.online && <div className={styles.onlineIndicator} />}
+        </div>
         <div className={styles.userInfo}>
           <h2 className={styles.userName}>{selectedUser.name}</h2>
           <p className={styles.userStatus}>{selectedUser.instituteName}</p>
