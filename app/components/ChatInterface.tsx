@@ -1997,8 +1997,8 @@ export default function ChatInterface() {
           console.log("🔄 Switching user to:", targetUser.name);
           setSelectedUser(targetUser);
           setMessages([]); // Clear old messages
-           setHasStartedLoading(true);     // ✅ ADD
-  setIsMessagesLoading(false);    // ✅ ADD
+          setHasStartedLoading(true); // ✅ ADD
+          setIsMessagesLoading(false); // ✅ ADD
 
           if (window.innerWidth < 768) {
             setShowSidebar(false);
