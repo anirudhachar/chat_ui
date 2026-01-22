@@ -84,6 +84,16 @@ const getCopyText = (msg: Message): string => {
   }
 };
 
+
+export const linkPreviewCache = new Map<
+  string,
+  {
+    title?: string;
+    description?: string;
+    image?: string;
+    url: string;
+  }
+>();
 const getDateLabel = (ts: number) => {
   const d = new Date(ts);
   const today = new Date();
@@ -238,16 +248,25 @@ const MessageRow = ({
     if (bubble) {
       prevHeightRef.current = bubble.offsetHeight;
     }
+
     const url = m.linkUrl;
 
-    // If backend already sent preview, use it
+    // 2️⃣ Use cached preview if it exists
+    if (linkPreviewCache.has(url)) {
+      setLinkPreview(linkPreviewCache.get(url)!);
+      return;
+    }
+
+    // 3️⃣ Use backend-provided preview if available
     if (m.linkTitle || m.linkImage || m.linkDescription) {
-      setLinkPreview({
+      const preview = {
         title: m.linkTitle,
         description: m.linkDescription,
         image: m.linkImage,
         url: m.linkUrl,
-      });
+      };
+      setLinkPreview(preview);
+      linkPreviewCache.set(url, preview); // cache it
       return;
     }
 
@@ -260,7 +279,7 @@ const MessageRow = ({
         const res = await fetch("/api/preview", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: m.linkUrl }),
+          body: JSON.stringify({ url }),
         });
 
         if (!res.ok) return;
@@ -268,12 +287,14 @@ const MessageRow = ({
         const data = await res.json();
 
         if (!cancelled) {
-          setLinkPreview({
+          const preview = {
             title: data.title,
             description: data.description,
             image: data.image,
             url,
-          });
+          };
+          setLinkPreview(preview);
+          linkPreviewCache.set(url, preview); // cache the fetched preview
         }
       } catch (err) {
         console.error("Link preview fetch failed", err);
@@ -288,7 +309,6 @@ const MessageRow = ({
       cancelled = true;
     };
   }, [m.type, m.linkUrl]);
-
   useEffect(() => {
     if (!linkPreview) return;
 
