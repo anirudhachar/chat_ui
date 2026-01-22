@@ -1219,7 +1219,11 @@ export default function ChatInterface() {
           });
 
           const ordered = merged.reverse();
-          const finalMessages = currentCursor ? [...ordered, ...prev] : ordered;
+          const optimistic = prev.filter((m) => m.status === "sending");
+
+          const finalMessages = currentCursor
+            ? [...ordered, ...prev]
+            : [...ordered, ...optimistic];
 
           /* ─────────────────────────────────────────────
            ✅ NEW 2️⃣: UPDATE CACHE
@@ -1966,7 +1970,6 @@ export default function ChatInterface() {
           return;
         }
 
-        
         const targetUser: User = targetUserRaw
           ? {
               id: targetUserRaw.user_id,

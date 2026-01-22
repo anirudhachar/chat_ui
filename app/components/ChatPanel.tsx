@@ -369,18 +369,17 @@ const MessageRow = ({
   };
 
   const handleOfferClick = (listingId?: string) => {
-  if (!listingId) return;
+    if (!listingId) return;
 
-  // ✅ send message to parent window
-  window.parent.postMessage(
-    {
-      type: "NAVIGATE_TO_MARKETPLACE",
-      data: { listingId },
-    },
-    "*" // you can replace "*" with parent origin if known for security
-  );
-};
-
+    // ✅ send message to parent window
+    window.parent.postMessage(
+      {
+        type: "NAVIGATE_TO_MARKETPLACE",
+        data: { listingId },
+      },
+      "*", // you can replace "*" with parent origin if known for security
+    );
+  };
 
   // ─────────────────────────────────────────────
   // RENDER CONTENT LOGIC
@@ -504,7 +503,7 @@ const MessageRow = ({
           className={`${styles.offerCard} ${
             isMine ? styles.sent : styles.received
           }`}
-         onClick={() => handleOfferClick(m.offer?.listingId)}
+          onClick={() => handleOfferClick(m.offer?.listingId)}
           style={{ cursor: "pointer" }}
         >
           <div className={styles.productRow}>
