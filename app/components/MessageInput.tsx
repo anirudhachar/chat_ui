@@ -370,7 +370,7 @@ useEffect(() => {
           </button>
         </div>
       )}
-      {linkPreview && (
+      {/* {linkPreview && (
         <div className={styles.linkPreview}>
           {linkPreview.image && (
             <img
@@ -383,7 +383,7 @@ useEffect(() => {
             <p className={styles.previewTitle}>{linkPreview.title}</p>
           </div>
         </div>
-      )}
+      )} */}
 
       <div className={styles.messageInput}>
         {isRecording ? (
