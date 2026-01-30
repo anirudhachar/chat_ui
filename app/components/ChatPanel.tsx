@@ -634,7 +634,11 @@ const MessageRow = ({
           rel="noopener noreferrer"
           className={styles.messageTextLink}
         >
-          {previewLoading ? "Loading preview…" : m.content || m.linkUrl}
+          {previewLoading ? (
+            <span className="loaderlink" />
+          ) : (
+            m.content || m.linkUrl
+          )}
         </a>,
       );
     }

@@ -1855,3 +1855,53 @@
     color: #003a70;         // Even darker when clicked
   }
 }
+
+
+.loaderlink {
+  width: 24px; /* reduced size for inline usage */
+  height: 24px;
+  position: relative;
+  background: #fff;
+  border-radius: 4px;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.loaderlink:before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  transform: rotate(45deg) translate(30%, 40%);
+  background: #ff9371;
+  box-shadow: 16px -18px 0 3px #ff3d00;
+  animation: slide 2s infinite ease-in-out alternate;
+}
+
+.loaderlink:after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff3d00;
+  transform-origin: 20px 80px;
+  animation: rotate 2s infinite ease-in-out;
+}
+
+@keyframes slide {
+  0%, 100% { bottom: -14px }
+  25%, 75% { bottom: -2px }
+  20%, 80% { bottom: 2px }
+}
+
+@keyframes rotate {
+  0% { transform: rotate(-15deg) }
+  25%, 75% { transform: rotate(0deg) }
+  100% { transform: rotate(25deg) }
+}
