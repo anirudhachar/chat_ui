@@ -1251,7 +1251,10 @@ ChatPanelProps) {
           )}
           {selectedUser.online && <div className={styles.onlineIndicator} />}
         </div>
-        <div className={styles.userInfo}>
+        <div
+          className={styles.userInfo}
+          onClick={() => selectedUser && onOpenProfile(selectedUser)}
+        >
           <h2 className={styles.userName}>{selectedUser.name}</h2>
           <p className={styles.userStatus}>{selectedUser.instituteName}</p>
         </div>
