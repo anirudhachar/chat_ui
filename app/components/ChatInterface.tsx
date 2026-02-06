@@ -2493,83 +2493,17 @@ export default function ChatInterface() {
           isPartnerTyping={isPartnerTyping} // To display the UI bubble
           onTyping={handleTypingInput} // To trigger the logic on keypress
           // onInputBlur={() => sendTypingEvent(false)} // To stop typing when they click away
-          onOpenProfile={setProfileUser}
+          onOpenProfile={(user) => {
+            window.parent.postMessage(
+              {
+                type: "NAVIGATE_PROFILE",
+                data: { userId: user.id },
+              },
+              "*",
+            );
+          }}
         />
       </div>
-
-      {profileUser && (
-        <div
-          className={styles.profileModalOverlay}
-          onClick={() => setProfileUser(null)}
-        >
-          <div
-            className={styles.profileModal}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className={styles.profileImageWrapper}>
-              {profileUser.avatar ? (
-                <img
-                  src={profileUser.avatar}
-                  alt={profileUser.name}
-                  className={styles.profileImage}
-                />
-              ) : (
-                <div className={styles.profileImageFallback}>
-                  {getInitials(profileUser.name)}
-                </div>
-              )}
-
-              {/* Name overlay (top-left like WhatsApp) */}
-              <div className={styles.profileNameOverlay}>
-                {profileUser.name}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className={styles.profileActionsRow}>
-              <button
-                className={styles.profileActionBtn}
-                onClick={() => {
-                  handleUserSelect(profileUser);
-                  setProfileUser(null);
-                }}
-              >
-                <Image
-                  src={bubble_img}
-                  alt="User"
-                  className={styles.actionIcon}
-                  width={20}
-                  height={20}
-                />
-                <span>Message</span>
-              </button>
-
-              <button
-                className={styles.profileActionBtn}
-                onClick={() => {
-                  window.parent.postMessage(
-                    {
-                      type: "NAVIGATE_PROFILE",
-                      data: { userId: profileUser.id },
-                    },
-                    "*",
-                  );
-                  setProfileUser(null);
-                }}
-              >
-                <Image
-                  src={user_img}
-                  alt="User"
-                  className={styles.actionIcon}
-                  width={20}
-                  height={20}
-                />
-                <span>Profile</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
