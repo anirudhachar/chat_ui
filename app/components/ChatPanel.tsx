@@ -495,63 +495,75 @@ const MessageRow = ({
       );
     }
 
-    if (m.type === "offer" && m.offer) {
-      const offer = m.offer;
+ if (m.type === "offer" && m.offer) {
+  console.log(m, "baddy");
 
-      return wrapWithReply(
-        <div
-          className={`${styles.offerCard} ${
-            isMine ? styles.sent : styles.received
-          }`}
-          onClick={() => handleOfferClick(offer.listingId)}
-        >
-          <div className={styles.productRow}>
-            {offer.imageUrl && (
-              <img
-                src={offer.imageUrl}
-                alt="Listing"
-                className={styles.productImage}
-              />
-            )}
+  return wrapWithReply(
+    <div
+      className={`${styles.offerCard} ${
+        isMine ? styles.sent : styles.received
+      }`}
+      onClick={() => handleOfferClick(m.offer?.listingId)}
+    >
+      <div className={styles.productRow}>
+        {m.offer.imageUrl && (
+          <img
+            src={m.offer.imageUrl}
+            alt="Listing"
+            className={styles.productImage}
+          />
+        )}
 
-            <div className={styles.productInfo}>
-              <p className={styles.productTitle}>{offer.title}</p>
+        <div className={styles.productInfo}>
+          <p className={styles.productTitle}>{m.offer.title}</p>
 
-              {offer.offerType === "PRICE" &&
-                offer.amount != null &&
-                offer.currency && (
-                  <p className={styles.productPrice}>
-                    {offer.currency} {offer.amount}
-                  </p>
-                )}
-
-              {offer.offerType === "TRADE" && (
-                <p className={styles.productTrade}>🔁 Trade Offer</p>
+          {m.offer.offerType === "PRICE" ? (
+            <p className={styles.productPrice}>
+              {m.offer.currency} {m.offer.amount}
+            </p>
+          ) : (
+            <p className={styles.productTrade}>
+              🔁 Trade Offer
+              {m.offer.amount && (
+                <>
+                  {" • "}
+                  {m.offer.currency} {m.offer.amount}
+                </>
               )}
-            </div>
-          </div>
+            </p>
+          )}
+        </div>
+      </div>
 
-          <div className={styles.offerAmount}>
-            {offer.offerType === "PRICE" &&
-            offer.amount != null &&
-            offer.currency ? (
+      <div className={styles.offerAmount}>
+        {m.offer.offerType === "PRICE" ? (
+          <>
+            Offer Amount{" "}
+            <strong>
+              {m.offer.currency} {m.offer.amount}
+            </strong>
+          </>
+        ) : (
+          <>
+            Trade For <strong>{m.offer.tradeDescription}</strong>
+
+            {m.offer.amount && (
               <>
-                Offer Amount{" "}
+                {" "} | Offer Amount{" "}
                 <strong>
-                  {offer.currency} {offer.amount}
+                  {m.offer.currency} {m.offer.amount}
                 </strong>
               </>
-            ) : (
-              <>
-                Trade For <strong>{offer.tradeDescription || "Item"}</strong>
-              </>
             )}
-          </div>
+          </>
+        )}
+      </div>
 
-          {m.content && <p className={styles.offerMessage}>{m.content}</p>}
-        </div>,
-      );
-    }
+      {m.content && <p className={styles.offerMessage}>{m.content}</p>}
+    </div>
+  );
+}
+
 
     // 📷 IMAGE
     if (m.type === "image" && m.fileUrl) {
