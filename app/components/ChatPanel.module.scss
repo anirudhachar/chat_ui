@@ -25,7 +25,8 @@
   backdrop-filter: blur(12px);
   border-radius: 22px;
 
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12),
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
 
   animation: fadeUp 0.4s ease;
@@ -73,10 +74,13 @@
 
   background: #ffffff;
 
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6),
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
     0 6px 16px rgba(0, 0, 0, 0.08);
 
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .features li:hover {
@@ -261,11 +265,18 @@
   font-weight: 500;
   color: #fff;
   margin-bottom: 2px;
+  cursor: pointer;
 }
 
 .userStatus {
   font-size: 13px;
   color: #fff;
+  cursor: pointer;
+}
+
+.userName:hover,
+.userStatus:hover {
+  text-decoration: underline;
 }
 
 .moreButton {
@@ -1122,7 +1133,8 @@
 
   margin-bottom: 18px;
 
-  box-shadow: 0 10px 30px rgba(79, 70, 229, 0.25),
+  box-shadow:
+    0 10px 30px rgba(79, 70, 229, 0.25),
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
@@ -1181,7 +1193,8 @@
   padding: 8px 18px;
   border-radius: 999px;
 
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6),
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
     0 6px 16px rgba(0, 0, 0, 0.08);
 
   animation: subtlePulse 2.4s ease-in-out infinite;
@@ -1203,7 +1216,8 @@
   padding: 7px 16px;
   border-radius: 999px;
 
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6),
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
     0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
@@ -1812,7 +1826,6 @@
   }
 }
 
-
 .paginationSpinner {
   display: flex;
   justify-content: center;
@@ -1836,26 +1849,22 @@
   }
 }
 
-
-
-
 .messageTextLink {
-  color: #007aff;          // Classic link blue
+  color: #007aff; // Classic link blue
   text-decoration: underline; // Make it obvious it's a link
-  word-break: break-word;   // Wrap long URLs
-  cursor: pointer;          // Pointer on hover
+  word-break: break-word; // Wrap long URLs
+  cursor: pointer; // Pointer on hover
   transition: color 0.2s;
   font-size: 14px;
 
   &:hover {
-    color: #0051a8;         // Darker blue on hover
+    color: #0051a8; // Darker blue on hover
   }
 
-  &:active {  
-    color: #003a70;         // Even darker when clicked
+  &:active {
+    color: #003a70; // Even darker when clicked
   }
 }
-
 
 .loaderlink {
   width: 24px; /* reduced size for inline usage */
@@ -1895,13 +1904,29 @@
 }
 
 @keyframes slide {
-  0%, 100% { bottom: -14px }
-  25%, 75% { bottom: -2px }
-  20%, 80% { bottom: 2px }
+  0%,
+  100% {
+    bottom: -14px;
+  }
+  25%,
+  75% {
+    bottom: -2px;
+  }
+  20%,
+  80% {
+    bottom: 2px;
+  }
 }
 
 @keyframes rotate {
-  0% { transform: rotate(-15deg) }
-  25%, 75% { transform: rotate(0deg) }
-  100% { transform: rotate(25deg) }
+  0% {
+    transform: rotate(-15deg);
+  }
+  25%,
+  75% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(25deg);
+  }
 }

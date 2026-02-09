@@ -2034,6 +2034,11 @@ export default function ChatInterface() {
           });
           console.log(payload, "payload");
 
+          const resolvedAmount =
+            payload.offerType === "TRADE"
+              ? Number(payload.price)
+              : payload.amount;
+
           // 1. Create Optimistic Offer Object
           const optimisticOffer: Message = {
             id: `offer-${payload.offerId}`,
@@ -2047,7 +2052,7 @@ export default function ChatInterface() {
               offerId: payload.offerId,
               listingId: payload.listingId,
               offerType: payload.offerType,
-              amount: payload.amount,
+              amount: resolvedAmount,
               currency: payload.currency,
               tradeDescription: payload.tradeDescription,
               imageUrl: payload.imageUrl,
