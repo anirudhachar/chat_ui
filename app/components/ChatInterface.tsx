@@ -2052,7 +2052,7 @@ export default function ChatInterface() {
               offerId: payload.offerId,
               listingId: payload.listingId,
               offerType: payload.offerType,
-              amount: resolvedAmount,
+              amount: resolvedAmount, 
               currency: payload.currency,
               tradeDescription: payload.tradeDescription,
               imageUrl: payload.imageUrl,
@@ -2060,7 +2060,7 @@ export default function ChatInterface() {
               title: payload.title,
             },
           };
-
+console.log(optimisticOffer,"optimisticOffer")
           // 2. Update Chat Panel (Optimistic - keep this for instant feedback in chat)
           setMessages((prev) => [...prev, optimisticOffer]);
 
