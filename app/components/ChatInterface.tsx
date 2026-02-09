@@ -2052,7 +2052,7 @@ export default function ChatInterface() {
               offerId: payload.offerId,
               listingId: payload.listingId,
               offerType: payload.offerType,
-              amount: resolvedAmount, 
+              amount: resolvedAmount,
               currency: payload.currency,
               tradeDescription: payload.tradeDescription,
               imageUrl: payload.imageUrl,
@@ -2060,7 +2060,7 @@ export default function ChatInterface() {
               title: payload.title,
             },
           };
-console.log(optimisticOffer,"optimisticOffer")
+          console.log(optimisticOffer, "optimisticOffer");
           // 2. Update Chat Panel (Optimistic - keep this for instant feedback in chat)
           setMessages((prev) => [...prev, optimisticOffer]);
 
@@ -2072,7 +2072,19 @@ console.log(optimisticOffer,"optimisticOffer")
             if (!cid) return;
             if (isSingleRecipient && isSwitchingUser) setConversationId(cid);
 
-            const apiContent = JSON.stringify({ type: "OFFER", ...payload });
+            const normalizedPayload = {
+              ...payload,
+              amount:
+                payload.offerType === "TRADE"
+                  ? Number(payload.price)
+                  : payload.amount,
+            };
+
+            const apiContent = JSON.stringify({
+              type: "OFFER",
+              ...normalizedPayload,
+            });
+
             try {
               const data = await sendMessageToApi(cid, apiContent, parentToken);
               const realId = data?.data?.messageId;
