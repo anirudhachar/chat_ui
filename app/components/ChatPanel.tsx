@@ -522,15 +522,15 @@ const MessageRow = ({
                   {m.offer.currency} {m.offer.amount}
                 </p>
               ) : (
-                <p className={styles.productTrade}>
-                  🔁 Trade Offer
-                  {m.offer.amount && (
-                    <>
-                      {" • "}
-                      {m.offer.currency} {m.offer.amount}
-                    </>
-                  )}
-                </p>
+               <p className={styles.productTrade}>
+  🔁 Trade Offer
+  {m.offer.amount && (
+    <span className={styles.tradeAmountInline}>
+      {" "}+{m.offer.currency} {m.offer.amount}
+    </span>
+  )}
+</p>
+
               )}
             </div>
           </div>
@@ -544,18 +544,15 @@ const MessageRow = ({
                 </strong>
               </>
             ) : (
-              <>
-                Trade For <strong>{m.offer.tradeDescription}</strong>
-                {m.offer.amount && (
-                  <>
-                    {" "}
-                    | Offer Amount{" "}
-                    <strong>
-                      {m.offer.currency} {m.offer.amount}
-                    </strong>
-                  </>
-                )}
-              </>
+            <>
+  Trade For <strong>{m.offer.tradeDescription}</strong>
+  {m.offer.amount && (
+    <span className={styles.tradeAmountInline}>
+      {" "}+ {m.offer.currency} {m.offer.amount}
+    </span>
+  )}
+</>
+
             )}
           </div>
 

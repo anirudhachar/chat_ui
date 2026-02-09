@@ -1930,3 +1930,16 @@
     transform: rotate(25deg);
   }
 }
+.tradeAmountInline {
+  margin-left: 6px;
+  padding: 2px 6px;
+
+  font-size: 12px;
+  font-weight: 500;
+
+  color: #16a34a;          /* green = positive cash */
+  background: #ecfdf5;     /* very light green bg */
+  border-radius: 6px;
+
+  white-space: nowrap;
+}
