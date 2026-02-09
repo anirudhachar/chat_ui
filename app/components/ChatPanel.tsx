@@ -495,56 +495,60 @@ const MessageRow = ({
       );
     }
 
-    if (m.type === "offer" && m.offer) {
-      console.log(m,"baddy")
-      return wrapWithReply(
-        <div
-          className={`${styles.offerCard} ${
-            isMine ? styles.sent : styles.received
-          }`}
-          onClick={() => handleOfferClick(m.offer?.listingId)}
-        >
-          <div className={styles.productRow}>
-            {m.offer.imageUrl && (
-              <img
-                src={m.offer.imageUrl}
-                alt="Listing"
-                className={styles.productImage}
-              />
+ if (m.type === "offer" && m.offer) {
+  return wrapWithReply(
+    <div
+      className={`${styles.offerCard} ${
+        isMine ? styles.sent : styles.received
+      }`}
+      onClick={() => handleOfferClick(m.offer.listingId)}
+    >
+      <div className={styles.productRow}>
+        {m.offer.imageUrl && (
+          <img
+            src={m.offer.imageUrl}
+            alt="Listing"
+            className={styles.productImage}
+          />
+        )}
+
+        <div className={styles.productInfo}>
+          <p className={styles.productTitle}>{m.offer.title}</p>
+
+          {m.offer.offerType === "PRICE" &&
+            typeof m.offer.amount === "number" && (
+              <p className={styles.productPrice}>
+                {m.offer.currency} {m.offer.amount}
+              </p>
             )}
 
-            <div className={styles.productInfo}>
-              <p className={styles.productTitle}>{m.offer.title}</p>
+          {m.offer.offerType === "TRADE" && (
+            <p className={styles.productTrade}>🔁 Trade Offer</p>
+          )}
+        </div>
+      </div>
 
-              {m.offer.offerType === "PRICE" ? (
-                <p className={styles.productPrice}>
-                  {m.offer.currency} {m.offer.amount}
-                </p>
-              ) : (
-                <p className={styles.productTrade}>🔁 Trade Offer</p>
-              )}
-            </div>
-          </div>
+      <div className={styles.offerAmount}>
+        {m.offer.offerType === "PRICE" &&
+        typeof m.offer.amount === "number" ? (
+          <>
+            Offer Amount{" "}
+            <strong>
+              {m.offer.currency} {m.offer.amount}
+            </strong>
+          </>
+        ) : (
+          <>
+            Trade For <strong>{m.offer.tradeDescription}</strong>
+          </>
+        )}
+      </div>
 
-          <div className={styles.offerAmount}>
-            {m.offer.offerType === "PRICE" ? (
-              <>
-                Offer Amount{" "}
-                <strong>
-                  {m.offer.currency} {m.offer.amount}
-                </strong>
-              </>
-            ) : (
-              <>
-                Trade For <strong>{m.offer.tradeDescription}</strong>
-              </>
-            )}
-          </div>
+      {m.content && <p className={styles.offerMessage}>{m.content}</p>}
+    </div>,
+  );
+}
 
-          {m.content && <p className={styles.offerMessage}>{m.content}</p>}
-        </div>,
-      );
-    }
 
     // 📷 IMAGE
     if (m.type === "image" && m.fileUrl) {
