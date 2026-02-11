@@ -313,96 +313,160 @@ export default function ChatInterface() {
     });
   };
 
-useEffect(() => {
-  if (!parentToken) return;
+  useEffect(() => {
+    if (!parentToken) return;
 
-  const { ws, id } = getWebSocket(parentToken);
-  wsRef.current = ws;
+    const wsUrl = `wss://k4g7m4879h.execute-api.us-east-1.amazonaws.com/dev?token=${encodeURIComponent(
+      parentToken,
+    )}`;
 
-  // ✅ Safe send helper
-  const safeSend = (payload: any) => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(payload));
-    }
-  };
+    const { ws, id } = getWebSocket(parentToken);
+    wsRef.current = ws;
 
-  // ---------------- OPEN ----------------
-  const handleOpen = () => {
-    console.log("WebSocket connected");
-  };
+    ws.onopen = () => {
+      console.log("WebSocket connected");
+    };
 
-  // ---------------- MESSAGE ----------------
-  const handleMessage = (event: MessageEvent) => {
-    console.log("WS message from id:", id, event.data);
+    ws.onmessage = (event) => {
+      console.log("WS message from id:", id, event.data);
+      try {
+        const payload = JSON.parse(event.data);
+        const { event: eventType, data } = payload;
 
-    try {
-      const payload = JSON.parse(event.data);
-      const { event: eventType, data } = payload;
+        console.log("WS event:", eventType, data);
 
-      console.log("WS event:", eventType, data);
+        switch (eventType) {
+          // ─────────────────────────────
+          // NEW MESSAGE
+          // ─────────────────────────────
+          case "newMessage": {
+            // 1. Parse Data
+            let parsedOffer = null;
+            try {
+              const parsed = JSON.parse(data.content);
+              if (parsed.type === "OFFER") parsedOffer = parsed;
+            } catch {}
 
-      switch (eventType) {
-        // =========================================================
-        // NEW MESSAGE
-        // =========================================================
-        case "newMessage": {
-          let parsedOffer = null;
+            const detectedUrl = !parsedOffer ? extractUrl(data.content) : null;
+            const isMine = data.senderUserId === loggedInUserIdRef.current;
 
-          try {
-            const parsed = JSON.parse(data.content);
-            if (parsed.type === "OFFER") parsedOffer = parsed;
-          } catch {}
+            console.log(data, "datsend");
+            const backendMessageKey = data.messageKey || data.messageId;
 
-          const detectedUrl = !parsedOffer ? extractUrl(data.content) : null;
-          const isMine = data.senderUserId === loggedInUserIdRef.current;
+            // 🔥 GET AVATAR FROM SIDEBAR USERS
+            const senderAvatar = isMine
+              ? myAvatar
+              : usersRef.current.find((u) => u.id === data.senderUserId)
+                  ?.avatar;
 
-          const backendMessageKey = data.messageKey || data.messageId;
+            const realSenderName = isMine
+              ? "You"
+              : selectedUserRef.current?.id === data.senderUserId
+                ? selectedUserRef.current?.name
+                : "User";
+            if (!isMine) {
+              const backendMessageKey = data.messageKey || data.messageId;
+              const isChatOpen =
+                data.conversationId === conversationIdRef.current;
 
-          const senderAvatar = isMine
-            ? myAvatar
-            : usersRef.current.find((u) => u.id === data.senderUserId)?.avatar;
+              // 1️⃣ ALWAYS send DELIVERED first
+              console.log("📨 Sending ackDelivered:", backendMessageKey);
 
-          const realSenderName = isMine
-            ? "You"
-            : selectedUserRef.current?.id === data.senderUserId
-            ? selectedUserRef.current?.name
-            : "User";
-
-          if (!isMine) {
-            const isChatOpen =
-              data.conversationId === conversationIdRef.current;
-
-            console.log("📨 Sending ackDelivered:", backendMessageKey);
-
-            safeSend({
-              event: "ackDelivered",
-              data: {
-                conversationId: data.conversationId,
-                messageIds: [backendMessageKey],
-              },
-            });
-
-            if (isChatOpen) {
-              safeSend({
-                event: "ackRead",
-                data: {
-                  conversationId: data.conversationId,
-                  messageIds: [backendMessageKey],
-                },
-              });
-
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === backendMessageKey || m.id === data.messageId
-                    ? { ...m, status: "read" }
-                    : m,
-                ),
+              ws.send(
+                JSON.stringify({
+                  event: "ackDelivered",
+                  data: {
+                    conversationId: data.conversationId,
+                    messageIds: [backendMessageKey],
+                  },
+                }),
               );
-            }
-          }
 
-          if (data.conversationId === conversationIdRef.current) {
-            setMessages((prev) => [
+              if (isChatOpen) {
+                ws.send(
+                  JSON.stringify({
+                    event: "ackRead",
+                    data: {
+                      conversationId: data.conversationId,
+                      messageIds: [backendMessageKey],
+                    },
+                  }),
+                );
+
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === backendMessageKey || m.id === data.messageId
+                      ? { ...m, status: "read" }
+                      : m,
+                  ),
+                );
+              }
+            }
+
+            if (data.conversationId === conversationIdRef.current) {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: data.messageId,
+                  messageKey: data.messageKey,
+                  content: parsedOffer?.text || data.content,
+                  createdAt: new Date(data.createdAt).getTime(),
+
+                  timestamp: new Date(data.createdAt).toLocaleTimeString(
+                    "en-US",
+                    {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    },
+                  ),
+                  sent: isMine,
+                  senderName: realSenderName,
+                  senderAvatar,
+                  type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
+                  offer: parsedOffer
+                    ? {
+                        offerId: parsedOffer.offerId,
+                        listingId: parsedOffer.listingId,
+                        offerType: parsedOffer.offerType,
+                        amount: parsedOffer.amount,
+                        currency: parsedOffer.currency,
+                        tradeDescription: parsedOffer.tradeDescription,
+                        imageUrl: parsedOffer.imageUrl,
+                        text: parsedOffer.text,
+                        title: parsedOffer.title,
+                      }
+                    : undefined,
+                  linkUrl: detectedUrl ?? undefined,
+                  status: isMine ? "sent" : "read",
+
+                  reactions: {},
+
+                  replyTo: data.replyTo
+                    ? ({
+                        id: data.replyTo.messageKey, // Or messageId
+                        content: data.replyTo.snippet,
+                        senderId: data.replyTo.senderUserId,
+                        // Try to find name in current users list, or fallback
+                        senderName:
+                          data.replyTo.senderUserId ===
+                          loggedInUserIdRef.current
+                            ? "You"
+                            : selectedUserRef.current?.name,
+                        type: data.replyTo.type || "text",
+                        // Required Message types (fill with dummies for reply preview)
+                        timestamp: "",
+                        sent: false,
+                      } as any)
+                    : undefined,
+                },
+              ]);
+
+              if (detectedUrl) {
+                fetchLinkPreview(data.messageId, detectedUrl);
+              }
+            }
+
+            updateConversationCache(data.conversationId, (prev) => [
               ...prev,
               {
                 id: data.messageId,
@@ -411,7 +475,10 @@ useEffect(() => {
                 createdAt: new Date(data.createdAt).getTime(),
                 timestamp: new Date(data.createdAt).toLocaleTimeString(
                   "en-US",
-                  { hour: "numeric", minute: "2-digit" },
+                  {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  },
                 ),
                 sent: isMine,
                 senderName: realSenderName,
@@ -421,378 +488,437 @@ useEffect(() => {
                 linkUrl: detectedUrl ?? undefined,
                 status: isMine ? "sent" : "read",
                 reactions: {},
-                replyTo: data.replyTo
-                  ? ({
-                      id: data.replyTo.messageKey,
-                      content: data.replyTo.snippet,
-                      senderId: data.replyTo.senderUserId,
-                      senderName:
-                        data.replyTo.senderUserId ===
-                        loggedInUserIdRef.current
-                          ? "You"
-                          : selectedUserRef.current?.name,
-                      type: data.replyTo.type || "text",
-                      timestamp: "",
-                      sent: false,
-                    } as any)
-                  : undefined,
               },
             ]);
 
-            if (detectedUrl) {
-              fetchLinkPreview(data.messageId, detectedUrl);
-            }
+            // 3. Update Sidebar (move conversation to top)
+            setUsers((prev) => {
+              const existingIndex = prev.findIndex(
+                (u) =>
+                  u.id === data.senderUserId || u.id === data.recipientUserId,
+              );
+
+              if (existingIndex === -1) return prev;
+
+              const existingUser = prev[existingIndex];
+
+              const updatedUser: User = {
+                ...existingUser,
+                lastMessage: parsedOffer ? "Sent an offer" : data.content,
+                lastMessageTime: new Date(data.createdAt).toLocaleTimeString(
+                  "en-US",
+                  {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  },
+                ),
+
+                unread:
+                  data.conversationId === conversationIdRef.current
+                    ? 0
+                    : existingUser.unread,
+
+                lastMessageStatus: undefined, // ❌ remove ticks
+                lastMessageSenderId: data.senderUserId, // incoming
+              };
+
+              const others = prev.filter((_, idx) => idx !== existingIndex);
+              return [updatedUser, ...others];
+            });
+
+            break;
           }
-
-          updateConversationCache(data.conversationId, (prev) => [
-            ...prev,
-            {
-              id: data.messageId,
-              messageKey: data.messageKey,
-              content: parsedOffer?.text || data.content,
-              createdAt: new Date(data.createdAt).getTime(),
-              timestamp: new Date(data.createdAt).toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-              }),
-              sent: isMine,
-              senderName: realSenderName,
-              senderAvatar,
-              type: parsedOffer ? "offer" : detectedUrl ? "link" : "text",
-              offer: parsedOffer ? { ...parsedOffer } : undefined,
-              linkUrl: detectedUrl ?? undefined,
-              status: isMine ? "sent" : "read",
-              reactions: {},
-            },
-          ]);
-
-          setUsers((prev) => {
-            const existingIndex = prev.findIndex(
-              (u) =>
-                u.id === data.senderUserId || u.id === data.recipientUserId,
+          case "messageRead": {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.messageKey === data.messageKey || m.id === data.messageId
+                  ? { ...m, status: "read" }
+                  : m,
+              ),
+            );
+            updateConversationCache(conversationIdRef.current!, (prev) =>
+              prev.map((m) =>
+                m.messageKey === data.messageKey || m.id === data.messageId
+                  ? { ...m, status: "read" } // or "read"
+                  : m,
+              ),
             );
 
-            if (existingIndex === -1) return prev;
-
-            const existingUser = prev[existingIndex];
-
-            const updatedUser: User = {
-              ...existingUser,
-              lastMessage: parsedOffer ? "Sent an offer" : data.content,
-              lastMessageTime: new Date(data.createdAt).toLocaleTimeString(
-                "en-US",
-                { hour: "numeric", minute: "2-digit" },
+            setUsers((prev) =>
+              prev.map((u) =>
+                u.id === selectedUserRef.current?.id &&
+                u.lastMessageSenderId === loggedInUserIdRef.current
+                  ? { ...u, lastMessageStatus: "read" }
+                  : u,
               ),
-              unread:
-                data.conversationId === conversationIdRef.current
-                  ? 0
-                  : existingUser.unread,
-              lastMessageStatus: undefined,
-              lastMessageSenderId: data.senderUserId,
-            };
+            );
 
-            const others = prev.filter((_, idx) => idx !== existingIndex);
-            return [updatedUser, ...others];
-          });
-
-          break;
-        }
-
-        // =========================================================
-        // MESSAGE READ
-        // =========================================================
-        case "messageRead": {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.messageKey === data.messageKey || m.id === data.messageId
-                ? { ...m, status: "read" }
-                : m,
-            ),
-          );
-
-          updateConversationCache(conversationIdRef.current!, (prev) =>
-            prev.map((m) =>
-              m.messageKey === data.messageKey || m.id === data.messageId
-                ? { ...m, status: "read" }
-                : m,
-            ),
-          );
-
-          setUsers((prev) =>
-            prev.map((u) =>
-              u.id === selectedUserRef.current?.id &&
-              u.lastMessageSenderId === loggedInUserIdRef.current
-                ? { ...u, lastMessageStatus: "read" }
-                : u,
-            ),
-          );
-
-          break;
-        }
-
-        // =========================================================
-        // PRESENCE
-        // =========================================================
-        case "userPresence": {
-          const { userId, status } = data;
-          const isOnline = status === "online";
-
-          setUsers((prev) =>
-            prev.map((user) =>
-              user.id === userId ? { ...user, online: isOnline } : user,
-            ),
-          );
-
-          setSelectedUser((prev) =>
-            prev && prev.id === userId ? { ...prev, online: isOnline } : prev,
-          );
-
-          break;
-        }
-
-        // =========================================================
-        // GLOBAL UNREAD
-        // =========================================================
-        case "globalUnreadCount": {
-          const delta = data?.delta ?? 0;
-
-          window.parent.postMessage(
-            {
-              type: "globalUnreadCount",
-              data: { delta },
-            },
-            "*",
-          );
-
-          break;
-        }
-
-        // =========================================================
-        // TYPING
-        // =========================================================
-        case "typing": {
-          const { conversationId: typingCid, userId, isTyping } = data;
-
-          if (
-            typingCid === conversationIdRef.current &&
-            userId !== loggedInUserIdRef.current
-          ) {
-            setIsPartnerTyping(isTyping);
+            break;
           }
 
-          setUsers((prev) =>
-            prev.map((u) => (u.id === userId ? { ...u, isTyping } : u)),
-          );
+          case "userPresence": {
+            const { userId, status } = data;
+            const isOnline = status === "online";
 
-          break;
-        }
+            setUsers((prev) =>
+              prev.map((user) =>
+                user.id === userId ? { ...user, online: isOnline } : user,
+              ),
+            );
 
-        // =========================================================
-        // MESSAGE DELIVERED
-        // =========================================================
-        case "messageDelivered": {
-          setMessages((prev) =>
-            prev.map((m) => {
-              if (
-                m.messageKey !== data.messageKey &&
-                m.id !== data.messageId
-              )
-                return m;
+            setSelectedUser((prev) =>
+              prev && prev.id === userId ? { ...prev, online: isOnline } : prev,
+            );
 
-              if (
-                STATUS_PRIORITY[m.status ?? "sent"] >
-                STATUS_PRIORITY["delivered"]
-              )
-                return m;
+            break;
+          }
 
-              return { ...m, status: "delivered" };
-            }),
-          );
+          case "globalUnreadCount": {
+            const delta = data?.delta ?? 0;
 
-          updateConversationCache(conversationIdRef.current!, (prev) =>
-            prev.map((m) => {
-              if (
-                m.messageKey !== data.messageKey &&
-                m.id !== data.messageId
-              )
-                return m;
+            // forward to parent ONLY
+            window.parent.postMessage(
+              {
+                type: "globalUnreadCount",
+                data: { delta },
+              },
+              "*",
+            );
 
-              if (
-                STATUS_PRIORITY[m.status ?? "sent"] >
-                STATUS_PRIORITY["delivered"]
-              )
-                return m;
+            break;
+          }
 
-              return { ...m, status: "delivered" };
-            }),
-          );
+          // Inside ws.onmessage switch (payload.event)
 
-          setUsers((prev) =>
-            prev.map((u) =>
-              u.id === selectedUserRef.current?.id &&
-              u.lastMessageSenderId === loggedInUserIdRef.current
-                ? { ...u, lastMessageStatus: "delivered" }
-                : u,
-            ),
-          );
+          case "typing": {
+            const {
+              conversationId: typingCid,
+              userId: typingUserId,
+              isTyping,
+            } = data;
 
-          break;
-        }
+            // 1️⃣ Update ChatPanel typing bubble
+            if (
+              typingCid === conversationIdRef.current &&
+              typingUserId !== loggedInUserIdRef.current
+            ) {
+              setIsPartnerTyping(isTyping);
+            }
 
-        // =========================================================
-        // MESSAGE EDITED
-        // =========================================================
-        case "messageEdited": {
-          const { messageKey, messageId, newContent } = data;
+            // 2️⃣ 🔥 Update SIDEBAR typing state
+            setUsers((prev) =>
+              prev.map((u) => (u.id === typingUserId ? { ...u, isTyping } : u)),
+            );
 
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.messageKey === messageKey || m.id === messageId
-                ? { ...m, content: newContent, isEdited: true }
-                : m,
-            ),
-          );
+            break;
+          }
 
-          updateConversationCache(conversationIdRef.current!, (prev) =>
-            prev.map((m) =>
-              m.messageKey === messageKey || m.id === messageId
-                ? { ...m, content: newContent, isEdited: true }
-                : m,
-            ),
-          );
+          case "messageDelivered": {
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (
+                  m.messageKey !== data.messageKey &&
+                  m.id !== data.messageId
+                ) {
+                  return m;
+                }
 
-          break;
-        }
+                // ⛔ Do NOT downgrade READ → DELIVERED
+                if (
+                  STATUS_PRIORITY[m.status ?? "sent"] >
+                  STATUS_PRIORITY["delivered"]
+                ) {
+                  return m;
+                }
 
-        // =========================================================
-        // MESSAGE DELETED
-        // =========================================================
-        case "messageDeleted": {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.messageKey === data.messageKey || m.id === data.messageId
-                ? {
+                return { ...m, status: "delivered" };
+              }),
+            );
+
+            updateConversationCache(conversationIdRef.current!, (prev) =>
+              prev.map((m) => {
+                if (m.messageKey !== data.messageKey && m.id !== data.messageId)
+                  return m;
+
+                if (
+                  STATUS_PRIORITY[m.status ?? "sent"] >
+                  STATUS_PRIORITY["delivered"]
+                ) {
+                  return m;
+                }
+
+                return { ...m, status: "delivered" };
+              }),
+            );
+
+            setUsers((prev) =>
+              prev.map((u) =>
+                u.id === selectedUserRef.current?.id &&
+                u.lastMessageSenderId === loggedInUserIdRef.current
+                  ? { ...u, lastMessageStatus: "delivered" }
+                  : u,
+              ),
+            );
+
+            break;
+          }
+
+          // Inside ws.onmessage
+
+          case "messageEdited": {
+            const { messageKey, messageId, newContent } = data;
+
+            // 1️⃣ Update ChatPanel (unchanged, just cleaned up)
+            setMessages((prev) =>
+              prev.map((m) => {
+                const isMatch =
+                  m.messageKey === messageKey || m.id === messageId;
+
+                if (!isMatch) return m;
+
+                return {
+                  ...m,
+                  content: newContent,
+                  isEdited: true, // optional
+                };
+              }),
+            );
+
+            updateConversationCache(conversationIdRef.current!, (prev) =>
+              prev.map((m) =>
+                m.messageKey === messageKey || m.id === messageId
+                  ? { ...m, content: newContent, isEdited: true }
+                  : m,
+              ),
+            );
+
+            // 2️⃣ Update SIDEBAR preview (if last message)
+            setUsers((prev) => {
+              const index = prev.findIndex((u) =>
+                u.lastMessage === undefined ? false : true,
+              );
+
+              if (index === -1) return prev;
+
+              const updatedUser = {
+                ...prev[index],
+                lastMessage: newContent,
+              };
+
+              const others = prev.filter((_, i) => i !== index);
+              return [updatedUser, ...others];
+            });
+
+            break;
+          }
+
+          case "messageDeleted": {
+            setMessages((prev) =>
+              prev.map((m) => {
+                // Check if this is the deleted message
+                if (
+                  m.messageKey === data.messageKey ||
+                  m.id === data.messageId
+                ) {
+                  return {
                     ...m,
                     content: "This message was deleted",
                     type: "text",
+                    fileUrl: undefined,
+                    linkUrl: undefined,
+                    offer: undefined,
                     reactions: {},
-                    isDeleted: true,
-                  }
-                : m,
-            ),
-          );
-
-          break;
-        }
-
-        // =========================================================
-        // REACTION UPDATED
-        // =========================================================
-        case "messageReactionUpdated": {
-          const { messageKey, emoji, reactedBy, action } = data;
-
-          setMessages((prev) =>
-            prev.map((m) => {
-              if (m.messageKey !== messageKey) return m;
-
-              const reactions = { ...(m.reactions || {}) };
-
-              Object.keys(reactions).forEach((key) => {
-                reactions[key] = reactions[key].filter(
-                  (u) => u !== reactedBy,
-                );
-                if (reactions[key].length === 0) delete reactions[key];
-              });
-
-              if (action !== "REMOVED") {
-                reactions[emoji] = [...(reactions[emoji] || []), reactedBy];
-              }
-
-              return { ...m, reactions };
-            }),
-          );
-
-          break;
-        }
-
-        // =========================================================
-        // CONVERSATION UPDATED
-        // =========================================================
-        case "conversationUpdated": {
-          setUsers((prev) => {
-            const targetId = data.lastMessageSenderId;
-
-            const index = prev.findIndex((u) => u.id === targetId);
-            if (index === -1) return prev;
-
-            const updatedUser = {
-              ...prev[index],
-              lastMessage: data.lastMessagePreview,
-              lastMessageTime: new Date(
-                data.lastMessageAt,
-              ).toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
+                    isDeleted: true, // Flag for UI styling
+                  };
+                }
+                return m;
               }),
-              unread:
-                selectedUserRef.current?.id === targetId
-                  ? 0
-                  : (prev[index].unread ?? 0) +
-                    (data.unreadIncrement ?? 0),
-            };
+            );
+            updateConversationCache(data.conversationId, (prev) =>
+              prev.map((m) =>
+                m.messageKey === data.messageKey || m.id === data.messageId
+                  ? {
+                      ...m,
+                      content: "This message was deleted",
+                      type: "text",
+                      linkUrl: undefined,
+                      offer: undefined,
+                      reactions: {},
+                      isDeleted: true,
+                    }
+                  : m,
+              ),
+            );
 
-            const others = prev.filter((_, i) => i !== index);
-            return [updatedUser, ...others];
-          });
+            setUsers((prev) =>
+              prev.map((u) => {
+                const isSameConversation =
+                  u.id === selectedUserRef.current?.id &&
+                  conversationIdRef.current === data.conversationId;
 
-          break;
+                if (!isSameConversation) return u;
+
+                return {
+                  ...u,
+                  lastMessage: "This message was deleted",
+                  lastMessageStatus: undefined,
+                };
+              }),
+            );
+
+            break;
+          }
+
+          // case "messageReactionUpdated": {
+          //   const { messageKey, emoji, action, reactedBy } = data;
+
+          //   setMessages((prev) =>
+          //     prev.map((m) => {
+          //       if (m.messageKey !== messageKey) return m;
+
+          //       const currentReactions = m.reactions || {};
+          //       const usersForEmoji = currentReactions[emoji] || [];
+
+          //       let updatedUsers: string[];
+
+          //       if (action === "ADDED") {
+          //         // avoid duplicates
+          //         if (usersForEmoji.includes(reactedBy)) {
+          //           return m;
+          //         }
+          //         updatedUsers = [...usersForEmoji, reactedBy];
+          //       } else if (action === "REMOVED") {
+          //         updatedUsers = usersForEmoji.filter((u) => u !== reactedBy);
+          //       } else {
+          //         return m;
+          //       }
+
+          //       const updatedReactions = { ...currentReactions };
+
+          //       if (updatedUsers.length > 0) {
+          //         updatedReactions[emoji] = updatedUsers;
+          //       } else {
+          //         delete updatedReactions[emoji];
+          //       }
+
+          //       return {
+          //         ...m,
+          //         reactions: updatedReactions,
+          //       };
+          //     })
+          //   );
+
+          //   break;
+          // }
+
+          case "messageReactionUpdated": {
+            const { messageKey, emoji, reactedBy, action } = data;
+
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (m.messageKey !== messageKey) return m;
+
+                const reactions = { ...(m.reactions || {}) };
+
+                // 1️⃣ Remove this user from ALL emojis (🔥❤️😂 etc)
+                Object.keys(reactions).forEach((key) => {
+                  reactions[key] = reactions[key].filter(
+                    (u) => u !== reactedBy,
+                  );
+                  if (reactions[key].length === 0) {
+                    delete reactions[key];
+                  }
+                });
+
+                if (action !== "REMOVED") {
+                  reactions[emoji] = [...(reactions[emoji] || []), reactedBy];
+                }
+
+                return { ...m, reactions };
+              }),
+            );
+
+            updateConversationCache(conversationIdRef.current!, (prev) =>
+              prev.map((m) => {
+                if (m.messageKey !== messageKey) return m;
+
+                const reactions = { ...(m.reactions || {}) };
+
+                Object.keys(reactions).forEach((key) => {
+                  reactions[key] = reactions[key].filter(
+                    (u) => u !== reactedBy,
+                  );
+                  if (reactions[key].length === 0) delete reactions[key];
+                });
+
+                if (action !== "REMOVED") {
+                  reactions[emoji] = [...(reactions[emoji] || []), reactedBy];
+                }
+
+                return { ...m, reactions };
+              }),
+            );
+
+            break;
+          }
+
+          case "conversationUpdated": {
+            setUsers((prev) => {
+              // Find the user to update
+              const targetId = data.lastMessageSenderId;
+
+              const index = prev.findIndex((u) => u.id === targetId);
+
+              if (index === -1) return prev;
+
+              const updatedUser = {
+                ...prev[index],
+                lastMessage: data.lastMessagePreview,
+                lastMessageTime: new Date(
+                  data.lastMessageAt,
+                ).toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                }),
+                unread:
+                  selectedUserRef.current?.id === targetId
+                    ? 0
+                    : (prev[index].unread ?? 0) + (data.unreadIncrement ?? 0),
+              };
+
+              // Move to top
+              const others = prev.filter((_, i) => i !== index);
+              return [updatedUser, ...others];
+            });
+            break;
+          }
+
+          case "messageSentAck": {
+            const { conversationId } = data;
+
+            // 🔥 MULTI-DEVICE SYNC (ChatPanel)
+            syncConversationMessages(conversationId);
+
+            break;
+          }
+
+          default:
+            console.log("⚠️ Unknown WS event", payload);
         }
-
-        // =========================================================
-        // MESSAGE SENT ACK
-        // =========================================================
-        case "messageSentAck": {
-          const { conversationId } = data;
-          syncConversationMessages(conversationId);
-          break;
-        }
-
-        default:
-          console.log("⚠️ Unknown WS event", payload);
+      } catch (err) {
+        console.error("WS parse error", err);
       }
-    } catch (err) {
-      console.error("WS parse error", err);
-    }
-  };
+    };
 
-  // ---------------- ERROR ----------------
-  const handleError = (err: Event) => {
-    console.error("❌ WebSocket error", err);
-  };
+    ws.onerror = (err) => {
+      console.error("❌ WebSocket error", err);
+    };
 
-  // ---------------- CLOSE ----------------
-  const handleClose = (event: CloseEvent) => {
-    console.log("WebSocket closed");
-    console.log("Code:", event.code);
-    console.log("Reason:", event.reason);
-    console.log("Was clean:", event.wasClean);
-  };
-
-  // Attach listeners
-  ws.addEventListener("open", handleOpen);
-  ws.addEventListener("message", handleMessage);
-  ws.addEventListener("error", handleError);
-  ws.addEventListener("close", handleClose);
-
-  return () => {
-    ws.removeEventListener("open", handleOpen);
-    ws.removeEventListener("message", handleMessage);
-    ws.removeEventListener("error", handleError);
-    ws.removeEventListener("close", handleClose);
-    wsRef.current = null;
-  };
-}, [parentToken]);
-
+    return () => {
+      // ws.close();
+      wsRef.current = null;
+    };
+  }, [parentToken]);
 
   useEffect(() => {
     if (!parentToken) return;
