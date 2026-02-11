@@ -523,7 +523,7 @@ const MessageRow = ({
                 </p>
               ) : (
                 <p className={styles.productTrade}>
-                  🔁 Trade Offer
+                  
                   {m.offer.amount && (
                     <span className={styles.tradeAmountInline}>
                       {" "}
