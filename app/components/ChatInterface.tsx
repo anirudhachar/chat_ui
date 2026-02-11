@@ -316,7 +316,9 @@ export default function ChatInterface() {
   useEffect(() => {
     if (!parentToken) return;
 
- 
+    const wsUrl = `wss://k4g7m4879h.execute-api.us-east-1.amazonaws.com/dev?token=${encodeURIComponent(
+      parentToken,
+    )}`;
 
     const { ws, id } = getWebSocket(parentToken);
     wsRef.current = ws;
