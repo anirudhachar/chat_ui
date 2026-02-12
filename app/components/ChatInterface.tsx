@@ -99,6 +99,11 @@ export default function ChatInterface() {
   const [globalUnread, setGlobalUnread] = useState(0);
   const [profileUser, setProfileUser] = useState<User | null>(null);
   console.log(profileUser, "profileUserObject");
+
+  const parentVisibleRef = useRef(true);
+  const parentFocusedRef = useRef(true);
+  const chatPanelVisibleRef = useRef(true);
+
   // const [hasStartedLoading, setHasStartedLoading] = useState(false);
 
   const messagesCacheRef = useRef<
@@ -152,6 +157,37 @@ export default function ChatInterface() {
   const extractUrl = (text: string) => {
     const match = text.match(/(https?:\/\/(?:www\.)?[^\s/$.?#].[^\s]*)/i);
     return match ? match[0] : null;
+  };
+
+  useEffect(() => {
+    const handleParentEvents = (event: any) => {
+      const { type, visible, focused } = event.data || {};
+
+      if (type === "CHAT_PANEL_VISIBLE") {
+        chatPanelVisibleRef.current = visible;
+      }
+
+      if (type === "PARENT_VISIBILITY") {
+        parentVisibleRef.current = visible;
+      }
+
+      if (type === "PARENT_FOCUS") {
+        parentFocusedRef.current = focused;
+      }
+    };
+
+    window.addEventListener("message", handleParentEvents);
+
+    return () => window.removeEventListener("message", handleParentEvents);
+  }, []);
+
+  const shouldAckRead = (conversationId: any) => {
+    return (
+      chatPanelVisibleRef.current &&
+      parentVisibleRef.current &&
+      parentFocusedRef.current &&
+      conversationId === conversationIdRef.current
+    );
   };
 
   const fetchLinkPreview = async (messageId: string, url: string) => {
@@ -366,10 +402,8 @@ export default function ChatInterface() {
                 : "User";
             if (!isMine) {
               const backendMessageKey = data.messageKey || data.messageId;
-              const isChatOpen =
-                data.conversationId === conversationIdRef.current;
 
-              // 1️⃣ ALWAYS send DELIVERED first
+              // ✅ ALWAYS send DELIVERED
               console.log("📨 Sending ackDelivered:", backendMessageKey);
 
               ws.send(
@@ -382,7 +416,10 @@ export default function ChatInterface() {
                 }),
               );
 
-              if (isChatOpen) {
+              // ✅ Send READ only if user is actually viewing chat
+              if (shouldAckRead(data.conversationId)) {
+                console.log("👀 Sending ackRead:", backendMessageKey);
+
                 ws.send(
                   JSON.stringify({
                     event: "ackRead",
